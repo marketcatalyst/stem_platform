@@ -1,3 +1,15 @@
+import os
+import sys
+
+# ==========================================================================
+# 🛡️ PATH INSURANCY POLICY (CRITICAL FOR LINUX CLOUD DEPLOYMENTS)
+# ==========================================================================
+# Calculates the absolute path of the parent directory (repository root)
+# and forces it to the top of the search stack to resolve 'src' module conflicts.
+repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+if repo_root not in sys.path:
+    sys.path.insert(0, repo_root)
+
 import streamlit as st
 
 # Configure the master application page envelope
@@ -30,12 +42,11 @@ def check_password():
     )
 
     # Securely retrieve target credentials from Streamlit's secrets manager
-    # Local fallback references provided for initial laptop staging runs
     try:
         admin_password = st.secrets["auth_credentials"]["admin_password"]
         reviewer_password = st.secrets["auth_credentials"]["reviewer_password"]
     except KeyError:
-        # Secure fallbacks for local debugging before cloud configuration is set
+        # Secure fallbacks for local staging runs on your laptop
         admin_password = "STEM_Admin_2026"
         reviewer_password = "STEM_Reviewer_2026"
 
@@ -79,7 +90,6 @@ if check_password():
     st.sidebar.title("⚡ STEM")
     st.sidebar.markdown("**High-Voltage Joint Venture**")
 
-    # Visual role tag highlighting active session authorization profile
     if st.session_state.get("read_only", True):
         st.sidebar.caption("🔒 **Session Status:** `READ-ONLY REVIEWER`")
     else:
@@ -88,15 +98,12 @@ if check_password():
     st.sidebar.divider()
     st.sidebar.markdown("### Navigation Workspace")
 
-    # Establish dynamic navigation selections
     workspace_options = [
         "Executive Command",
         "Operations Management",
         "Ingest Site Data",
     ]
 
-    # SYSTEMIC UX CHOICE: If Andris/Dave log in as read-only, we can elegantly
-    # omit the data entry portal entirely from their sidebar to keep their focus on the insights.
     if st.session_state.read_only:
         workspace_options = ["Executive Command", "Operations Management"]
 
