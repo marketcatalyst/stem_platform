@@ -1,0 +1,21 @@
+# Core Web Architecture
+streamlit>=1.35.0
+pydantic>=2.7.0
+pydantic-settings>=2.2.0
+
+# Database & Multi-Tenant Routing
+SQLAlchemy>=2.0.30
+psycopg2-binary>=2.9.9
+alembic>=1.13.1
+
+# Mathematical & Power Engineering Solvers
+pandapower>=2.14.0
+OpenDSSDirect.py>=0.8.3
+numpy>=1.26.0
+pandas>=2.2.0
+
+# Advanced Visualisation Layer
+plotly>=5.22.0
+
+# AI Orchestration & NLP Translation Layer
+google-generativeai>=0.5.4

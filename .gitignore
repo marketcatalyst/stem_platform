@@ -1,0 +1,15 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Local environment and secret files
+.env
+.vstudiocode/
+.vscode/
+.streamlit/secrets.toml
+.streamlit/config.toml
+
+# Operating system files
+Thumbs.db
+Desktop.ini
