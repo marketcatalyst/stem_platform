@@ -1,5 +1,5 @@
 import os
-from google import genai
+import google.generativeai as genai
 from src.config import settings
 
 
@@ -7,13 +7,14 @@ class GeminiTranslationService:
     """
     Orchestrates the conversion of cryptic engineering power quality telemetry
     into high-impact boardroom business cases delivered BY the Swalek & Market Catalyst JV
-    TO external industrial corporate clients. Implements a client-safe, resilient fallback matrix.
+    TO external industrial corporate clients. Uses the legacy google-generativeai package.
     """
 
     def __init__(self):
-        # Initialise the unified GenAI client configuration structure
-        self.client = genai.Client(api_key=settings.GEMINI_API_KEY)
-        self.model_name = "gemini-2.5-flash"
+        # Configure the legacy library using your existing settings token
+        genai.configure(api_key=settings.GEMINI_API_KEY)
+        # Using a model string universally supported by the google-generativeai library wrapper
+        self.model_name = "gemini-1.5-flash"
 
     def generate_boardroom_summary(
         self, client_name: str, asset_class: str, telemetry: dict
@@ -24,7 +25,6 @@ class GeminiTranslationService:
         intelligent local contextual advisory profile to guarantee boardroom continuity.
         """
         try:
-            # Construct the comprehensive strategic prompt envelope
             prompt = f"""
             You are a premier corporate risk strategist and senior industrial power advisor representing 
             the 'Swalek Ltd & Market Catalyst High-Voltage Joint Venture'.
@@ -49,14 +49,13 @@ class GeminiTranslationService:
             4. Keep the tone professional, sharp, consultative, and accessible to non-technical executives. Do not print raw code or math.
             """
 
-            # Execute the remote cloud delivery loop
-            response = self.client.models.generate_content(
-                model=self.model_name, contents=prompt
-            )
+            # Legacy generation sequence execution
+            model = genai.GenerativeModel(self.model_name)
+            response = model.generate_content(prompt)
             return response.text
 
         except Exception:
-            # INTERCEPT REFACTOR: Cloud connection dropped. Generate an elegant client-safe local advisory card.
+            # Cloud connection dropped or throttled. Return the secured local backup card.
             return self._compile_local_advisory_backup(
                 client_name, asset_class, telemetry
             )
@@ -68,7 +67,6 @@ class GeminiTranslationService:
         Interprets structural parameters locally to build a contextual, polished
         boardroom brief, completely hiding raw server error strings from the client view.
         """
-        # Context Vector 1: Check for Process Dropout / Voltage Sag Payload (Pillar 2)
         if "annual_events" in telemetry or "payback_years" in telemetry:
             events = telemetry.get("annual_events", 4)
             capex = telemetry.get("turnkey_capex", 95000.00)
@@ -88,8 +86,6 @@ Our field assessment confirms that the **{asset_class}** remains highly exposed 
 * **The Vulnerability:** Leaving this boundary unmitigated forces your sensitive digital PLC brains and robotic control units to trip offline mid-cycle, destroying active work-in-progress materials and running up severe idle labour overheads during the recovery loop.
 * **The Strategic Recommendation:** Implementing our proposed turnkey mitigation framework (**£{capex:,.2f} CapEx**) acts as a proactive power insurance policy. It completely insulates your automated assets from grid sags, achieving an optimized simple payback window of **{payback:.1f} years** while safeguarding your downstream delivery commitments.
 """
-
-        # Context Vector 2: Check for Current Harmonics / Thermal Degradation Payload (Pillar 1)
         elif "thd_i" in telemetry:
             thd = telemetry.get("thd_i", 5.0)
             return f"""
@@ -106,8 +102,6 @@ Telemetry captured at your incoming busbars registers an elevated Current Harmon
 * **The Vulnerability:** This waveform friction drives up non-linear core losses, converting raw power into destructive thermal stress. This constant baking accelerates the degradation of your primary transformer's solid paper insulation, drastically shortening its useful economic life.
 * **The Strategic Recommendation:** Deploying STEM's active filtering framework suppresses this back-feed current friction instantly. This intervention stabilizes internal operating temperatures, preserves your balance-sheet capital, and restores years of projected asset life.
 """
-
-        # Context Vector 3: Default Power Factor / Reactive Overhead Fallback
         else:
             cos_phi = telemetry.get("cos_phi", 0.80)
             return f"""
