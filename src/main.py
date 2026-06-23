@@ -2,10 +2,8 @@ import os
 import sys
 
 # ==========================================================================
-# 🛡️ PATH INSURANCY POLICY (CRITICAL FOR LINUX CLOUD DEPLOYMENTS)
+# 🛡️ PATH INSURANCE POLICY (CRITICAL FOR LINUX CLOUD DEPLOYMENTS)
 # ==========================================================================
-# Calculates the absolute path of the parent directory (repository root)
-# and forces it to the top of the search stack to resolve 'src' module conflicts.
 repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if repo_root not in sys.path:
     sys.path.insert(0, repo_root)
@@ -23,11 +21,11 @@ st.set_page_config(
 def check_password():
     """
     Returns True if the user has entered a valid password.
-    Differentiates between master admin access and read-only reviewer access for colleagues.
+    Differentiates between Master Admin, Sandbox Tester, and Read-Only Reviewer roles.
     """
     if "authenticated" not in st.session_state:
         st.session_state.authenticated = False
-        st.session_state.read_only = True
+        st.session_state.role = "viewer"  # Roles: admin, tester, viewer
 
     if st.session_state.authenticated:
         return True
@@ -41,13 +39,15 @@ def check_password():
         "Please enter your corporate authorization credential to access the active portfolio twin."
     )
 
-    # Securely retrieve target credentials from Streamlit's secrets manager
+    # Securely retrieve credentials from Streamlit's secrets manager
     try:
         admin_password = st.secrets["auth_credentials"]["admin_password"]
+        tester_password = st.secrets["auth_credentials"]["tester_password"]
         reviewer_password = st.secrets["auth_credentials"]["reviewer_password"]
     except KeyError:
         # Secure fallbacks for local staging runs on your laptop
         admin_password = "STEM_Admin_2026"
+        tester_password = "STEM_Staging_2026"
         reviewer_password = "STEM_Reviewer_2026"
 
     with st.form("credential_logging_gateway"):
@@ -57,14 +57,21 @@ def check_password():
         if submit_key:
             if user_password == admin_password:
                 st.session_state.authenticated = True
-                st.session_state.read_only = False
+                st.session_state.role = "admin"
                 st.success(
                     "🔒 Admin Session Authorized. Full Read-Write Privileges Granted."
                 )
                 st.rerun()
+            elif user_password == tester_password:
+                st.session_state.authenticated = True
+                st.session_state.role = "tester"
+                st.warning(
+                    "🧪 Sandbox Tester Session Authorized. Data Ingestion Walk-Through Enabled."
+                )
+                st.rerun()
             elif user_password == reviewer_password:
                 st.session_state.authenticated = True
-                st.session_state.read_only = True
+                st.session_state.role = "viewer"
                 st.info(
                     "👁️ Reviewer Session Authorized. Read-Only Portfolio Mode Activated."
                 )
@@ -90,21 +97,26 @@ if check_password():
     st.sidebar.title("⚡ STEM")
     st.sidebar.markdown("**High-Voltage Joint Venture**")
 
-    if st.session_state.get("read_only", True):
-        st.sidebar.caption("🔒 **Session Status:** `READ-ONLY REVIEWER`")
-    else:
+    # Render localized status configurations based on authorized role
+    if st.session_state.role == "admin":
         st.sidebar.caption("🔥 **Session Status:** `MASTER ADMIN (RW)`")
-
-    st.sidebar.divider()
-    st.sidebar.markdown("### Navigation Workspace")
-
-    workspace_options = [
-        "Executive Command",
-        "Operations Management",
-        "Ingest Site Data",
-    ]
-
-    if st.session_state.read_only:
+        workspace_options = [
+            "Executive Command",
+            "Operations Management",
+            "Ingest Site Data",
+        ]
+    elif st.session_state.role == "tester":
+        st.sidebar.caption("🧪 **Session Status:** `SANDBOX TESTER`")
+        st.sidebar.info(
+            "Sandbox Mode: Data entry screens are unlocked for simulation walk-throughs."
+        )
+        workspace_options = [
+            "Executive Command",
+            "Operations Management",
+            "Ingest Site Data",
+        ]
+    else:
+        st.sidebar.caption("🔒 **Session Status:** `READ-ONLY REVIEWER`")
         workspace_options = ["Executive Command", "Operations Management"]
 
     workspace_selection = st.sidebar.radio(
@@ -123,4 +135,5 @@ if check_password():
     elif workspace_selection == "Operations Management":
         render_operations_view()
     elif workspace_selection == "Ingest Site Data":
+        # Let the view layer know if a tester is running it so it can handle sandboxed session states
         render_data_entry_view()
