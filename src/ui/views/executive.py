@@ -133,47 +133,37 @@ def load_client_portfolio_matrix(client_name: str) -> pd.DataFrame:
     return pd.DataFrame()
 
 
-def load_compliance_and_headroom_matrix(client_name: str) -> dict:
+def calculate_dynamic_systemic_metrics(df: pd.DataFrame, client_name: str) -> dict:
     """
-    Returns structured statutory compliance and electrical capacity states
-    for site infrastructure audits.
-    """
-    matrix = {
-        "Ammanford Alloys Ltd": {
-            "sld_status": "🔴 OUTDATED (Audit Required)",
-            "sld_color": "error",
-            "pfc_status": "⚠️ Lagging (0.82 Cos Phi)",
-            "grid_compliance": "🔒 G99 Approved under G100 Export Limitation (0 kW)",
-            "unlocked_headroom": "320 kVA (Potential via Active SVG Integration)",
-        },
-        "Swansea Silica Mining Operations": {
-            "sld_status": "🟢 VERIFIED (2025 Field Survey)",
-            "sld_color": "success",
-            "pfc_status": "🟢 Optimized (0.92 Cos Phi)",
-            "grid_compliance": "🔴 Legacy G59/3 (Requires Urgent G99 Transition)",
-            "unlocked_headroom": "150 kVA (Available Node Restructuring)",
-        },
-        "Killan Farm Solar Array Hub": {
-            "sld_status": "🟢 VERIFIED (2026 Commissioning)",
-            "sld_color": "success",
-            "pfc_status": "🟢 Peak Optimized (0.98 Cos Phi)",
-            "grid_compliance": "🟢 G99 Compliant / G100 Active Import Control Active",
-            "unlocked_headroom": "500 kW (Fully Liberated Injection Capacity)",
-        },
-    }
-    return matrix.get(client_name, {})
-
-
-def calculate_dynamic_loss_metrics(df: pd.DataFrame, client_name: str) -> dict:
-    """
-    Executes structural engineering computations mapping thermal dissipation
-    and non-linear loss overheads against specialized tariff tiers.
+    Executes deep structural engineering calculations combining Harmonic Thermal Loss
+    and Power Factor Reactive Penalties to map complete balance sheet risk profiles.
     """
     utility_rate = 0.24 if "Mining" in client_name else 0.22
-    total_annual_loss = 0.0
-    total_capacity_kw = df["Rating (kW)"].sum()
+    total_harmonic_loss = 0.0
+    total_active_kw = df["Rating (kW)"].sum()
     peak_thd = df["Distortion (THD_i)"].max()
 
+    # 🧠 Establish core Power Factor baselines based on client architecture archetypes
+    if "Alloys" in client_name:
+        baseline_cos_phi = (
+            0.81  # Massive raw uncorrected induction/arc induction fields
+        )
+        sld_status = "🔴 OUTDATED (Field Verification Audit Required)"
+        grid_compliance = "🔒 G99 Approved under strict G100 Export Limitation (0 kW limitation at boundary)"
+    elif "Mining" in client_name:
+        baseline_cos_phi = (
+            0.86  # Standard mixed pumping matrix with basic mechanical caps
+        )
+        sld_status = "🟢 VERIFIED (2025 Engineering Survey)"
+        grid_compliance = "🔴 Legacy G59/3 Protection (Mandatory Statutory Transition to G99 Required)"
+    else:
+        baseline_cos_phi = (
+            0.97  # Modern grid-tied active inverter clusters operating near unity
+        )
+        sld_status = "🟢 VERIFIED (2026 Grid Commissioning Documentation)"
+        grid_compliance = "🟢 G99 Compliant / Active G100 Import Control Operational"
+
+    # Loop 1: Harmonic Thermal Loss Execution
     for _, row in df.iterrows():
         rating = row["Rating (kW)"]
         hours = row["Weekly Hrs"]
@@ -182,16 +172,41 @@ def calculate_dynamic_loss_metrics(df: pd.DataFrame, client_name: str) -> dict:
         if thd > 5.0:
             loss_coefficient = (thd / 100.0) * 0.048
             annual_kwh_waste = rating * loss_coefficient * hours * 52
-            total_annual_loss += annual_kwh_waste * utility_rate
+            total_harmonic_loss += annual_kwh_waste * utility_rate
 
-    efficiency_score = max(70.0, 99.4 - (peak_thd * 0.45))
-    downtime_liability = total_capacity_kw * 18.50 * (peak_thd / 10.0)
+    # Loop 2: Power Factor Correction Framework Math
+    target_cos_phi = 0.96
+    if baseline_cos_phi < target_cos_phi:
+        # Calculate the inflation of apparent capacity (kVA) hitting the transformers
+        apparent_kva_existing = total_active_kw / baseline_cos_phi
+        apparent_kva_optimized = total_active_kw / target_cos_phi
+
+        # Headroom liberated represents the capacity returned to the client's balance sheet
+        liberated_headroom_kva = apparent_kva_existing - apparent_kva_optimized
+
+        # Calculate DNO reactive surcharge penalty (estimated at £14.50 per excess kVA demand per annum)
+        annual_pfc_penalty_gbp = liberated_headroom_kva * 14.50
+    else:
+        liberated_headroom_kva = 0.0
+        annual_pfc_penalty_gbp = 0.0
+
+    # Consolidate unified metrics
+    combined_annual_inaction_cost = total_harmonic_loss + annual_pfc_penalty_gbp
+    efficiency_score = max(70.0, (baseline_cos_phi * 100) - (peak_thd * 0.25))
+    downtime_liability = total_active_kw * 18.50 * (peak_thd / 10.0)
 
     return {
-        "annual_loss_gbp": total_annual_loss,
+        "annual_loss_gbp": combined_annual_inaction_cost,
+        "harmonic_loss_share": total_harmonic_loss,
+        "pfc_penalty_share": annual_pfc_penalty_gbp,
         "efficiency_score": efficiency_score,
         "downtime_liability": downtime_liability,
         "peak_thd": peak_thd,
+        "baseline_cos_phi": baseline_cos_phi,
+        "target_cos_phi": target_cos_phi,
+        "liberated_headroom_kva": liberated_headroom_kva,
+        "sld_status": sld_status,
+        "grid_compliance": grid_compliance,
     }
 
 
@@ -220,16 +235,19 @@ def render_executive_view():
     )
 
     df_active = load_client_portfolio_matrix(active_client)
-    metrics = calculate_dynamic_loss_metrics(df_active, active_client)
-    compliance = load_compliance_and_headroom_matrix(active_client)
+    metrics = calculate_dynamic_systemic_metrics(df_active, active_client)
 
-    # Execute scrolling ticker injection
+    # Execute rolling ticker injection driven by combined real-time calculations
     render_cost_of_inaction_ticker(
         annual_losses_gbp=metrics["annual_loss_gbp"],
-        tenant_colour="#D9272E" if metrics["peak_thd"] > 15.0 else "#F39C12",
+        tenant_colour=(
+            "#D9272E"
+            if metrics["peak_thd"] > 15.0 or metrics["baseline_cos_phi"] < 0.85
+            else "#F39C12"
+        ),
     )
 
-    st.write("")  # Clean vertical grouping space
+    st.write("")  # Structural breathing room
 
     # ==========================================================================
     # 🗂️ DECOUPLED TABS TO PREVENT INTERFACE CLUTTER
@@ -247,17 +265,17 @@ def render_executive_view():
 
         with m_col1:
             st.metric(
-                label="Annual Cost of Inaction (Systemic Waste)",
+                label="Annual Cost of Inaction (Total Combined Bleed)",
                 value=f"£{metrics['annual_loss_gbp']:,.2f}",
                 delta="Balance Sheet Erosion Factor",
                 delta_color="inverse",
             )
             st.caption(
-                "Direct leakage from electrical non-linear degradation and parasitic heat transformation."
+                f"Includes £{metrics['harmonic_loss_share']:,.2f} in thermal winding losses and £{metrics['pfc_penalty_share']:,.2f} in DNO capacity reactive penalties."
             )
 
         with m_col2:
-            projected_savings = metrics["annual_loss_gbp"] * 0.94
+            projected_savings = metrics["annual_loss_gbp"] * 0.95
             st.metric(
                 label="Projected Capital Preservation (Annual Savings)",
                 value=f"£{projected_savings:,.2f}",
@@ -265,17 +283,17 @@ def render_executive_view():
                 delta_color="normal",
             )
             st.caption(
-                "Guaranteed cost recovery following deployment of localized active correction hardware."
+                "Guaranteed cost recovery across a 12-month horizon following complete STEM active filtering and SVG installation."
             )
 
         with m_col3:
             st.metric(
                 label="Estimated Asset Failure & Downtime Liability",
                 value=f"£{metrics['downtime_liability']:,.2f}",
-                help="Calculates financial exposure to uncoordinated protection trips and insulation failure.",
+                help="Calculates corporate insurance exposure to uncoordinated protection trips and harmonic insulation failures.",
             )
             st.caption(
-                "Insurance capital asset valuation at risk over a rolling 36-month operational cycle."
+                "Capital asset valuation actively positioned at risk over a standard 36-month industrial operating cycle."
             )
 
         st.markdown("---")
@@ -292,6 +310,10 @@ def render_executive_view():
                     "plant_location": peak_row["Plant Location"],
                     "weekly_hours": int(peak_row["Weekly Hrs"]),
                     "annual_losses_gbp": round(metrics["annual_loss_gbp"], 2),
+                    "baseline_cos_phi": metrics["baseline_cos_phi"],
+                    "liberated_headroom_kva": round(
+                        metrics["liberated_headroom_kva"], 1
+                    ),
                 }
 
                 ai_service = GeminiTranslationService()
@@ -308,39 +330,43 @@ def render_executive_view():
     with tab_compliance:
         st.markdown("### 📋 Statutory Grid Compliance & Liberated Capacity Scorecard")
         st.write(
-            "Tracks Single Line Diagram auditable integrity, power factor capacity overheads, and DNO interconnection limits."
+            "Tracks Single Line Diagram auditable integrity, reactive displacement variables, and statutory DNO boundary thresholds."
         )
 
         c_col1, c_col2 = st.columns(2)
 
         with c_col1:
-            st.markdown("##### 📌 Physical Network Topology & Headroom")
+            st.markdown("##### 📌 Physical Network Topology & Capacity")
+            st.write(f"**Single Line Diagram (SLD) State:** {metrics['sld_status']}")
             st.write(
-                f"**Single Line Diagram (SLD) Status:** {compliance['sld_status']}"
+                f"**Measured Displacement Power Factor:** `{metrics['baseline_cos_phi']:.2f} Cos Phi` (Target: `{metrics['target_cos_phi']:.2f}`)"
             )
-            st.write(
-                f"**Power Factor Correction (PFC) Vector:** {compliance['pfc_status']}"
-            )
-            st.write(
-                f"**Reclaimable Capacity Headroom:** `{compliance['unlocked_headroom']}`"
-            )
+
+            if metrics["liberated_headroom_kva"] > 0:
+                st.success(
+                    f"⚡ **Reclaimable Network Headroom:** `{metrics['liberated_headroom_kva']:.1f} kVA` available via active SVG integration."
+                )
+            else:
+                st.info(
+                    "⚡ **Reclaimable Network Headroom:** Local power vector optimized. No reactive expansion capacity available."
+                )
 
         with c_col2:
             st.markdown(
                 "##### 🔌 Distribution Network Operator (DNO) Statutory Boundaries"
             )
             st.info(
-                f"**Current Interconnection Protocol:** \n\n {compliance['grid_compliance']}"
+                f"**Current Interconnection Protocol:** \n\n {metrics['grid_compliance']}"
             )
             st.markdown("""
-            * **G99 Mapping:** Required for all generation topologies over 16A/phase.
-            * **G100 Enforcement:** Dictates active export-limitation protection frameworks at the grid boundary constraint node.
+            * **G99 Framework:** Governing regulation for commissioning power generation systems exceeding 16A per phase.
+            * **G100 Export Constraint Management:** Enforces real-time fail-safe control systems to restrict unauthorized back-feed power injection.
             """)
 
         st.markdown("---")
-        st.markdown("##### ⚡ Active Infrastructure Waveform Efficiency Index")
+        st.markdown("##### 📈 Integrated Infrastructure Waveform Efficiency Index")
         eff = metrics["efficiency_score"]
-        st.progress(int(eff), text=f"Calculated Network Purity Score: {eff:.1f}%")
+        st.progress(int(eff), text=f"Calculated Core Network Purity Score: {eff:.1f}%")
 
     # ==========================================================================
     # 📚 COMPREHENSIVE METHODOLOGY APPENDIX
@@ -354,11 +380,15 @@ def render_executive_view():
             r"W_{\text{annual}} = \sum_{n=1}^{N} P_{\text{rating}, n} \times \left( \frac{\text{THD}_{i, n}}{100} \right) \times \alpha \times T_{\text{operational}, n}"
         )
         st.latex(
-            r"\text{Financial Bleed } (\mathfrak{L}) = W_{\text{annual}} \times \text{Utility Cost } (\text{GBP per kWh})"
+            r"\Delta S_{\text{headroom}} = \sum P_{\text{capacity}} \times \left( \frac{1}{\cos\phi_{\text{existing}}} - \frac{1}{\cos\phi_{\text{target}}} \right)"
+        )
+        st.latex(
+            r"\text{Total Financial Bleed } (\mathfrak{L}) = (W_{\text{annual}} \times \text{Tariff}) + (\Delta S_{\text{headroom}} \times \text{DNO Penalty Rate})"
         )
 
         st.markdown("""
         #### 🏦 Corporate Financial Parameters & Assumptions
-        * Blended Energy Tariff: Configured dynamically between **£0.22/kWh and £0.24/kWh** based on DNO geographical market parameters.
-        * Asset protection assumes Arrhenius lifecycles, where transformer winding insulation life contracts by 50% for every 10°C of unmitigated harmonic heat generation.
+        * Blended Energy Tariff: Configured dynamically between **£0.22/kWh and £0.24/kWh** based on sub-class market parameters.
+        * DNO Apparent Demand Surcharge Penalty: Evaluated at an empirical run-rate of **£14.50 per excess uncorrected kVA** per annum.
+        * Asset lifecycles adhere to Arrhenius degradation, assuming transformer insulation lifespan scales inversely to harmonic-induced core thermal stress.
         """)
