@@ -253,7 +253,6 @@ def render_executive_view():
 
     df_active = load_client_portfolio_matrix(active_client)
     metrics = calculate_dynamic_systemic_metrics(df_active, active_client)
-    compliance = load_compliance_and_headroom_matrix(active_client)
 
     # Execute scrolling ticker injection driven by combined real-time calculations
     render_cost_of_inaction_ticker(
@@ -354,7 +353,7 @@ def render_executive_view():
                 )
 
     # --------------------------------------------------------------------------
-    # TAB 2: GRID COMPLIANCE & CAPACITY HEADROOM
+    # TAB 2: GRID COMPLIANCE & CAPACITY HEADROOM (SYMMETRIC DNO ACRONYM pass)
     # --------------------------------------------------------------------------
     with tab_compliance:
         st.markdown("### 📋 Statutory Grid Compliance & Liberated Capacity Scorecard")
@@ -400,9 +399,8 @@ def render_executive_view():
 
         with c_col2:
             with st.container(border=True):
-                st.markdown(
-                    "##### 🔌 Distribution Network Operator Statutory Boundaries"
-                )
+                # 💎 Symmetrical short-form title applied here to match the left card height plane exactly
+                st.markdown("##### 🔌 DNO Statutory Boundaries")
                 st.divider()
 
                 if "Approved" in metrics["grid_compliance"]:
