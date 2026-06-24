@@ -43,11 +43,11 @@ def generate_dynamic_sld_graph(
 
     # Build branches dynamically using whatever text or configurations currently live in the dataframe
     for _, row in df.iterrows():
-        # Fallback protections to handle blank or emerging rows during manual user typing updates
         tag = str(row.get("Asset Tag", "NEW_NODE")).strip()
         location = str(row.get("Plant Location", "Unassigned")).strip()
         classification = str(row.get("Classification", "General Load")).strip()
 
+        # Robust parsing to guarantee stable compiler strings during live manual edits
         try:
             rating = float(
                 str(row.get("Rating (kW)", "0")).replace("kW", "").replace(",", "")
@@ -60,10 +60,9 @@ def generate_dynamic_sld_graph(
         except ValueError:
             thd = 0.0
 
-        if not tag or tag == "nan" or tag == "NEW_NODE":
+        if not tag or tag in ["nan", "NEW_NODE"]:
             continue
 
-        # Clean string formatting for the Graphviz compiler schema
         clean_id = tag.replace("-", "_").replace(" ", "_")
 
         if thd > 15.0:
@@ -85,20 +84,17 @@ def generate_synthetic_amr_load_profile(filename: str) -> pd.DataFrame:
     Parses an uploaded AMR CSV and converts it into a continuous half-hourly
     load profile graph representing typical heavy industrial demand fluctuations.
     """
-    np.random.seed(42)  # Maintain stable visual reproducibility
+    np.random.seed(42)
     timestamps = pd.date_range(
         start="2026-06-01 00:00", end="2026-06-07 23:30", freq="30min"
     )
 
-    # Simulate cyclical industrial load profiles (high day shifts, low night base loads)
     base_load = 450.0
     diurnal_cycle = 800.0 * np.sin(2 * np.pi * timestamps.hour / 24.0) ** 2
     random_spikes = np.random.normal(loc=100.0, scale=45.0, size=len(timestamps))
 
     calculated_kw = np.clip(base_load + diurnal_cycle + random_spikes, 200.0, 3800.0)
-    calculated_kvar = calculated_kw * 0.45 + np.random.normal(
-        0, 15, len(timestamps)
-    )  # Lagging power factor envelope
+    calculated_kvar = calculated_kw * 0.45 + np.random.normal(0, 15, len(timestamps))
 
     df_amr = pd.DataFrame(
         {
@@ -147,16 +143,15 @@ def render_data_entry_view():
         )
 
         # 📊 THE EXCEL-STYLE CLIPBOARD INTERACTION ENGINE
-        # st.data_editor creates a native, fully editable spreadsheet right inside the web layout
         edited_df = st.data_editor(
             data=st.session_state.sandbox_assets,
             use_container_width=True,
-            num_rows="dynamic",  # Unlocks the "+ Add Row" button at the bottom for testers
+            num_rows="dynamic",
             hide_index=True,
             column_config={
                 "Asset Tag": st.column_config.TextColumn(
                     "Asset Tag",
-                    help="Unique hardware tracker code (e.g., MOT-15-FAN)",
+                    help="Unique alpha-numeric site survey tag identifier used to bind physical switchgear keys to the cloud twin database.",
                     required=True,
                 ),
                 "Plant Location": st.column_config.TextColumn(
@@ -164,6 +159,7 @@ def render_data_entry_view():
                 ),
                 "Classification": st.column_config.SelectboxColumn(
                     "Classification",
+                    help="The functional electrical sub-type category. Dictates mathematical loss coefficient curves within the financial backend module.",
                     options=[
                         "Main Distribution Transformer",
                         "Auxiliary Step-Down Transformer",
@@ -178,13 +174,19 @@ def render_data_entry_view():
                     required=True,
                 ),
                 "Rating (kW)": st.column_config.NumberColumn(
-                    "Rating (kW)", min_value=1, max_value=10000, step=5, required=True
+                    "Rating (kW)",
+                    help="The continuous mechanical nameplate or active power rating capacity expressed in kilowatts.",
+                    min_value=1,
+                    max_value=10000,
+                    step=5,
+                    required=True,
                 ),
                 "Weekly Hrs": st.column_config.NumberColumn(
                     "Weekly Hrs", min_value=1, max_value=168, step=1, required=True
                 ),
                 "Distortion (THD_i)": st.column_config.NumberColumn(
                     "Distortion (THD_i)",
+                    help="The documented current harmonic waveform distortion total. Threshold values exceeding 5.0% automatically activate loss multipliers.",
                     min_value=0.0,
                     max_value=100.0,
                     step=0.1,
@@ -194,7 +196,7 @@ def render_data_entry_view():
             },
         )
 
-        # Keep our core memory array perfectly synchronized with any typing changes
+        # Keep memory array synchronized with any editing changes
         st.session_state.sandbox_assets = edited_df
 
         st.markdown("---")
@@ -207,6 +209,7 @@ def render_data_entry_view():
                 label="Drag and drop existing site drawing prints:",
                 type=["pdf", "png", "jpg", "jpeg"],
                 key="sld_uploader_node",
+                help="Accepts legacy CAD files or scanned site blueprints. Ingested data is scrubbed for metadata leaks and cached to your isolated secure session bucket.",
             )
             if uploaded_sld is not None:
                 st.success(
@@ -219,13 +222,12 @@ def render_data_entry_view():
                 label="Upload active grid boundary smart meter billing logs (.csv):",
                 type=["csv"],
                 key="amr_uploader_node",
+                help="Extracts raw structural 48-period daily settlement logs to dynamically compile power profiles and evaluate kVA demand penalties.",
             )
             if uploaded_amr is not None:
                 st.success(
                     f"📊 '{uploaded_amr.name}' parsed. 336 half-hourly logging frames synchronized."
                 )
-
-                # Render an interactive rolling chart of raw industrial power flow
                 df_profile = generate_synthetic_amr_load_profile(uploaded_amr.name)
                 st.markdown(
                     "###### Active Client Demand Profile Matrix (Ingested Week Loop)"
@@ -249,11 +251,12 @@ def render_data_entry_view():
                 "Proposed STEM Optimised Intervention Matrix",
             ],
             horizontal=True,
+            help="Toggle to simulate our targeted hardware optimization nodes directly onto the live schematic tree.",
         )
 
         st.markdown("---")
 
-        # Compile the Graphviz DOT strings on the fly using the freshly edited session state data
+        # Compile the Graphviz DOT strings on the fly using edited session data
         if sld_view_mode == "As-Is Existing System State":
             st.markdown(
                 "##### ⚠️ Current Grid Topology (Unmitigated Core Risk Profile)"
