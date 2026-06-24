@@ -140,22 +140,25 @@ def load_compliance_and_headroom_matrix(client_name: str) -> dict:
     """
     matrix = {
         "Ammanford Alloys Ltd": {
-            "sld_status": "🔴 OUTDATED (Field Verification Audit Required)",
-            "pfc_status": "⚠️ Lagging (0.81 Cos Phi)",
+            "sld_status": "🔴 OUTDATED (Verification Required)",
+            "sld_badge": "error",
+            "pfc_status": "⚠️ 0.81 Cos Phi (Lagging)",
             "grid_compliance": "🔒 G99 Approved under strict G100 Export Limitation (0 kW limitation at boundary)",
-            "unlocked_headroom": "339.4 kVA (Potential via Active SVG Integration)",
+            "unlocked_headroom": "339.4 kVA",
         },
         "Swansea Silica Mining Operations": {
-            "sld_status": "🟢 VERIFIED (2025 Field Survey)",
-            "pfc_status": "🟢 Optimized (0.86 Cos Phi)",
+            "sld_status": "🟢 VERIFIED (Field Survey)",
+            "sld_badge": "success",
+            "pfc_status": "🟢 0.86 Cos Phi (Nominal)",
             "grid_compliance": "🔴 Legacy G59/3 Protection (Mandatory Statutory Transition to G99 Required)",
-            "unlocked_headroom": "151.7 kVA (Available Node Restructuring)",
+            "unlocked_headroom": "151.7 kVA",
         },
         "Killan Farm Solar Array Hub": {
-            "sld_status": "🟢 VERIFIED (2026 Grid Commissioning Documentation)",
-            "pfc_status": "🟢 Peak Optimized (0.97 Cos Phi)",
+            "sld_status": "🟢 VERIFIED (Commissioning Docs)",
+            "sld_badge": "success",
+            "pfc_status": "🟢 0.97 Cos Phi (Optimized)",
             "grid_compliance": "🟢 G99 Compliant / Active G100 Import Control Operational",
-            "unlocked_headroom": "0.0 kVA (Network Vector Operating at Peak Purity)",
+            "unlocked_headroom": "0.0 kVA",
         },
     }
     return matrix.get(client_name, {})
@@ -170,6 +173,8 @@ def calculate_dynamic_systemic_metrics(df: pd.DataFrame, client_name: str) -> di
     total_harmonic_loss = 0.0
     total_active_kw = df["Rating (kW)"].sum()
     peak_thd = df["Distortion (THD_i)"].max()
+
+    comp_data = load_compliance_and_headroom_matrix(client_name)
 
     if "Alloys" in client_name:
         baseline_cos_phi = 0.81
@@ -215,12 +220,15 @@ def calculate_dynamic_systemic_metrics(df: pd.DataFrame, client_name: str) -> di
         "baseline_cos_phi": baseline_cos_phi,
         "target_cos_phi": target_cos_phi,
         "liberated_headroom_kva": liberated_headroom_kva,
+        "sld_status": comp_data["sld_status"],
+        "grid_compliance": comp_data["grid_compliance"],
+        "unlocked_headroom_str": comp_data["unlocked_headroom"],
     }
 
 
 def render_executive_view():
     """
-    Renders the uncluttered, tabbed C-Suite Executive Command Hub.
+    Renders the uncluttered, symmetrically aligned C-Suite Executive Command Hub.
     Maintains clean visual hierarchy using horizontal workspace nodes.
     """
     st.markdown("## 🏢 Executive Command Center: Portfolio Governance")
@@ -310,7 +318,6 @@ def render_executive_view():
 
         st.markdown("---")
 
-        # AI Orchestration Module
         st.markdown("#### 🗣️ AI Boardroom Context Translation Node")
         if st.button(
             "✨ Compile Strategic Advisory Brief",
@@ -352,39 +359,69 @@ def render_executive_view():
     with tab_compliance:
         st.markdown("### 📋 Statutory Grid Compliance & Liberated Capacity Scorecard")
         st.write(
-            "Tracks Single Line Diagram auditable integrity, reactive displacement variables, and statutory DNO boundary thresholds."
+            "Auditable infrastructure configuration tracking grid limits, topology safety, and reactive displacement."
         )
+        st.write("")
 
+        # Establish two equal-weight structural columns
         c_col1, c_col2 = st.columns(2)
 
         with c_col1:
-            st.markdown("##### 📌 Physical Network Topology & Capacity")
-            st.write(f"**Single Line Diagram (SLD) State:** {compliance['sld_status']}")
-            st.write(
-                f"**Measured Displacement Power Factor:** `{metrics['baseline_cos_phi']:.2f} Cos Phi` (Target: `{metrics['target_cos_phi']:.2f}`)"
-            )
+            with st.container(border=True):
+                st.markdown("##### 📌 Physical Network Topology & Headroom")
+                st.divider()
 
-            if metrics["liberated_headroom_kva"] > 0:
-                st.success(
-                    f"⚡ **Reclaimable Network Headroom:** `{metrics['liberated_headroom_kva']:.1f} kVA` available via active SVG integration.",
-                    icon="⚡",
+                st.write(
+                    f"**Single Line Diagram (SLD) State:** {metrics['sld_status']}"
                 )
-            else:
-                st.info(
-                    "⚡ **Reclaimable Network Headroom:** Local power vector optimized. No reactive expansion capacity available."
+                st.write(
+                    f"**Measured Displacement Factor:** `{metrics['baseline_cos_phi']:.2f} Cos Phi` (Target: `{metrics['target_cos_phi']:.2f}`)"
                 )
+                st.write("")
+
+                sm_col1, sm_col2 = st.columns(2)
+                with sm_col1:
+                    st.metric(
+                        label="Existing Power Factor",
+                        value=f"{metrics['baseline_cos_phi']:.2f}",
+                        help="The fundamental displacement factor measured at the main grid boundary breaker.",
+                    )
+                with sm_col2:
+                    st.metric(
+                        label="Reclaimable Headroom",
+                        value=metrics["unlocked_headroom_str"],
+                        delta=(
+                            "Liberated kVA"
+                            if metrics["liberated_headroom_kva"] > 0
+                            else None
+                        ),
+                        help="Physical thermal capacity returned to the primary incoming distribution transformer by eliminating reactive magnetizing power.",
+                    )
 
         with c_col2:
-            st.markdown(
-                "##### 🔌 Distribution Network Operator (DNO) Statutory Boundaries"
-            )
-            st.info(
-                f"**Current Interconnection Protocol:** \n\n {compliance['grid_compliance']}"
-            )
-            st.markdown("""
-            * **G99 Framework:** Governing regulation for commissioning power generation systems exceeding 16A per phase.
-            * **G100 Export Constraint Management:** Enforces real-time fail-safe control systems to restrict unauthorized back-feed power injection.
-            """)
+            with st.container(border=True):
+                st.markdown(
+                    "##### 🔌 Distribution Network Operator Statutory Boundaries"
+                )
+                st.divider()
+
+                if "Approved" in metrics["grid_compliance"]:
+                    st.warning(
+                        f"**Active Boundary Protocol:** \n\n {metrics['grid_compliance']}"
+                    )
+                elif "Legacy" in metrics["grid_compliance"]:
+                    st.error(
+                        f"**Active Boundary Protocol:** \n\n {metrics['grid_compliance']}"
+                    )
+                else:
+                    st.success(
+                        f"**Active Boundary Protocol:** \n\n {metrics['grid_compliance']}"
+                    )
+
+                st.markdown("""
+                * **G99 Framework:** Mandatory interconnection specification for generation arrays over 16A per phase.
+                * **G100 Export Control:** Demands active fail-safe hardware limits to arrest uncoordinated back-feed leaks.
+                """)
 
         st.markdown("---")
         st.markdown("##### 📈 Integrated Infrastructure Waveform Efficiency Index")
@@ -419,10 +456,20 @@ def render_executive_view():
         )
 
         st.markdown("""
+        #### 📋 Variable Nomenclature and Definitions
+        * $W_{\text{annual}}$: Total cumulative wasted energy calculated in kilowatt-hours per annum.
+        * $P_{\text{rating}, n}$: Nominal plate capacity of individual monitored hardware node $n$ expressed in kW.
+        * $\text{THD}_{i, n}$: Measured Current Harmonic Distortion percentage bleeding into the local busbar switchgear.
+        * $\alpha$: Empirical scaling factor tracking non-linear eddy current and skin effect transformations ($\alpha = 0.048$).
+        * $T_{\text{operational}, n}$: Logged operational service timeline measured in hours per annum ($Hrs \times 52$).
+        * $\Delta S_{\text{headroom}}$: Total geometric apparent power capacity reclaimed at the distribution transformer boundary expressed in kVA.
+        * $\cos\phi_{\text{existing}}$: Baseline measured site power factor displacement score.
+        * $\cos\phi_{\text{target}}$: Targeted corrected power factor goal optimized for DNO financial compliance ($\cos\phi = 0.96$).
+        
         #### 🏦 Corporate Financial Parameters & Assumptions
         * **Blended Energy Tariff:** Configured dynamically between **£0.22/kWh and £0.24/kWh** based on geographical industrial market parameters.
         * **DNO Apparent Demand Surcharge Penalty:** Evaluated at an empirical run-rate of **£14.50 per excess uncorrected kVA** per annum.
-        * **Asset Lifetime Contraction:** Adheres to Arrhenius insulation models, assuming solid distribution transformer paper lifespans are halved for every 10°C of unmitigated harmonic thermal stress.
+        * **Asset Lifetime Contraction (Arrhenius Realities):** Transformer thermal models assume solid paper insulation longevity degrades geometrically, halving functional service lifespan for every 10°C of sustained harmonic-induced temperature elevation above nominal design limits.
         
         #### 📑 JV Audit Traceability Ledger
         * **System Status:** Production Build Verified (`2026.1.MVP`).
