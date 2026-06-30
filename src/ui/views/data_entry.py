@@ -15,8 +15,6 @@ if repo_root not in sys.path:
 
 from src.ui.views.operations import load_ammanford_alloys_dataset
 from src.modules.data_ingestion.amr_parser import AMRDataReconciler
-
-# 🚀 MODULAR CODE INJECTIONS: Connecting our standalone drawing ingestion engine
 from src.modules.data_ingestion.sld_parser import MultimodalSLDParser
 
 
@@ -239,7 +237,7 @@ def render_data_entry_view():
             }
         ]
 
-    with st.sidebar.expander("💼 Macro Facility Valuation Variables", expanded=True):
+    with st.sidebar.expander("💼 Macro Facility Variables", expanded=True):
         st.number_input(
             "Hourly Production Value (£)",
             min_value=100,
@@ -372,7 +370,6 @@ def render_data_entry_view():
                     "Local BESS & Hybrid UPS Array (Robotics Asset Protection)",
                 ],
                 key="selected_nodes",
-                help="Select one or more circuits to see how the system seamlessly scales and deploys co-located active power elements.",
             )
 
             st.markdown("---")
@@ -418,7 +415,6 @@ def render_data_entry_view():
             """)
             st.button("📥 Export Audit-Ready Proposal (.md)")
 
-        # 🚨 TRACK 2 INGESTION UPDATE: Multi-format drawing interpreter integration
         with tab_upload:
             st.markdown("### 📋 Excel-Style Batch Asset Clipboard & File Ingestion")
             st.markdown(
@@ -427,7 +423,6 @@ def render_data_entry_view():
                 "**PDF/JPEG Single Line Diagram (SLD) Schematic drawing**."
             )
 
-            # Expanded file format handling capability
             uploaded_register = st.file_uploader(
                 "Bulk Ingest Fleet Asset Register spreadsheet or Blueprints (.csv, .pdf, .jpg, .jpeg, .png)",
                 type=["csv", "pdf", "jpg", "jpeg", "png"],
@@ -439,7 +434,6 @@ def render_data_entry_view():
                     filename = uploaded_register.name.lower()
                     file_bytes = uploaded_register.read()
 
-                    # Track A: Direct CSV execution block
                     if filename.endswith(".csv"):
                         import io
 
@@ -467,8 +461,6 @@ def render_data_entry_view():
                             st.error(
                                 f"❌ Ingestion Aborted: Missing column components. Expected explicit schema keys: {required_cols}"
                             )
-
-                    # Track B: Multimodal Vision Ingestion block (PDF/JPEG Layout Interpretation)
                     else:
                         mime_mapping = {
                             "pdf": "application/pdf",
@@ -483,7 +475,6 @@ def render_data_entry_view():
                             "🧠 STEM Vision AI Module engaged. Executing programmatic drawing parsing..."
                         )
 
-                        # Call standalone Tier 1 functional parser backend
                         parser_engine = MultimodalSLDParser(
                             api_key=st.secrets["GEMINI_API_KEY"]
                         )
@@ -501,11 +492,11 @@ def render_data_entry_view():
                         if not df_extracted_twin.empty:
                             st.session_state.sandbox_assets = df_extracted_twin
                             st.success(
-                                f"⚡ Vision Audit Complete! reverse-engineered {len(df_extracted_twin)} equipment nodes straight from blueprint schematics."
+                                f"⚡ Vision Audit Complete! Reverse-engineered {len(df_extracted_twin)} equipment nodes straight from blueprint schematics."
                             )
                         else:
                             st.error(
-                                "⚠️ Ingestion Warning: Blueprint analyzed successfully but no distinct non-linear load groups were identified."
+                                "⚠️ Ingestion Warning: Blueprint analysed successfully but no distinct load groups were identified."
                             )
 
                 except Exception as e:
@@ -702,7 +693,7 @@ def render_data_entry_view():
                     )
             else:
                 st.info(
-                    "💡 Sandbox Staging View: No file uploaded yet. Parsing validation seed profile records below:"
+                    "💡 Sandbox Staging View: No file uploaded yet. Parsing validation profile records below:"
                 )
 
                 reconciler = AMRDataReconciler(tenant_id="swalek")
@@ -751,19 +742,31 @@ def render_data_entry_view():
                     f"**Verification Report Index:** `{recon_summary['action_required']}` | Measured Divergence: `{recon_summary['variance_divergence_pct']}%`."
                 )
 
+    # --------------------------------==========================================
+    # RIGHT CONTAINER: TWO-WAY AI CONVERSATIONAL CO-PILOT WITH INTEGRATED MULTIMODAL CAPABILITY
+    # --------------------------------==========================================
     with col_copilot:
         st.markdown("### 🧠 STEM AI Co-Pilot Console")
-        st.caption("Two-Way Conversational Topology Optimisation Gateway")
+        st.caption("Strategic Multi-Circuit Natural Language Interface")
         st.markdown("---")
 
-        chat_container = st.container(height=450)
+        chat_container = st.container(height=400)
         with chat_container:
             for message in st.session_state.copilot_history:
                 with st.chat_message(message["role"]):
                     st.markdown(message["text"])
 
+        # 🚨 DIRECT CHAT FILE INTERPRETER CAPABILITY INTEGRATION
+        st.markdown("##### 📎 Attach Drawing to Active Conversation")
+        chat_attachment = st.file_uploader(
+            "Upload schematic blueprint for real-time Co-Pilot inspection:",
+            type=["pdf", "jpg", "jpeg", "png"],
+            key="copilot_direct_drawing_uploader",
+            label_visibility="collapsed",
+        )
+
         if user_prompt := st.chat_input(
-            "Ask about capital costs, opportunity costs, or insurance credits..."
+            "Ask about capital costs, opportunity costs, drawing metrics..."
         ):
             st.session_state.copilot_history.append(
                 {"role": "user", "text": user_prompt}
@@ -773,6 +776,25 @@ def render_data_entry_view():
 
             try:
                 client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
+
+                # Serialise active workspace asset inventory live to maximize context responsiveness
+                if not st.session_state.sandbox_assets.empty:
+                    serialized_sld_matrix = st.session_state.sandbox_assets.to_markdown(
+                        index=False
+                    )
+                    thd_clean_series = (
+                        st.session_state.sandbox_assets["Distortion (THD_i)"]
+                        .astype(str)
+                        .str.replace("%", "")
+                        .astype(float)
+                    )
+                    peak_row = st.session_state.sandbox_assets.iloc[
+                        thd_clean_series.idxmax()
+                    ]
+                    peak_anomaly_context = f"{peak_row['Asset Tag']} ({peak_row['Classification']}) exhibiting {peak_row['Distortion (THD_i)']}% THD_i"
+                else:
+                    serialized_sld_matrix = "No equipment nodes currently registered."
+                    peak_anomaly_context = "None"
 
                 system_context = f"""
                 You are the master STEM Power Quality AI Agent. You blend technical electrical physics with corporate financial risk modelling.
@@ -784,15 +806,52 @@ def render_data_entry_view():
                 - Single Interruption Interruption Cost: £{single_event_loss:,.0f}
                 - Annualised Risk Exposure: £{total_residual_leak:,.0f} / yr
                 - Expected Annual Insurance Premium Reduction: {insurance_credit}
+                
+                🏆 CRITICAL LIVE SLD NETWORK ASSET INVENTORY:
+                {serialized_sld_matrix}
+                
+                ⚠️ DETECTED NETWORK ANOMALY TARGET:
+                The peak wave-shape distortion emitter currently active on the busbar network is: {peak_anomaly_context}.
+                
+                💰 BUDGETARY CAPITAL COST ESTIMATION HEURISTICS:
+                1. Primary Intake Switchboard (Centralised Bay): £85,000
+                2. Heavy Industrial Process Board (Panel B1): £42,000
+                3. Motor Control Centre (MCC Panel B2): £35,000
+                4. Auxiliary & Building Services (Panel B3): £18,000
+                5. Local BESS & Hybrid UPS Array (Robotics Asset Protection): £65,000. Provides the sub-20ms ride-through to insulate sensitive equipment from sags, bringing Opportunity Cost exposure to £0.
                 """
+
+                # Construct dynamic contents pipeline handling text prompts + visual binaries simultaneously
+                contents_payload = [system_context]
+
+                if chat_attachment is not None:
+                    att_filename = chat_attachment.name.lower()
+                    att_bytes = chat_attachment.read()
+                    mime_map = {
+                        "pdf": "application/pdf",
+                        "jpg": "image/jpeg",
+                        "jpeg": "image/jpeg",
+                        "png": "image/png",
+                    }
+                    att_mime = mime_map.get(att_filename.split(".")[-1], "image/jpeg")
+
+                    contents_payload.append(
+                        types.Part.from_bytes(data=att_bytes, mime_type=att_mime)
+                    )
+                    contents_payload.append(
+                        "Analyse this attached drawing file directly as part of the conversation context. "
+                        "Cross-reference its contents with the user's natural prompt query below."
+                    )
+
+                contents_payload.append(user_prompt)
 
                 response = client.models.generate_content(
                     model="gemini-2.5-flash",
-                    contents=[system_context, user_prompt],
+                    contents=contents_payload,
                     config=types.GenerateContentConfig(
                         tools=[update_electrical_mitigation_nodes],
                         temperature=0.15,
-                        system_instruction="You are a brilliant cost consultant and systems-thinking power engineer. Speak with professional, boardroom-ready authority. Never give canned robotic disclaimers.",
+                        system_instruction="You are a brilliant cost consultant and systems-thinking power engineer. Speak with professional, boardroom-ready authority. Address specific asset tags dynamically. Never give canned robotic disclaimers.",
                     ),
                 )
 
