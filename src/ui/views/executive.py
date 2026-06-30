@@ -18,8 +18,8 @@ from src.ui.views.data_entry import generate_dynamic_sld_graph
 def render_executive_view():
     """
     Renders the central Executive Command Centre dashboard. Elevates opportunity cost,
-    streaming financial tickers, and dynamic real-time payback calculators
-    to the absolute apex of the platform runtime.
+    streaming financial tickers, dynamic capital cost overrides, and real-time payback
+    calculators to the absolute apex of the platform runtime.
     """
     # 🔄 Synchronized Global Session State Initialisation Checks
     if "sandbox_assets" not in st.session_state:
@@ -39,25 +39,33 @@ def render_executive_view():
     if "annual_events" not in st.session_state:
         st.session_state.annual_events = 3
 
+    # Baseline CapEx State Initializers
+    if "capex_intake" not in st.session_state:
+        st.session_state.capex_intake = 85000
+    if "capex_heavy" not in st.session_state:
+        st.session_state.capex_heavy = 42000
+    if "capex_mcc" not in st.session_state:
+        st.session_state.capex_mcc = 35000
+    if "capex_aux" not in st.session_state:
+        st.session_state.capex_aux = 18000
+    if "capex_bess" not in st.session_state:
+        st.session_state.capex_bess = 65000
+
     if "executive_chat_history" not in st.session_state:
         st.session_state.executive_chat_history = [
             {
                 "role": "assistant",
-                "text": "🏛️ *Welcome to the Executive Command Centre.* I am synced live with your plant's grid topology, verified financial payback arrays, and macro opportunity-cost curves.",
+                "text": "🏛️ *Welcome to the Executive Command Centre.* I am synced live with your plant's grid topology, dynamic CapEx overrides, and macro opportunity-cost curves.",
             }
         ]
 
     # --------------------------------------------------------------------------
-    # 🗂️ SIDEBAR SCENARIO ENGINE: Interactive Boardroom Modeling Sliders
+    # 🗂️ SIDEBAR SCENARIO ENGINE: Sensitivity Inputs & CapEx Overwrites
     # --------------------------------------------------------------------------
     with st.sidebar.expander(
         "📊 Executive Sensitivity & Downtime Modeling", expanded=True
     ):
         st.markdown("### 💼 Operational Valuation Variables")
-        st.caption(
-            "Adjust these market and operational parameters to evaluate the business risk of grid-level power anomalies."
-        )
-        st.markdown("---")
         st.number_input(
             "Hourly Production Line Value (£)",
             min_value=100,
@@ -80,7 +88,29 @@ def render_executive_view():
             key="annual_events",
         )
 
-    # 📈 DYNAMIC FINANCIAL HARDENING ENGINE (THE CORE CORRECTION)
+        st.markdown("---")
+        st.markdown("### 💰 STEM Asset CapEx Overrides (£)")
+        st.caption("Overwrite default engineering estimates with live supplier quotes:")
+        st.number_input(
+            "Primary Intake Switchboard Bay", min_value=0, step=1000, key="capex_intake"
+        )
+        st.number_input(
+            "Heavy Process Sub-Board (B1)", min_value=0, step=1000, key="capex_heavy"
+        )
+        st.number_input(
+            "Motor Control Centre Filter (B2)", min_value=0, step=1000, key="capex_mcc"
+        )
+        st.number_input(
+            "Auxiliary Infrastructure Panel (B3)",
+            min_value=0,
+            step=1000,
+            key="capex_aux",
+        )
+        st.number_input(
+            "Local BESS / Hybrid UPS Array", min_value=0, step=1000, key="capex_bess"
+        )
+
+    # 📈 DYNAMIC FINANCIAL HARDENING ENGINE
     single_event_loss = st.session_state.prod_val * st.session_state.restart_hrs
     total_unmitigated_exposure = single_event_loss * st.session_state.annual_events
 
@@ -111,26 +141,26 @@ def render_executive_view():
         + opportunity_savings_captured
     )
 
-    # Calculate active installation CapEx based on layout array
+    # Calculate active installation CapEx based on dynamic state inputs
     capex_total = 0.0
     if (
         "Primary Intake Switchboard (Centralised Bay)"
         in st.session_state.selected_nodes
     ):
-        capex_total += 85000
+        capex_total += st.session_state.capex_intake
     if "Heavy Industrial Process Board (Panel B1)" in st.session_state.selected_nodes:
-        capex_total += 42000
+        capex_total += st.session_state.capex_heavy
     if "Motor Control Centre (MCC Panel B2)" in st.session_state.selected_nodes:
-        capex_total += 35000
+        capex_total += st.session_state.capex_mcc
     if "Auxiliary & Building Services (Panel B3)" in st.session_state.selected_nodes:
-        capex_total += 18000
+        capex_total += st.session_state.capex_aux
     if (
         "Local BESS & Hybrid UPS Array (Robotics Asset Protection)"
         in st.session_state.selected_nodes
     ):
-        capex_total += 65000
+        capex_total += st.session_state.capex_bess
 
-    # Calculate payback natively based on combined strategic returns
+    # Calculate payback natively using the user's specific CapEx values
     if total_combined_annual_savings > 0:
         calculated_payback_months = (capex_total / total_combined_annual_savings) * 12.0
         payback_display_value = f"{calculated_payback_months:.2f} Months"
@@ -145,7 +175,7 @@ def render_executive_view():
     )
 
     # --------------------------------------------------------------------------
-    # 🔥 THE TICKER: STREAMING EXECUTIVE RISK & SYSTEMIC FAILURE MARQUEE
+    # 🎚️ THE TICKER: STREAMING EXECUTIVE RISK & SYSTEMIC FAILURE MARQUEE
     # --------------------------------------------------------------------------
     if (current_opportunity_exposure + active_technical_bleed) > 0:
         ticker_html = f"""
@@ -172,7 +202,7 @@ def render_executive_view():
     )
     st.markdown("---")
 
-    # 📊 C-SUITE BALANCED CARD INDEX (FULLY CORRECTED AND MATH TRANSPARENT)
+    # 📊 C-SUITE BALANCED CARD INDEX
     metric_col1, metric_col2, metric_col3, metric_col4 = st.columns(4)
     with metric_col1:
         st.metric(
@@ -196,19 +226,14 @@ def render_executive_view():
         st.metric(
             label="💰 Active Intervention CapEx",
             value=f"£{capex_total:,.0f}",
-            delta=f"Total Allocated Capital",
+            delta="Dynamic Project Cost",
             delta_color="off",
         )
     with metric_col4:
         st.metric(
             label="⏱️ Capital Amortization Cycle",
             value=payback_display_value,
-            delta=(
-                "8.37 Months Pre-Opp Cost"
-                if has_mcc_filter and not has_bess_ups
-                else "Dynamic Amortization Metric"
-            ),
-            delta_color="normal",
+            delta="ROI Horizon",
         )
 
     st.markdown("---")
@@ -252,11 +277,11 @@ def render_executive_view():
             The asset portfolio at Ammanford Alloys carries an unmitigated annualized opportunity cost risk posture of **£{current_opportunity_exposure:,.0f}/year** alongside an active physical technical cash bleed of **£{active_technical_bleed:,.0f}/year** from harmonic network degradation. Factoring in an operational run-rate of **£{st.session_state.prod_val:,.0f}/hour** and a calibration reset latency of **{st.session_state.restart_hrs:.1f} hours**, any single utility grid sag event triggers an immediate bottleneck loss of **£{single_event_loss:,.0f}**.
             
             #### 2. Infrastructure Resilience Allocations & Proven Payback
-            To completely isolate production margins from utility grid volatility, the steering committee outlines an infrastructure investment of **£{capex_total:,.0f}**. 
+            To completely isolate production margins from utility grid volatility, the steering committee outlines an adjusted implementation investment allocation totaling **£{capex_total:,.0f}** based on user-verified quote profiles. 
             
-            When deployed explicitly against the Motor Control Centre switchgear (MCC Panel B2), this infrastructure isolates and reclaims **£23,800/year** in avoided insulation depreciation stress alongside **£26,400/year** in direct copper loss energy waste mitigation. This delivers a verified engineering-level capital amortization cycle of exactly **8.37 months** before layering in macro business continuity savings.
+            When deployed explicitly against the Motor Control Centre switchgear (MCC Panel B2), this allocation reclaims **£23,800/year** in avoided insulation depreciation stress alongside **£26,400/year** in direct copper loss energy waste mitigation. This delivers a verified engineering-level capital recovery cycle of exactly **{payback_display_value}** under current procurement assumptions.
             
-            #### 3. Actuarial Risk Posture
+            #### 3. Actuarial Risk Profile
             Implementing localized sub-20ms high-speed shunt compensation converts highly unpredictable grid disruptions into an insulated corporate asset lifecycle.
             * **Current Underwriter Financial Yield:** **{insurance_credit}**
             * **Strategic Validation:** This system-thinking framework replicates the exact risk-mitigation models utilized by world-class high-value regional manufacturers, such as the Aston Martin DBX assembly facility in St Athan, ensuring absolute continuity on critical robotics lines.
@@ -299,21 +324,21 @@ def render_executive_view():
                 - Single Outage Interruption Cost: £{single_event_loss:,.0f}
                 - Annualized Opportunity Risk Exposure: £{current_opportunity_exposure:,.0f}
                 - Annualized Direct Technical Harmonics Bleed: £{active_technical_bleed:,.0f}
-                - Annualized Direct Engineering Savings Captured: £{insulation_savings_captured + copper_savings_captured:,.0f}
-                - Active Project Payback Period: {payback_display_value}
+                - Annualized Project Savings (Before Opportunity Cost): £{insulation_savings_captured + copper_savings_captured:,.0f}
+                - Active Combined Project Payback Period: {payback_display_value}
                 - Insurance Broker Premium Credit: {insurance_credit}
                 
-                💰 BUDGETARY CAPITAL COST ENGINEERING ESTIMATES:
-                1. Primary Intake Switchboard (Centralised Bay): £85,000
-                2. Heavy Industrial Process Board (Panel B1): £42,000
-                3. Motor Control Centre (MCC Panel B2): £35,000 (Unlocks £23.8k depreciation savings + £26.4k electricity savings; 8.37 month standalone engineering payback)
-                4. Auxiliary & Building Services (Panel B3): £18,000
-                5. Local BESS & Hybrid UPS Array (Robotics Asset Protection): £65,000. Eradicates opportunity cost exposure entirely via sub-20ms sub-cycle transfer capability.
+                💰 CURRENT RE-INITIALISED USER MODIFIABLE COST MATRIX:
+                1. Primary Intake Switchboard Bay: £{st.session_state.capex_intake:,.0f}
+                2. Heavy Process Sub-Board (Panel B1): £{st.session_state.capex_heavy:,.0f}
+                3. Motor Control Centre (MCC Panel B2): £{st.session_state.capex_mcc:,.0f}
+                4. Auxiliary Infrastructure Panel (Panel B3): £{st.session_state.capex_aux:,.0f}
+                5. Local BESS & Hybrid UPS Array: £{st.session_state.capex_bess:,.0f}
                 
                 CASE STUDY BENCHMARK REFERENCE:
                 - Aston Martin St Athan Plant: Peak output 28 cars/day, target run-rate 16-20 cars/day (DBX line). At £150k+ per vehicle, a 4-hour robotics line failure cost £1.2M - £1.5M in lost throughput per single event.
                 
-                Be conversational, strategic, and highly supportive of executive goals. If the user asks to add, change, remove, or modify active nodes, use your function-calling tools instantly to alter the state.
+                Be conversational, strategic, and highly supportive of executive goals. Use your built-in cost overrides natively to frame dynamic financial engineering recommendations. If changes to asset layout selections are requested, call tools instantly.
                 """
 
                 from src.ui.views.data_entry import update_electrical_mitigation_nodes
@@ -324,7 +349,7 @@ def render_executive_view():
                     config=types.GenerateContentConfig(
                         tools=[update_electrical_mitigation_nodes],
                         temperature=0.15,
-                        system_instruction="You are a trusted strategic C-suite technology advisor. Speak with clear boardroom-ready authority. Natively use built-in financial loss, cost estimation, and the verified 8.37 month payback data to frame business cases.",
+                        system_instruction="You are a trusted strategic C-suite technology advisor. Speak with clear boardroom-ready authority. Natively use user-adjusted cost overrides and data vectors to frame your financial reasoning.",
                     ),
                 )
 
@@ -336,7 +361,7 @@ def render_executive_view():
                             st.session_state.executive_chat_history.append(
                                 {
                                     "role": "assistant",
-                                    "text": f"🤖 **Command Executed Upstream:**\n`{res}`\n\nI have updated the portfolio balance sheets. The streaming financial ticker marquee and metric cards have adjusted live.",
+                                    "text": f"🤖 **Command Executed Upstream:**\n`{res}`\n\nI have rewritten the network topology configuration. The interactive single-line digital twin, the strategic brief text, and the financial metrics cards have adjusted live.",
                                 }
                             )
                 else:
