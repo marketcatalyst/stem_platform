@@ -20,32 +20,31 @@ def generate_dynamic_sld_graph(
     """
     Programmatically constructs a Graphviz DOT engine string mapping out the physical
     high-voltage electrical network tree directly from the active session dataset.
-    Includes strict character sanitisation to prevent illegal string compilation exceptions.
+    Uses strict double-quotes for all internal attributes to comply with DOT specifications.
     """
+    # Using single quotes for Python lets us use standard double quotes for Graphviz syntax
     dot_nodes = [
         "digraph G {",
-        "  graph [rankdir=TB, bgcolor='transparent', fontname='Helvetica'];",
-        "  node [fontname='Helvetica', shape=box, style='filled', fillcolor='#F8F9FA', color='#CED4DA', penwidth=1.5];",
-        "  edge [fontname='Helvetica', color='#495057', penwidth=1.2];",
+        '  graph [rankdir=TB, bgcolor="transparent", fontname="Helvetica"];',
+        '  node [fontname="Helvetica", shape=box, style="filled", fillcolor="#F8F9FA", color="#CED4DA", penwidth=1.5];',
+        '  edge [fontname="Helvetica", color="#495057", penwidth=1.2];',
         "",
         "  // ⚡ Core Infrastructure Node Foundations",
-        "  GRID [label=\"🔋 National Grid\\n11kV Incoming Boundary\", shape=cloud, fillcolor='#E8F4FD', color='#1D82DC'];",
-        "  BUS_MAIN [label=\"🎛️ Primary Busbar Panel\\nMain Distribution Board\", fillcolor='#E9ECEF', style='filled,bold', penwidth=2];",
+        '  GRID [label="🔋 National Grid\\n11kV Incoming Boundary", shape=cloud, fillcolor="#E8F4FD", color="#1D82DC"];',
+        '  BUS_MAIN [label="🎛️ Primary Busbar Panel\\nMain Distribution Board", fillcolor="#E9ECEF", style="filled,bold", penwidth=2];',
         '  GRID -> BUS_MAIN [label=" Main Intake"];',
     ]
 
-    # Parameter name here is fully synchronized with the function signature
     if integrate_mitigation:
         dot_nodes.append(
-            "  SUB_STEM [label=\"🛡️ STEM OPTIMISATION HUB\\nActive Filtering & SVG Matrix\", fillcolor='#D4EDDA', color='#28A745', style='filled,bold', penwidth=2.5];"
+            '  SUB_STEM [label="🛡️ STEM OPTIMISATION HUB\\nActive Filtering & SVG Matrix", fillcolor="#D4EDDA", color="#28A745", style="filled,bold", penwidth=2.5];'
         )
         dot_nodes.append(
-            "  BUS_MAIN -> SUB_STEM [color='#28A745', penwidth=2.0, label=\" Active Correction\"];"
+            '  BUS_MAIN -> SUB_STEM [color="#28A745", penwidth=2.0, label=" Active Correction"];'
         )
 
     # Build branches safely using sanitised node keys
     for _, row in df.iterrows():
-        # Handle cases where rows are appended empty during manual editing
         if pd.isna(row.get("Asset Tag")) or str(row.get("Asset Tag")).strip() == "":
             continue
 
@@ -76,13 +75,13 @@ def generate_dynamic_sld_graph(
         if not clean_id or clean_id == "____":
             continue
 
-        # Insulate full descriptive text blocks within double quotes to allow free typing
+        # Strictly use double-quotes around values inside node_style to pass the browser compiler checks
         if thd > 15.0:
-            node_style = f"label=\"⚠️ {tag}\\n{classification}\\n{rating:,.0f} kW | THD: {thd:.1f}%\", fillcolor='#FCE8E6', color='#D9272E', penwidth=1.8"
+            node_style = f'label="⚠️ {tag}\\n{classification}\\n{rating:,.0f} kW | THD: {thd:.1f}%", fillcolor="#FCE8E6", color="#D9272E", penwidth=1.8'
         elif "Transformer" in classification:
-            node_style = f"label=\"🔌 {tag}\\n{classification}\\n{rating:,.0f} kW\", fillcolor='#FFF3CD', color='#FFC107'"
+            node_style = f'label="🔌 {tag}\\n{classification}\\n{rating:,.0f} kW", fillcolor="#FFF3CD", color="#FFC107"'
         else:
-            node_style = f"label=\"⚙️ {tag}\\n{classification}\\n{rating:,.0f} kW\", fillcolor='#F8F9FA', color='#6C757D'"
+            node_style = f'label="⚙️ {tag}\\n{classification}\\n{rating:,.0f} kW", fillcolor="#F8F9FA", color="#6C757D"'
 
         dot_nodes.append(f"  {clean_id} [{node_style}];")
         dot_nodes.append(f"  BUS_MAIN -> {clean_id};")
@@ -280,7 +279,6 @@ def render_data_entry_view():
                     "Red nodes highlight assets with severe harmonic stress (>15% THD) running hot."
                 )
 
-                # Naming parameters are now fully unified with the signature definition
                 dot_string_existing = generate_dynamic_sld_graph(
                     st.session_state.sandbox_assets, integrate_mitigation=False
                 )
@@ -294,7 +292,6 @@ def render_data_entry_view():
                     "The green block illustrates exactly where our active cancellation filters splice into the main busbar."
                 )
 
-                # Naming parameters are now fully unified with the signature definition
                 dot_string_optimized = generate_dynamic_sld_graph(
                     st.session_state.sandbox_assets, integrate_mitigation=True
                 )
