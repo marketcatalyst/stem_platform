@@ -259,6 +259,7 @@ def render_data_entry_view():
             key="annual_events",
         )
 
+    # 🧮 HARMONIZED TRIPARTITE CALCULATION BLOCK (MATCHES EXECUTIVE VIEW)
     single_event_loss = st.session_state.prod_val * st.session_state.restart_hrs
     total_unmitigated_opportunity_cost = (
         single_event_loss * st.session_state.annual_events
@@ -348,6 +349,7 @@ def render_data_entry_view():
     col_workspace, col_copilot = st.columns([2, 1])
 
     with col_workspace:
+        # 🎯 VERIFIED: Restoring full 4-tab infrastructure to split workspace layout
         tab_sld_sandbox, tab_brief, tab_upload, tab_amr = st.tabs(
             [
                 "🗺️ Dynamic Single Line Diagram (SLD) Digital Twin",
@@ -643,14 +645,14 @@ def render_data_entry_view():
                 )
                 for jump in jumps:
                     st.warning(
-                        f"⚠️ **Heavy Start Event Caught:** Registered load jump at `{jump['timestamp']}`! Step: `+{jump['magnitude_step_kw']} kW` ."
+                        f"⚠️ **Heavy Start Event Caught:** Registered load jump at `{jump['timestamp']}`! Step: `+{jump['magnitude_step_kw']} kW`."
                     )
 
                 recon_summary = reconciler.reconcile_desktop_survey(
                     total_survey_kw, processed_stream
                 )
                 st.write(
-                    f"**Verification Report Index:** `{recon_summary['action_required']}` | Measured Divergence: `{recon_summary['variance_divergence_pct']}%` ."
+                    f"**Verification Report Index:** `{recon_summary['action_required']}` | Measured Divergence: `{recon_summary['variance_divergence_pct']}%`."
                 )
 
     with col_copilot:
@@ -686,6 +688,18 @@ def render_data_entry_view():
                 - Single Interruption Interruption Cost: £{single_event_loss:,.0f}
                 - Annualized Risk Exposure: £{total_residual_leak:,.0f} / yr
                 - Expected Annual Insurance Premium Reduction: {insurance_credit}
+                
+                💰 BUDGETARY CAPITAL COST ESTIMATION HEURISTICS:
+                1. Primary Intake Switchboard (Centralised Bay): £85,000
+                2. Heavy Industrial Process Board (Panel B1): £42,000
+                3. Motor Control Centre (MCC Panel B2): £35,000
+                4. Auxiliary & Building Services (Panel B3): £18,000
+                5. Local BESS & Hybrid UPS Array (Robotics Asset Protection): £65,000. Provides the sub-20ms ride-through to insulate sensitive equipment from sags, bringing Opportunity Cost exposure to £0.
+                
+                CASE STUDY BENCHMARK (ASTON MARTIN ST ATHAN):
+                - Peak capacity of 7,000 cars/yr (~28 cars/day). Normal rate ~4,000-5,000 cars/yr (~16-20 cars/day). At £150k+ per vehicle, a 4-hour robotics line failure costs £1.2M - £1.5M in lost throughput per single grid anomaly event.
+                
+                Leverage this financial context natively in your text replies. Be conversational, insightful, and supportive. If the user asks to modify configurations, use tools immediately.
                 """
 
                 response = client.models.generate_content(
@@ -694,7 +708,7 @@ def render_data_entry_view():
                     config=types.GenerateContentConfig(
                         tools=[update_electrical_mitigation_nodes],
                         temperature=0.15,
-                        system_instruction="You are a brilliant cost consultant and systems-thinking power engineer. Speak with professional, boardroom-ready authority. Never give canned robotic disclaimers.",
+                        system_instruction="You are a brilliant cost consultant and systems-thinking power engineer. Speak with professional, boardroom-ready authority. Never give canned robotic disclaimers; use your built-in financial heuristics natively to articulate business value.",
                     ),
                 )
 
