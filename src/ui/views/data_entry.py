@@ -3,6 +3,8 @@ import sys
 import streamlit as st
 import pandas as pd
 import numpy as np
+from google import genai
+from google.genai import types
 
 # ==========================================================================
 # 🛡️ PATH INSURANCE POLICY (CRITICAL FOR LINUX CLOUD DEPLOYMENTS)
@@ -14,11 +16,11 @@ if repo_root not in sys.path:
 from src.ui.views.operations import load_ammanford_alloys_dataset
 
 
-def generate_dynamic_sld_graph(df: pd.DataFrame, policy: str) -> str:
+def generate_dynamic_sld_graph(df: pd.DataFrame, selected_mitigations: list) -> str:
     """
     Programmatically constructs an adaptive, 3-column vertical SLD tree schema.
-    Mutates its internal geometric layout to natively embed hardware assets
-    based on the Steering Committee's regulatory policy selection.
+    Dynamically injects multiple parallel STEM mitigation blocks into any combination
+    of circuits selected by the steering committee or conversational co-pilot.
     """
     dot_nodes = [
         "digraph G {",
@@ -33,12 +35,11 @@ def generate_dynamic_sld_graph(df: pd.DataFrame, policy: str) -> str:
         "",
     ]
 
-    # 🏛️ GEOMETRY MUTATION 1: Centralised Primary Intake Bay (Corrected Shunt Ingress Loop)
-    if policy == "Centralised Primary Intake Bay (Boundary Patch)":
+    # 🏛️ DYNAMIC MITIGATION 1: Centralised Primary Intake Switchboard Ingress
+    if "Primary Intake Switchboard (Centralised Bay)" in selected_mitigations:
         dot_nodes.append(
             '  SUB_STEM_CENTRAL [label="🛡️ STEM OPTIMISATION BAY\\nCentralised Filtering Matrix", fillcolor="#D4EDDA", color="#28A745", style="filled,bold", penwidth=2.5];'
         )
-        # Vector points UP into the main intake panel to establish shunt injection clarity
         dot_nodes.append(
             '  SUB_STEM_CENTRAL -> BUS_MAIN [color="#28A745", penwidth=2.0, arrowhead=normal, label=" Active Injection", weight=0];'
         )
@@ -103,7 +104,7 @@ def generate_dynamic_sld_graph(df: pd.DataFrame, policy: str) -> str:
         else:
             aux_assets.append(asset_tuple)
 
-    # 🏢 COLUMN LAYER 1: Heavy Process Sub-Board (Stacked Vertically)
+    # 🏢 COLUMN LAYER 1: Heavy Process Sub-Board (With Local Shunt Filter Option)
     dot_nodes.append("  subgraph cluster_heavy {")
     dot_nodes.append('    label="⚡ Heavy Industrial Process Board";')
     dot_nodes.append(
@@ -112,6 +113,15 @@ def generate_dynamic_sld_graph(df: pd.DataFrame, policy: str) -> str:
     dot_nodes.append(
         '    BUS_HEAVY [label="⚡ Furnace Sub-Distribution\\nBusbar Node B1", fillcolor="#FFF3CD", style="filled,bold"];'
     )
+
+    # 🏛️ DYNAMIC MITIGATION 2: Heavy Board Localized Ingress
+    if "Heavy Industrial Process Board (Panel B1)" in selected_mitigations:
+        dot_nodes.append(
+            '    SUB_STEM_HEAVY [label="🛡️ LOCAL STEM FILTER B1\\nActive Furnace Compensation", fillcolor="#D4EDDA", color="#28A745", style="filled,bold", penwidth=2.0];'
+        )
+        dot_nodes.append(
+            '    SUB_STEM_HEAVY -> BUS_HEAVY [color="#28A745", penwidth=2.0, arrowhead=normal, label=" Active Injection", weight=0];'
+        )
 
     last_id = "BUS_HEAVY"
     for cid, style in heavy_assets:
@@ -122,7 +132,7 @@ def generate_dynamic_sld_graph(df: pd.DataFrame, policy: str) -> str:
         last_id = cid
     dot_nodes.append("  }")
 
-    # 🏢 COLUMN LAYER 2: Motor Control Centre (MCC) with Adaptive Consensus Option
+    # 🏢 COLUMN LAYER 2: Motor Control Centre (MCC) (With Local Shunt Filter Option)
     dot_nodes.append("  subgraph cluster_drives {")
     dot_nodes.append('    label="⚙️ Motor Control Centre (MCC)";')
     dot_nodes.append(
@@ -132,14 +142,13 @@ def generate_dynamic_sld_graph(df: pd.DataFrame, policy: str) -> str:
         '    BUS_DRIVES [label="⚙️ Automated Drive Panel\\nBusbar Node B2", fillcolor="#E2F0FE", style="filled,bold"];'
     )
 
-    # 🏛️ GEOMETRY MUTATION 2: Source-Level Distributed Ingress (Flipped Upward Active Injection Loop)
-    if policy == "Source-Level Distributed Mitigation (Nested MCC Panel) [Consensus]":
+    # 🏛️ DYNAMIC MITIGATION 3: MCC Board Localized Ingress
+    if "Motor Control Centre (MCC Panel B2)" in selected_mitigations:
         dot_nodes.append(
-            '    SUB_STEM_LOCAL [label="🛡️ LOCAL STEM FILTER\\nActive Harmonic Cancellation Node", fillcolor="#D4EDDA", color="#28A745", style="filled,bold", penwidth=2.0];'
+            '    SUB_STEM_DRIVES [label="🛡️ LOCAL STEM FILTER B2\\nActive VSD Drive Cancellation", fillcolor="#D4EDDA", color="#28A745", style="filled,bold", penwidth=2.0];'
         )
-        # Vector points UP into Node B2 to fix the detached look and accurately present shunt compensation
         dot_nodes.append(
-            '    SUB_STEM_LOCAL -> BUS_DRIVES [color="#28A745", penwidth=2.0, arrowhead=normal, label=" Active Injection", weight=0];'
+            '    SUB_STEM_DRIVES -> BUS_DRIVES [color="#28A745", penwidth=2.0, arrowhead=normal, label=" Active Injection", weight=0];'
         )
 
     last_id = "BUS_DRIVES"
@@ -160,6 +169,15 @@ def generate_dynamic_sld_graph(df: pd.DataFrame, policy: str) -> str:
     dot_nodes.append(
         '    BUS_AUX [label="🏢 Commercial Infrastructure\\nBusbar Node B3", fillcolor="#E9ECEF", style="filled,bold"];'
     )
+
+    # 🏛️ DYNAMIC MITIGATION 4: Auxiliary Board Localized Ingress
+    if "Auxiliary & Building Services (Panel B3)" in selected_mitigations:
+        dot_nodes.append(
+            '    SUB_STEM_AUX [label="🛡️ LOCAL STEM FILTER B3\\nAuxiliary Clean Power Bank", fillcolor="#D4EDDA", color="#28A745", style="filled,bold", penwidth=2.0];'
+        )
+        dot_nodes.append(
+            '    SUB_STEM_AUX -> BUS_AUX [color="#28A745", penwidth=2.0, arrowhead=normal, label=" Active Injection", weight=0];'
+        )
 
     last_id = "BUS_AUX"
     for cid, style in aux_assets:
@@ -207,145 +225,267 @@ def generate_synthetic_amr_load_profile(filename: str) -> pd.DataFrame:
     return df_amr
 
 
+def update_electrical_mitigation_nodes(nodes: list[str]) -> str:
+    """
+    Executes a structural mutation of the SLD network architecture memory.
+    Supported arguments within the collection array:
+    - "Primary Intake Switchboard (Centralised Bay)"
+    - "Heavy Industrial Process Board (Panel B1)"
+    - "Motor Control Centre (MCC Panel B2)"
+    - "Auxiliary & Building Services (Panel B3)"
+    """
+    st.session_state.selected_nodes = nodes
+    return f"Consensus updated. Native active nodes deployed: {nodes}"
+
+
 def render_data_entry_view():
     """
-    Renders the central Data Ingestion, Asset Registration, and Single Line Diagram (SLD)
-    verification workspace. Unlocks active copy-paste grid state simulations for testers.
+    Renders the unified split workspace combining data ingestion, dynamic SLD visualization,
+    and the conversational Gemini two-way optimization loop side-by-side.
     """
-    st.markdown("## 🧪 Ingest Site Data & Network Configuration Staging")
-    st.markdown(
-        "##### Technical Data Onboarding, Automated SLD Mapping, and Verification Gateways"
-    )
-    st.markdown("---")
-
+    # Establish base persistent state structures cleanly
     if "sandbox_assets" not in st.session_state:
         st.session_state.sandbox_assets = load_ammanford_alloys_dataset()
 
-    tab_upload, tab_sld_sandbox = st.tabs(
-        [
-            "📥 Excel Clipboard & Document Feed",
-            "🗺️ Dynamic Single Line Diagram (SLD) Digital Twin",
+    if "selected_nodes" not in st.session_state:
+        st.session_state.selected_nodes = ["Motor Control Centre (MCC Panel B2)"]
+
+    if "copilot_history" not in st.session_state:
+        st.session_state.copilot_history = [
+            {
+                "role": "assistant",
+                "text": "👋 Bore da! I am your STEM Co-Pilot. I am connected directly to your active switchgear telemetry state. You can speak to me naturally to modify hardware configurations, analyze distortion spikes, or toggle distribution policies.",
+            }
         ]
-    )
+
+    # Establish Workspace Layout Split
+    col_workspace, col_copilot = st.columns([2, 1])
 
     # --------------------------------------------------------------------------
-    # TAB 1: LIVE CLIPBOARD ENTRY
+    # LEFT CONTAINER: THE INTERACTIVE ENGINEERING WORKSPACE
     # --------------------------------------------------------------------------
-    with tab_upload:
-        st.markdown("### 📋 Excel-Style Batch Asset Clipboard & File Ingestion")
+    with col_workspace:
+        st.markdown("## 🧪 Ingest Site Data & Network Configuration Staging")
         st.markdown(
-            "Use the interactive data grid below to **directly copy-paste rows from Excel**, edit configurations "
-            "manually, or append brand new machinery components."
+            "##### Technical Data Onboarding, Automated SLD Mapping, and Verification Gateways"
         )
-
-        edited_df = st.data_editor(
-            data=st.session_state.sandbox_assets,
-            use_container_width=True,
-            num_rows="dynamic",
-            hide_index=True,
-            column_config={
-                "Asset Tag": st.column_config.TextColumn(
-                    "Asset Tag", help="Unique identifier tag.", required=True
-                ),
-                "Plant Location": st.column_config.TextColumn(
-                    "Plant Location", required=True
-                ),
-                "Classification": st.column_config.SelectboxColumn(
-                    "Classification",
-                    options=[
-                        "Main Distribution Transformer",
-                        "Auxiliary Step-Down Transformer",
-                        "Variable Speed Drive (VSD)",
-                        "Large Induction Motor",
-                        "Arc Furnace Plant",
-                        "Ladle Metallurgy Furnace",
-                        "Power Factor Correction Bank",
-                        "Industrial LED Lighting Network",
-                        "General Load",
-                    ],
-                    required=True,
-                ),
-                "Rating (kW)": st.column_config.NumberColumn(
-                    "Rating (kW)", min_value=1, max_value=10000, step=5, required=True
-                ),
-                "Weekly Hrs": st.column_config.NumberColumn(
-                    "Weekly Hrs", min_value=1, max_value=168, step=1, required=True
-                ),
-                "Distortion (THD_i)": st.column_config.NumberColumn(
-                    "Distortion (THD_i)",
-                    min_value=0.0,
-                    max_value=100.0,
-                    step=0.1,
-                    format="%.1f%%",
-                    required=True,
-                ),
-            },
-        )
-        st.session_state.sandbox_assets = edited_df
-
-        st.markdown("---")
-        col_up1, col_up2 = st.columns(2)
-        with col_up1:
-            st.markdown("##### 📄 Legacy Print / CAD Blueprint Upload Node")
-            uploaded_sld = st.file_uploader(
-                "Drag and drop existing site drawing prints:",
-                type=["pdf", "png", "jpg", "jpeg"],
-                key="sld_uploader_node",
-            )
-            if uploaded_sld is not None:
-                st.success(f"🔒 Blueprint '{uploaded_sld.name}' successfully cached.")
-        with col_up2:
-            st.markdown("##### 📊 Half-Hourly AMR Utility Export File Parser")
-            uploaded_amr = st.file_uploader(
-                "Upload active grid boundary smart meter billing logs (.csv):",
-                type=["csv"],
-                key="amr_uploader_node",
-            )
-            if uploaded_amr is not None:
-                st.success(f"📊 '{uploaded_amr.name}' parsed.")
-                df_profile = generate_synthetic_amr_load_profile(uploaded_amr.name)
-                st.line_chart(df_profile)
-
-    # --------------------------------------------------------------------------
-    # TAB 2: LIVE-UPDATING 3-WAY CONSENSUS POLICY SLD
-    # --------------------------------------------------------------------------
-    with tab_sld_sandbox:
-        st.markdown("### 🎚️ Network Engineering Topology Visualisation")
-        st.markdown(
-            "This structural digital twin reads values **live** from the clipboard spreadsheet on Tab 1."
-        )
-
-        # 🏛️ THE STEERING COMMITTEE SELECTION TOOL
-        sld_policy_mode = st.radio(
-            label="🏛️ Select Active Engineering Mitigation Policy Consensus View:",
-            options=[
-                "As-Is Existing System State (Unmitigated Core Risk)",
-                "Centralised Primary Intake Bay (Boundary Patch)",
-                "Source-Level Distributed Mitigation (Nested MCC Panel) [Consensus]",
-            ],
-            index=0,
-            help="Directly adjusts the high-voltage electrical architecture geometry, switching between localized protection or broad boundary mitigation.",
-        )
-
         st.markdown("---")
 
-        if st.session_state.sandbox_assets.shape[0] == 0:
-            st.info(
-                "No active assets registered. Please append rows inside the staging clipboard."
+        tab_upload, tab_sld_sandbox = st.tabs(
+            [
+                "📥 Excel Clipboard & Document Feed",
+                "🗺️ Dynamic Single Line Diagram (SLD) Digital Twin",
+            ]
+        )
+
+        with tab_upload:
+            st.markdown("### 📋 Excel-Style Batch Asset Clipboard & File Ingestion")
+            st.markdown(
+                "Use the interactive data grid below to **directly copy-paste rows from Excel**, edit configurations "
+                "manually, or append brand new machinery components."
             )
-        else:
-            if sld_policy_mode == "As-Is Existing System State (Unmitigated Core Risk)":
-                st.markdown(
-                    "##### ⚠️ Current Grid Topology (Unmitigated Core Risk Profile)"
+
+            edited_df = st.data_editor(
+                data=st.session_state.sandbox_assets,
+                use_container_width=True,
+                num_rows="dynamic",
+                hide_index=True,
+                column_config={
+                    "Asset Tag": st.column_config.TextColumn(
+                        "Asset Tag", help="Unique identifier tag.", required=True
+                    ),
+                    "Plant Location": st.column_config.TextColumn(
+                        "Plant Location", required=True
+                    ),
+                    "Classification": st.column_config.SelectboxColumn(
+                        "Classification",
+                        options=[
+                            "Main Distribution Transformer",
+                            "Auxiliary Step-Down Transformer",
+                            "Variable Speed Drive (VSD)",
+                            "Large Induction Motor",
+                            "Arc Furnace Plant",
+                            "Ladle Metallurgy Furnace",
+                            "Power Factor Correction Bank",
+                            "Industrial LED Lighting Network",
+                            "General Load",
+                        ],
+                        required=True,
+                    ),
+                    "Rating (kW)": st.column_config.NumberColumn(
+                        "Rating (kW)",
+                        min_value=1,
+                        max_value=10000,
+                        step=5,
+                        required=True,
+                    ),
+                    "Weekly Hrs": st.column_config.NumberColumn(
+                        "Weekly Hrs", min_value=1, max_value=168, step=1, required=True
+                    ),
+                    "Distortion (THD_i)": st.column_config.NumberColumn(
+                        "Distortion (THD_i)",
+                        min_value=0.0,
+                        max_value=100.0,
+                        step=0.1,
+                        format="%.1f%%",
+                        required=True,
+                    ),
+                },
+            )
+            st.session_state.sandbox_assets = edited_df
+
+            st.markdown("---")
+            col_up1, col_up2 = st.columns(2)
+            with col_up1:
+                st.markdown("##### 📄 Legacy Print / CAD Blueprint Upload Node")
+                uploaded_sld = st.file_uploader(
+                    "Drag and drop existing site drawing prints:",
+                    type=["pdf", "png", "jpg", "jpeg"],
+                    key="sld_uploader_node",
                 )
-            elif sld_policy_mode == "Centralised Primary Intake Bay (Boundary Patch)":
-                st.markdown("##### 🟢 Centralised Intake Bay Layout (Boundary Masking)")
+                if uploaded_sld is not None:
+                    st.success(
+                        f"🔒 Blueprint '{uploaded_sld.name}' successfully cached."
+                    )
+            with col_up2:
+                st.markdown("##### 📊 Half-Hourly AMR Utility Export File Parser")
+                uploaded_amr = st.file_uploader(
+                    "Upload active grid boundary smart meter billing logs (.csv):",
+                    type=["csv"],
+                    key="amr_uploader_node",
+                )
+                if uploaded_amr is not None:
+                    st.success(f"📊 '{uploaded_amr.name}' parsed.")
+                    df_profile = generate_synthetic_amr_load_profile(uploaded_amr.name)
+                    st.line_chart(df_profile)
+
+        with tab_sld_sandbox:
+            st.markdown("### 🎚️ Network Engineering Topology Visualisation")
+            st.markdown(
+                "This structural digital twin reads values **live** from the clipboard spreadsheet on Tab 1."
+            )
+
+            # Unified widget tied directly into shared memory
+            st.multiselect(
+                label="🏛️ Select Steering Committee Target Deployment Nodes:",
+                options=[
+                    "Primary Intake Switchboard (Centralised Bay)",
+                    "Heavy Industrial Process Board (Panel B1)",
+                    "Motor Control Centre (MCC Panel B2)",
+                    "Auxiliary & Building Services (Panel B3)",
+                ],
+                key="selected_nodes",
+                help="Select one or more circuits to see how the system seamlessly scales and deploys co-located shunt active filters.",
+            )
+
+            st.markdown("---")
+
+            if st.session_state.sandbox_assets.shape[0] == 0:
+                st.info(
+                    "No active assets registered. Please append rows inside the staging clipboard."
+                )
             else:
-                st.markdown(
-                    "##### 🛡️ Source-Level Distributed Infrastructure Grid (Systems-Thinking Alignment)"
+                if not st.session_state.selected_nodes:
+                    st.markdown(
+                        "##### ⚠️ Current Grid Topology (Unmitigated Baseline Risk)"
+                    )
+                else:
+                    st.markdown(
+                        "##### 🛡️ Tailored Coordinated Infrastructure Matrix (Active Multi-Node Compensation)"
+                    )
+                    st.caption(
+                        "Green assets represent parallel shunt compensation nodes injecting correction waveforms back up into their respective boards."
+                    )
+
+                dot_string = generate_dynamic_sld_graph(
+                    st.session_state.sandbox_assets,
+                    selected_mitigations=st.session_state.selected_nodes,
+                )
+                st.graphviz_chart(dot_string, use_container_width=True)
+
+    # --------------------------------------------------------------------------
+    # RIGHT CONTAINER: 🧠 STEM AI CONVERSATIONAL ENGINEERING CO-PILOT
+    # --------------------------------------------------------------------------
+    with col_copilot:
+        st.markdown("### 🧠 STEM AI Co-Pilot Console")
+        st.caption("Two-Way Conversational Topology Optimization Gateway")
+        st.markdown("---")
+
+        # Render conversation block inside an isolated scrollable frame box
+        chat_container = st.container(height=500)
+        with chat_container:
+            for message in st.session_state.copilot_history:
+                with st.chat_message(message["role"]):
+                    st.markdown(message["text"])
+
+        # Capture text prompt inputs conversational stream
+        if user_prompt := st.chat_input(
+            "Command Gemini to mutate switchgear topologies..."
+        ):
+            st.session_state.copilot_history.append(
+                {"role": "user", "text": user_prompt}
+            )
+            with chat_container:
+                with st.chat_message("user"):
+                    st.markdown(user_prompt)
+
+            try:
+                # Initialize GenAI Client reading secure API secrets
+                client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
+
+                # Context Injection mapping live system states into agent window
+                system_context = f"""
+                You are the master STEM Power Quality AI Agent. The user is evaluating an industrial electrical grid network.
+                Live Client Telemetry DataFrame: {st.session_state.sandbox_assets.to_json(orient='records')}
+                Currently Deployed Active Shunt Nodes: {st.session_state.selected_nodes}
+                
+                CRITICAL INSTRUCTION: If the user explicitly asks to update, alter, mutate, change, add, or subtract filtering assets or mitigation configurations, you MUST invoke the 'update_electrical_mitigation_nodes' tool immediately to execute the command. Do not merely state that you will do it—run the function.
+                """
+
+                response = client.models.generate_content(
+                    model="gemini-2.5-flash",
+                    contents=[system_context, user_prompt],
+                    config=types.GenerateContentConfig(
+                        tools=[update_electrical_mitigation_nodes],
+                        temperature=0.1,
+                        system_instruction="You are an elite high-voltage and low-voltage industrial electrical engineer specializing in harmonic cancellation. Speak with authoritative precision. If changes are requested, trigger tools immediately.",
+                    ),
                 )
 
-            dot_string = generate_dynamic_sld_graph(
-                st.session_state.sandbox_assets, policy=sld_policy_mode
-            )
-            st.graphviz_chart(dot_string, use_container_width=True)
+                # Execute Tool Interception Verification Checks
+                if response.function_calls:
+                    for call in response.function_calls:
+                        if call.name == "update_electrical_mitigation_nodes":
+                            # Extract parameters and run the internal mutation function
+                            tool_args = call.args
+                            execution_result = update_electrical_mitigation_nodes(
+                                **tool_args
+                            )
+
+                            st.session_state.copilot_history.append(
+                                {
+                                    "role": "assistant",
+                                    "text": f"🤖 **AI Optimization Action Executed:**\n`{execution_result}`\n\nI have rewritten the Single Line Diagram architecture to support your request. Review the live visual changes on Tab 2.",
+                                }
+                            )
+                else:
+                    # Append direct textual conversation returns
+                    reply = (
+                        response.text
+                        if response.text
+                        else "Telemetry analyzed. Layout constraints preserved."
+                    )
+                    st.session_state.copilot_history.append(
+                        {"role": "assistant", "text": reply}
+                    )
+
+            except Exception as e:
+                st.session_state.copilot_history.append(
+                    {
+                        "role": "assistant",
+                        "text": f"❌ **Co-Pilot Communication Error:** Required API credentials or dependencies uninitialized. Details: `{str(e)}`",
+                    }
+                )
+
+            # Force immediate UI element refresh synchronization loop
+            st.rerun()
