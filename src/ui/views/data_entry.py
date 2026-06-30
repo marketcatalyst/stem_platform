@@ -20,6 +20,7 @@ def generate_dynamic_sld_graph(
     """
     Programmatically constructs a Graphviz DOT engine string mapping out the physical
     high-voltage electrical network tree directly from the active session dataset.
+    Includes strict character sanitisation to prevent illegal string compilation exceptions.
     """
     dot_nodes = [
         "digraph G {",
@@ -28,49 +29,60 @@ def generate_dynamic_sld_graph(
         "  edge [fontname='Helvetica', color='#495057', penwidth=1.2];",
         "",
         "  // ⚡ Core Infrastructure Node Foundations",
-        "  GRID [label='🔋 National Grid\\n11kV Incoming Boundary', shape=cloud, fillcolor='#E8F4FD', color='#1D82DC'];",
-        "  BUS_MAIN [label='🎛️ Primary Busbar Panel\\nMain Distribution Board', fillcolor='#E9ECEF', style='filled,bold', penwidth=2];",
-        "  GRID -> BUS_MAIN [label=' Main Intake'];",
+        "  GRID [label=\"🔋 National Grid\\n11kV Incoming Boundary\", shape=cloud, fillcolor='#E8F4FD', color='#1D82DC'];",
+        "  BUS_MAIN [label=\"🎛️ Primary Busbar Panel\\nMain Distribution Board\", fillcolor='#E9ECEF', style='filled,bold', penwidth=2];",
+        '  GRID -> BUS_MAIN [label=" Main Intake"];',
     ]
 
     if incorporate_mitigation:
         dot_nodes.append(
-            "  SUB_STEM [label='🛡️ STEM OPTIMISATION HUB\\nActive Filtering & SVG Matrix', fillcolor='#D4EDDA', color='#28A745', style='filled,bold', penwidth=2.5];"
+            "  SUB_STEM [label=\"🛡️ STEM OPTIMISATION HUB\\nActive Filtering & SVG Matrix\", fillcolor='#D4EDDA', color='#28A745', style='filled,bold', penwidth=2.5];"
         )
         dot_nodes.append(
-            "  BUS_MAIN -> SUB_STEM [color='#28A745', penwidth=2.0, label=' Active Correction'];"
+            "  BUS_MAIN -> SUB_STEM [color='#28A745', penwidth=2.0, label=\" Active Correction\"];"
         )
 
-    # Build branches dynamically using whatever text or configurations currently live in the dataframe
+    # Build branches safely using sanitised node keys
     for _, row in df.iterrows():
-        tag = str(row.get("Asset Tag", "NEW_NODE")).strip()
+        # Handle cases where rows are appended empty during manual editing
+        if pd.isna(row.get("Asset Tag")) or str(row.get("Asset Tag")).strip() == "":
+            continue
+
+        tag = str(row.get("Asset Tag")).strip()
         location = str(row.get("Plant Location", "Unassigned")).strip()
         classification = str(row.get("Classification", "General Load")).strip()
 
-        # Robust parsing to guarantee stable compiler strings during live manual edits
+        # Guard rails against type coercion mid-keystroke
         try:
-            rating = float(
-                str(row.get("Rating (kW)", "0")).replace("kW", "").replace(",", "")
+            rating_val = (
+                str(row.get("Rating (kW)", "0"))
+                .replace("kW", "")
+                .replace(",", "")
+                .strip()
             )
+            rating = float(rating_val) if rating_val else 0.0
         except ValueError:
             rating = 0.0
 
         try:
-            thd = float(str(row.get("Distortion (THD_i)", "0")).replace("%", ""))
+            thd_val = str(row.get("Distortion (THD_i)", "0")).replace("%", "").strip()
+            thd = float(thd_val) if thd_val else 0.0
         except ValueError:
             thd = 0.0
 
-        if not tag or tag in ["nan", "NEW_NODE"]:
+        # 🔥 CRITICAL EXCEPTION GUARD: Convert any arbitrary user tag into a strict alphanumeric identifier
+        # Graphviz nodes crash if they contain characters like hyphens, slashes, or spaces unless handled internally
+        clean_id = "".join(c if c.isalnum() or c == "_" else "_" for c in tag)
+        if not clean_id or clean_id == "____":
             continue
 
-        clean_id = tag.replace("-", "_").replace(" ", "_")
-
+        # Insulate full descriptive text blocks within double quotes to allow free typing
         if thd > 15.0:
-            node_style = f"label='⚠️ {tag}\\n{classification}\\n{rating:,.0f}kW | THD: {thd:.1f}%', fillcolor='#FCE8E6', color='#D9272E', penwidth=1.8"
+            node_style = f"label=\"⚠️ {tag}\\n{classification}\\n{rating:,.0f} kW | THD: {thd:.1f}%\", fillcolor='#FCE8E6', color='#D9272E', penwidth=1.8"
         elif "Transformer" in classification:
-            node_style = f"label='🔌 {tag}\\n{classification}\\n{rating:,.0f}kW', fillcolor='#FFF3CD', color='#FFC107'"
+            node_style = f"label=\"🔌 {tag}\\n{classification}\\n{rating:,.0f} kW\", fillcolor='#FFF3CD', color='#FFC107'"
         else:
-            node_style = f"label='⚙️ {tag}\\n{classification}\\n{rating:,.0f}kW', fillcolor='#F8F9FA', color='#6C757D'"
+            node_style = f"label=\"⚙️ {tag}\\n{classification}\\n{rating:,.0f} kW\", fillcolor='#F8F9FA', color='#6C757D'"
 
         dot_nodes.append(f"  {clean_id} [{node_style}];")
         dot_nodes.append(f"  BUS_MAIN -> {clean_id};")
@@ -118,9 +130,7 @@ def render_data_entry_view():
     )
     st.markdown("---")
 
-    # ==========================================================================
-    # 🧠 STATE MANAGEMENT: INITIALIZE INTERACTIVE WORKSPACE
-    # ==========================================================================
+    # Initialize persistence arrays cleanly within the standard runtime session state
     if "sandbox_assets" not in st.session_state:
         st.session_state.sandbox_assets = load_ammanford_alloys_dataset()
 
@@ -142,7 +152,7 @@ def render_data_entry_view():
             "the system engineering diagrams and metrics across the entire platform model runtime."
         )
 
-        # 📊 THE EXCEL-STYLE CLIPBOARD INTERACTION ENGINE
+        # Render the editor view mapping changes safely directly back into state memory
         edited_df = st.data_editor(
             data=st.session_state.sandbox_assets,
             use_container_width=True,
@@ -196,7 +206,7 @@ def render_data_entry_view():
             },
         )
 
-        # Keep memory array synchronized with any editing changes
+        # Save modifications safely
         st.session_state.sandbox_assets = edited_df
 
         st.markdown("---")
@@ -256,29 +266,34 @@ def render_data_entry_view():
 
         st.markdown("---")
 
-        # Compile the Graphviz DOT strings on the fly using edited session data
-        if sld_view_mode == "As-Is Existing System State":
-            st.markdown(
-                "##### ⚠️ Current Grid Topology (Unmitigated Core Risk Profile)"
+        # Safely capture empty states before sending arrays downstream to compiler
+        if st.session_state.sandbox_assets.shape[0] == 0:
+            st.info(
+                "No active assets registered. Please append rows inside the staging clipboard."
             )
-            st.caption(
-                "Red nodes highlight assets with severe harmonic stress (>15% THD) running hot."
-            )
-
-            dot_string_existing = generate_dynamic_sld_graph(
-                st.session_state.sandbox_assets, incorporate_mitigation=False
-            )
-            st.graphviz_chart(dot_string_existing, use_container_width=True)
-
         else:
-            st.markdown(
-                "##### 🟢 Proposed Optimized Infrastructure Grid (STEM Preserved Geometry)"
-            )
-            st.caption(
-                "The green block illustrates exactly where our active cancellation filters splice into the main busbar."
-            )
+            if sld_view_mode == "As-Is Existing System State":
+                st.markdown(
+                    "##### ⚠️ Current Grid Topology (Unmitigated Core Risk Profile)"
+                )
+                st.caption(
+                    "Red nodes highlight assets with severe harmonic stress (>15% THD) running hot."
+                )
 
-            dot_string_optimized = generate_dynamic_sld_graph(
-                st.session_state.sandbox_assets, incorporate_mitigation=True
-            )
-            st.graphviz_chart(dot_string_optimized, use_container_width=True)
+                dot_string_existing = generate_dynamic_sld_graph(
+                    st.session_state.sandbox_assets, integrate_mitigation=False
+                )
+                st.graphviz_chart(dot_string_existing, use_container_width=True)
+
+            else:
+                st.markdown(
+                    "##### 🟢 Proposed Optimized Infrastructure Grid (STEM Preserved Geometry)"
+                )
+                st.caption(
+                    "The green block illustrates exactly where our active cancellation filters splice into the main busbar."
+                )
+
+                dot_string_optimized = generate_dynamic_sld_graph(
+                    st.session_state.sandbox_assets, integrate_mitigation=True
+                )
+                st.graphviz_chart(dot_string_optimized, use_container_width=True)
