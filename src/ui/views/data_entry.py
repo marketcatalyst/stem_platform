@@ -14,13 +14,11 @@ if repo_root not in sys.path:
 from src.ui.views.operations import load_ammanford_alloys_dataset
 
 
-def generate_dynamic_sld_graph(
-    df: pd.DataFrame, integrate_mitigation: bool = False
-) -> str:
+def generate_dynamic_sld_graph(df: pd.DataFrame, policy: str) -> str:
     """
-    Programmatically constructs a beautifully balanced, 3-column vertical SLD tree.
-    Utilises internal column serialization to stack assets vertically within their
-    respective panels, compressing the horizontal footprint for crisp scannable UX.
+    Programmatically constructs an adaptive, 3-column vertical SLD tree schema.
+    Mutates its internal geometric layout to natively embed hardware assets
+    based on the Steering Committee's regulatory policy selection.
     """
     dot_nodes = [
         "digraph G {",
@@ -35,12 +33,13 @@ def generate_dynamic_sld_graph(
         "",
     ]
 
-    if integrate_mitigation:
+    # 🏛️ POLICY GEOMETRY OPTION 1: Centralized Primary Intake Bay
+    if policy == "Centralized Primary Intake Bay Mitigation (Utility Boundary)":
         dot_nodes.append(
-            '  SUB_STEM [label="🛡️ STEM OPTIMISATION HUB\\nActive Filtering & SVG Matrix", fillcolor="#D4EDDA", color="#28A745", style="filled,bold", penwidth=2.5];'
+            '  SUB_STEM_CENTRAL [label="🛡️ STEM OPTIMISATION BAY\\nCentralised Filtering Matrix", fillcolor="#D4EDDA", color="#28A745", style="filled,bold", penwidth=2.5];'
         )
         dot_nodes.append(
-            '  BUS_MAIN -> SUB_STEM [color="#28A745", penwidth=2.0, label=" Active Correction"];'
+            '  BUS_MAIN -> SUB_STEM_CENTRAL [color="#28A745", penwidth=2.0, label=" Central Correction"];'
         )
 
     # Data Buckets to harvest items for our 3 isolated vertical columns
@@ -122,7 +121,7 @@ def generate_dynamic_sld_graph(
         last_id = cid
     dot_nodes.append("  }")
 
-    # 🏢 COLUMN LAYER 2: Motor Control Centre (Stacked Vertically)
+    # 🏢 COLUMN LAYER 2: Motor Control Centre (MCC) with Optional Consensus Ingress
     dot_nodes.append("  subgraph cluster_drives {")
     dot_nodes.append('    label="⚙️ Motor Control Centre (MCC)";')
     dot_nodes.append(
@@ -131,6 +130,18 @@ def generate_dynamic_sld_graph(
     dot_nodes.append(
         '    BUS_DRIVES [label="⚙️ Automated Drive Panel\\nBusbar Node B2", fillcolor="#E2F0FE", style="filled,bold"];'
     )
+
+    # 🏛️ POLICY GEOMETRY OPTION 2: Source-Level Distributed Mitigation (Spliced inside MCC)
+    if (
+        policy
+        == "Source-Level Distributed Mitigation (Nested MCC Panel) [Committee Consensus]"
+    ):
+        dot_nodes.append(
+            '    SUB_STEM_LOCAL [label="🛡️ LOCAL STEM FILTER\\nActive Harmonic Cancellation Node", fillcolor="#D4EDDA", color="#28A745", style="filled,bold", penwidth=2.0];'
+        )
+        dot_nodes.append(
+            '    BUS_DRIVES -> SUB_STEM_LOCAL [color="#28A745", penwidth=2.0, label=" Local Correction"];'
+        )
 
     last_id = "BUS_DRIVES"
     for cid, style in drive_assets:
@@ -203,7 +214,7 @@ def generate_synthetic_amr_load_profile(filename: str) -> pd.DataFrame:
 def render_data_entry_view():
     """
     Renders the central Data Ingestion, Asset Registration, and Single Line Diagram (SLD)
-    verification workspace. Unlocks active copy-paste grid state simulations for testers.
+    verification workspace. Includes the Steering Committee policy alignment engine.
     """
     st.markdown("## 🧪 Ingest Site Data & Network Configuration Staging")
     st.markdown(
@@ -322,23 +333,24 @@ def render_data_entry_view():
                 st.line_chart(df_profile)
 
     # --------------------------------------------------------------------------
-    # TAB 2: LIVE-UPDATING DYNAMIC SLD ARCHITECTURE GRAPH
+    # TAB 2: LIVE-UPDATING DYNAMIC SLD ARCHITECTURE GRAPH WITH POLICY MATRIX
     # --------------------------------------------------------------------------
     with tab_sld_sandbox:
         st.markdown("### 🎚️ Network Engineering Topology Visualisation")
         st.markdown(
             "This structural digital twin reads values **live** from the clipboard spreadsheet on Tab 1. "
-            "If you change a row value or add a high-distortion machine there, this visualization will adapt instantly."
+            "Select an engineering policy consensus below to observe how the geometric layout adapts."
         )
 
-        sld_view_mode = st.radio(
-            label="Select Active Network Topology State View:",
+        # 🏛️ THE STEERING COMMITTEE INTERACTIVE CONFLICT SELECTOR
+        sld_policy_mode = st.radio(
+            label="🏛️ Select Steering Committee Engineering Design Consensus Policy:",
             options=[
-                "As-Is Existing System State",
-                "Proposed STEM Optimised Intervention Matrix",
+                "As-Is Existing System State (Unmitigated Core Risk)",
+                "Centralized Primary Intake Bay Mitigation (Utility Boundary)",
+                "Source-Level Distributed Mitigation (Nested MCC Panel) [Committee Consensus]",
             ],
-            horizontal=True,
-            help="Toggle to simulate our targeted hardware optimization nodes directly onto the live schematic tree.",
+            help="Directly adjusts the high-voltage electrical architecture geometry, switching between localized protection at the source or broad boundary mitigation.",
         )
 
         st.markdown("---")
@@ -348,28 +360,31 @@ def render_data_entry_view():
                 "No active assets registered. Please append rows inside the staging clipboard."
             )
         else:
-            if sld_view_mode == "As-Is Existing System State":
+            if sld_policy_mode == "As-Is Existing System State (Unmitigated Core Risk)":
                 st.markdown(
                     "##### ⚠️ Current Grid Topology (Unmitigated Core Risk Profile)"
                 )
                 st.caption(
-                    "Structured sub-distribution blocks cluster assets to maintain readability."
+                    "Baseline unmitigated footprint. Red nodes identify high-distortion assets running hot."
                 )
-
-                dot_string_existing = generate_dynamic_sld_graph(
-                    st.session_state.sandbox_assets, integrate_mitigation=False
+            elif (
+                sld_policy_mode
+                == "Centralized Primary Intake Bay Mitigation (Utility Boundary)"
+            ):
+                st.markdown("##### 🟢 Centralised Intake Bay Layout (Boundary Masking)")
+                st.caption(
+                    "The green filter asset patches distortion at the boundary breaker, but internal facility cables remain uncorrected."
                 )
-                st.graphviz_chart(dot_string_existing, use_container_width=True)
-
             else:
                 st.markdown(
-                    "##### 🟢 Proposed Optimized Infrastructure Grid (STEM Preserved Geometry)"
+                    "##### 🛡️ Source-Level Distributed Infrastructure Grid (Systems-Thinking Alignment)"
                 )
                 st.caption(
-                    "The green block illustrates exactly where our active cancellation filters splice into the main busbar."
+                    "The green active filter is nested directly inside the MCC panel to eliminate distortion at the source."
                 )
 
-                dot_string_optimized = generate_dynamic_sld_graph(
-                    st.session_state.sandbox_assets, integrate_mitigation=True
-                )
-                st.graphviz_chart(dot_string_optimized, use_container_width=True)
+            # Compile the Graphviz DOT strings dynamically based on selected consensus policy
+            dot_string = generate_dynamic_sld_graph(
+                st.session_state.sandbox_assets, policy=sld_policy_mode
+            )
+            st.graphviz_chart(dot_string, use_container_width=True)
