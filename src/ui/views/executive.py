@@ -15,7 +15,7 @@ if repo_root not in sys.path:
 from src.ui.views.data_entry import generate_dynamic_sld_graph
 
 
-def render_executive_command_centre():
+def render_executive_view():
     """
     Renders the central Executive Command Centre dashboard. Elevates opportunity cost,
     streaming financial tickers, and dynamic real-time payback calculators
@@ -43,7 +43,7 @@ def render_executive_command_centre():
         st.session_state.executive_chat_history = [
             {
                 "role": "assistant",
-                "text": "🏛 *Welcome to the Executive Command Centre.* I am synced live with your plant's grid topology, verified financial payback arrays, and macro opportunity-cost curves.",
+                "text": "🏛️ *Welcome to the Executive Command Centre.* I am synced live with your plant's grid topology, verified financial payback arrays, and macro opportunity-cost curves.",
             }
         ]
 
@@ -80,7 +80,7 @@ def render_executive_command_centre():
             key="annual_events",
         )
 
-    # 📈 DYNAMIC FINANCIAL HARDENING ENGINE (THE CORE CORRECTION)
+    # 📈 DYNAMIC FINANCIAL HARDENING ENGINE
     single_event_loss = st.session_state.prod_val * st.session_state.restart_hrs
     total_unmitigated_exposure = single_event_loss * st.session_state.annual_events
 
@@ -167,7 +167,7 @@ def render_executive_command_centre():
     )
     st.markdown("---")
 
-    # 📊 C-SUITE BALANCED CARD INDEX (DYNAMICALLY HARDENED)
+    # 📊 C-SUITE BALANCED CARD INDEX
     metric_col1, metric_col2, metric_col3 = st.columns(3)
     with metric_col1:
         st.metric(
