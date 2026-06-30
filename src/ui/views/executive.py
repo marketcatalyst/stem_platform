@@ -58,7 +58,7 @@ def render_executive_view():
         ]
 
     with st.sidebar.expander(
-        "📊 Executive Sensitivity & Downtime Modeling", expanded=True
+        "📊 Executive Sensitivity & Downtime Modelling", expanded=True
     ):
         st.markdown("### 💼 Operational Valuation Variables")
         st.number_input(
@@ -105,7 +105,7 @@ def render_executive_view():
             "Local BESS / Hybrid UPS Array", min_value=0, step=1000, key="capex_bess"
         )
 
-    # 📈 HARMONIZED TRIPARTITE CALCULATION BLOCK
+    # 🧮 HARMONISED TRIPARTITE CALCULATION BLOCK
     single_event_loss = st.session_state.prod_val * st.session_state.restart_hrs
     total_unmitigated_opportunity_cost = (
         single_event_loss * st.session_state.annual_events
@@ -169,12 +169,9 @@ def render_executive_view():
     insurance_credit = (
         "£12,400 / yr"
         if len(st.session_state.selected_nodes) >= 2
-        else "£0 (High Risk Exposure Portfolio)"
+        else "£0 (High Risk Profile)"
     )
 
-    # --------------------------------------------------------------------------
-    # 🚨 DYNAMIC SCROLLING RISK MARQUEE
-    # --------------------------------------------------------------------------
     if total_residual_leak > 0:
         ticker_html = f"""
         <div style="background-color: #FCE8E6; padding: 12px; border-radius: 6px; border-left: 6px solid #D9272E; margin-bottom: 25px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
@@ -195,11 +192,10 @@ def render_executive_view():
 
     st.markdown("## 🎛️ Executive Command Centre Dashboard")
     st.markdown(
-        "##### Macro Portfolio Optimization, Live Single Line Digital Twins, and Financial De-risking Gateways"
+        "##### Macro Portfolio Optimisation, Live Single Line Digital Twins, and Financial De-risking Gateways"
     )
     st.markdown("---")
 
-    # 📊 C-SUITE BALANCED CARD INDEX
     metric_col1, metric_col2, metric_col3, metric_col4 = st.columns(4)
     with metric_col1:
         st.metric(
@@ -228,7 +224,7 @@ def render_executive_view():
         )
     with metric_col4:
         st.metric(
-            label="⏱️ Capital Amortization Cycle",
+            label="⏱️ Capital Amortisation Cycle",
             value=payback_display_value,
             delta="ROI Horizon",
         )
@@ -256,6 +252,7 @@ def render_executive_view():
                     "Local BESS & Hybrid UPS Array (Robotics Asset Protection)",
                 ],
                 key="selected_nodes",
+                help="Toggle network infrastructure assets to observe how the active geometric layout and corresponding streaming ticker metrics adapt.",
             )
             st.markdown("---")
 
@@ -269,7 +266,7 @@ def render_executive_view():
             st.markdown("---")
             st.markdown(f"""
             #### 1. Financial Position & Revenue Bottlenecks
-            The asset portfolio at Ammanford Alloys carries an unmitigated annualized opportunity cost risk posture of **£{current_opportunity_exposure:,.0f}/year** alongside an active physical technical cash bleed of **£{active_technical_bleed:,.0f}/year** from harmonic network degradation. Factoring in an operational run-rate of **£{st.session_state.prod_val:,.0f}/hour** and a calibration reset latency of **{st.session_state.restart_hrs:.1f} hours**, any single utility grid sag event triggers an immediate bottleneck loss of **£{single_event_loss:,.0f}**.
+            The asset portfolio at Ammanford Alloys carries an unmitigated annualised opportunity cost risk posture of **£{current_opportunity_exposure:,.0f}/year** alongside an active physical technical cash bleed of **£{active_technical_bleed:,.0f}/year** from harmonic network degradation. Factoring in an operational run-rate of **£{st.session_state.prod_val:,.0f}/hour** and a calibration reset latency of **{st.session_state.restart_hrs:.1f} hours**, any single utility grid sag event triggers an immediate bottleneck loss of **£{single_event_loss:,.0f}**.
             
             #### 2. Infrastructure Resilience Allocations & Proven Payback
             To completely isolate production margins from utility grid volatility, the steering committee outlines an adjusted implementation investment allocation totaling **£{capex_total:,.0f}** based on user-verified quote profiles. 
@@ -277,9 +274,9 @@ def render_executive_view():
             When deployed explicitly against the Motor Control Centre switchgear (MCC Panel B2), this allocation reclaims **£23,800/year** in avoided insulation depreciation stress alongside **£26,400/year** in direct copper loss energy waste mitigation. This delivers a verified engineering-level capital recovery cycle of exactly **{payback_display_value}** under current procurement assumptions.
             
             #### 3. Actuarial Risk Profile
-            Implementing localized sub-20ms high-speed shunt compensation converts highly unpredictable grid disruptions into an insulated corporate asset lifecycle.
+            Implementing localised sub-20ms high-speed shunt compensation converts highly unpredictable grid disruptions into an insulated corporate asset lifecycle.
             * **Current Underwriter Financial Yield:** **{insurance_credit}**
-            * **Strategic Validation:** This system-thinking framework replicates the exact risk-mitigation models utilized by world-class high-value regional manufacturers, such as the Aston Martin DBX assembly facility in St Athan, ensuring absolute continuity on critical robotics lines.
+            * **Strategic Validation:** This system-thinking framework replicates the exact risk-mitigation models utilised by world-class high-value regional manufacturers, such as the Aston Martin DBX assembly facility in St Athan, ensuring absolute continuity on critical robotics lines.
             """)
             st.button("📥 Export Boardroom Ready Proposal (.md)", key="exec_export_btn")
 
@@ -295,7 +292,7 @@ def render_executive_view():
                     st.markdown(msg["text"])
 
         if exec_input := st.chat_input(
-            "Command the platform to optimize or recalculate risk profiles..."
+            "Command the platform to optimise or re-calculate risk profiles..."
         ):
             st.session_state.executive_chat_history.append(
                 {"role": "user", "text": exec_input}
@@ -314,7 +311,9 @@ def render_executive_view():
                 - Value / Hour of Production: £{st.session_state.prod_val:,.0f}
                 - Process Line Restart Reset Window: {st.session_state.restart_hrs} hours
                 - Single Outage Interruption Cost: £{single_event_loss:,.0f}
-                - Annualized Project Savings (Before Opportunity Cost): £{insulation_savings_captured + copper_savings_captured:,.0f}
+                - Annualised Opportunity Risk Exposure: £{current_opportunity_exposure:,.0f}
+                - Annualised Direct Technical Harmonics Bleed: £{active_technical_bleed:,.0f}
+                - Annualised Project Savings (Before Opportunity Cost): £{insulation_savings_captured + copper_savings_captured:,.0f}
                 - Active Combined Project Payback Period: {payback_display_value}
                 - Insurance Broker Premium Credit: {insurance_credit}
                 """
@@ -327,7 +326,7 @@ def render_executive_view():
                     config=types.GenerateContentConfig(
                         tools=[update_electrical_mitigation_nodes],
                         temperature=0.15,
-                        system_instruction="You are a trusted strategic C-suite technology advisor. Speak with clear boardroom-ready authority.",
+                        system_instruction="You are a trusted strategic C-suite technology advisor. Speak with clear boardroom-ready authority. Natively use user-adjusted cost overrides and data vectors to frame your financial reasoning.",
                     ),
                 )
 
@@ -339,14 +338,14 @@ def render_executive_view():
                             st.session_state.executive_chat_history.append(
                                 {
                                     "role": "assistant",
-                                    "text": f"🤖 **Command Executed Upstream:**\n`{res}`\n\nI have rewritten the network topology configuration.",
+                                    "text": f"🤖 **Command Executed Upstream:**\n`{res}`\n\nI have rewritten the network topology configuration. The interactive single-line digital twin, the strategic brief text, and the financial metrics cards have adjusted live.",
                                 }
                             )
                 else:
                     reply_msg = (
                         exec_response.text
                         if exec_response.text
-                        else "Command analyzed. State constants remain locked."
+                        else "Command analysed. State constants remain locked."
                     )
                     st.session_state.executive_chat_history.append(
                         {"role": "assistant", "text": reply_msg}

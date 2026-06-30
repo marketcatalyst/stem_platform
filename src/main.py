@@ -12,7 +12,7 @@ import streamlit as st
 
 # Configure the master application page envelope
 st.set_page_config(
-    page_title="STEM Platform | Swalek & Market Catalyst JV",
+    page_title="STEM Platform | Market Catalyst & Swalek JV",
     page_icon="⚡",
     layout="wide",
 )
