@@ -307,24 +307,27 @@ def render_operations_view():
         key="ops_client_selector",
     )
 
-    # Load data dynamically based on selection state
-    df_raw = load_client_operational_matrix(active_client)
+    # 🚨 FIXED: Connect directly to session memory state to avoid data siloing
+    if active_client == "Ammanford Alloys Ltd" and "sandbox_assets" in st.session_state:
+        df_raw = st.session_state.sandbox_assets.copy()
+    else:
+        df_raw = load_client_operational_matrix(active_client)
+
     utility_rate = 0.24 if "Mining" in active_client else 0.22
 
     # ==========================================================================
     # 🧮 LINE-BY-LINE ASSET LOSS ANALYTICS INJECTION
     # ==========================================================================
-    # We enrich the dataframe with real-time calculated engineering parameters
     df_enriched = df_raw.copy()
 
     # Calculate annual kWh wasted per individual asset node
     df_enriched["Annual Waste (kWh)"] = df_enriched.apply(
         lambda r: (
-            r["Rating (kW)"]
-            * ((r["Distortion (THD_i)"] / 100.0) * 0.048)
-            * r["Weekly Hrs"]
+            float(str(r["Rating (kW)"]).replace(",", ""))
+            * ((float(str(r["Distortion (THD_i)"]).replace("%", "")) / 100.0) * 0.048)
+            * float(r["Weekly Hrs"])
             * 52
-            if r["Distortion (THD_i)"] > 5.0
+            if float(str(r["Distortion (THD_i)"]).replace("%", "")) > 5.0
             else 0.0
         ),
         axis=1,
@@ -334,21 +337,33 @@ def render_operations_view():
 
     # Calculate remaining insulation asset lifespan factor based on harmonic core heating models
     df_enriched["Insulation Life Expectancy"] = df_enriched["Distortion (THD_i)"].apply(
-        lambda x: max(30, round(100.0 - (x * 1.8))) if x > 5.0 else 100
+        lambda x: (
+            max(30, round(100.0 - (float(str(x).replace("%", "")) * 1.8)))
+            if float(str(x).replace("%", "")) > 5.0
+            else 100
+        )
     )
 
     # ==========================================================================
     # 🎛️ DYNAMIC SUMMARY METRIC CARDS
     # ==========================================================================
     total_registered_nodes = df_enriched.shape[0]
-    calculated_peak_demand = (
-        df_enriched[df_enriched["Weekly Hrs"] > 100]["Rating (kW)"].sum() * 0.65
-    ) + (
-        df_enriched[
+
+    # Safely compute numeric demand arrays filtering out string formats if present
+    ratings_clean = (
+        df_enriched["Rating (kW)"].astype(str).str.replace(",", "").astype(float)
+    )
+    hours_clean = df_enriched["Weekly Hrs"].astype(float)
+    thd_clean = (
+        df_enriched["Distortion (THD_i)"].astype(str).str.replace("%", "").astype(float)
+    )
+
+    calculated_peak_demand = (ratings_clean[hours_clean > 100].sum() * 0.65) + (
+        ratings_clean[
             df_enriched["Classification"].str.contains(
                 "Arc Furnace|Ladle|Battery|Central"
             )
-        ]["Rating (kW)"].max()
+        ].max()
         * 0.85
         if not df_enriched[
             df_enriched["Classification"].str.contains(
@@ -357,7 +372,7 @@ def render_operations_view():
         ].empty
         else 200.0
     )
-    max_systemic_thd = df_enriched["Distortion (THD_i)"].max()
+    max_systemic_thd = thd_clean.max()
 
     col1, col2, col3 = st.columns(3)
 
@@ -365,14 +380,14 @@ def render_operations_view():
         st.metric(
             label="Active Surveyed Nodes",
             value=f"{total_registered_nodes} Registered Assets",
-            help="The total population of physical assets actively mapped inside the site's digital twin. Establishes the foundational structural integrity needed to track and isolate rogue harmonic emitters.",
+            help="The total population of physical assets actively mapped inside the site's digital twin.",
         )
 
     with col2:
         st.metric(
             label="Measured Coincident Peak Demand",
             value=f"{calculated_peak_demand:,.1f} kW",
-            help="The true maximum simultaneous electrical load drawn across the network boundary. By analyzing engineering diversity factors rather than basic nameplate summation, the model prevents the massive capital expense of over-specifying new transformer gear.",
+            help="The true maximum simultaneous electrical load drawn across the network boundary.",
         )
 
     with col3:
@@ -388,7 +403,7 @@ def render_operations_view():
                 else "Stable Network Geometry"
             ),
             delta_color="inverse" if max_systemic_thd > 8.0 else "normal",
-            help="The peak Current Harmonic Distortion score registered across the fleet. Unmitigated values above the IEEE 519 5% boundary inject parasitic heat into asset windings, accelerating insulation aging and causing erratic circuit breaker operations.",
+            help="The peak Current Harmonic Distortion score registered across the fleet.",
         )
 
     st.markdown("---")
@@ -405,7 +420,6 @@ def render_operations_view():
             label="Filter Assets by Equipment Classification:",
             options=unique_classes,
             default=unique_classes,
-            help="Filters rows out of the visual datagrid below to isolate specific equipment networks.",
         )
 
     with f_col2:
@@ -419,23 +433,23 @@ def render_operations_view():
         )
 
     # Apply interactive filters to the layout state
-    df_filtered = df_enriched[df_enriched["Classification"].isin(selected_classes)]
+    df_filtered = df_enriched[
+        df_enriched["Classification"].isin(selected_classes)
+    ].copy()
+    thd_filtered_clean = (
+        df_filtered["Distortion (THD_i)"].astype(str).str.replace("%", "").astype(float)
+    )
 
     if risk_filter == "Critical Distortion Levels (>15% THD)":
-        df_filtered = df_filtered[df_filtered["Distortion (THD_i)"] > 15.0]
+        df_filtered = df_filtered[thd_filtered_clean > 15.0]
     elif risk_filter == "Nominal Bound Levels (<5% THD)":
-        df_filtered = df_filtered[df_filtered["Distortion (THD_i)"] <= 5.0]
+        df_filtered = df_filtered[thd_filtered_clean <= 5.0]
 
     # ==========================================================================
     # 📋 HIGH-FIDELITY DATAGRID WITH ADVANCED RENDERING CONFIGURATIONS
     # ==========================================================================
     st.markdown(f"### 🗃️ Verified Operational Asset Register: {active_client}")
-    st.markdown(
-        "Review the line-item engineering matrix below. Advanced data configurations inject real-time "
-        "calculated thermal losses and physical insulation breakdown estimates directly alongside each hardware row."
-    )
 
-    # Apply Streamlit's elite column styling engine to embed indicators and clean units
     st.dataframe(
         data=df_filtered,
         use_container_width=True,
@@ -459,7 +473,6 @@ def render_operations_view():
             ),
             "Insulation Life Expectancy": st.column_config.ProgressColumn(
                 "Winding Insulation Integrity",
-                help="Estimated current life expectancy index of the solid insulation barrier. Heat accumulation from harmonic frequencies causes geometric acceleration of chemical wear.",
                 min_value=0,
                 max_value=100,
                 format="%d%%",
@@ -478,5 +491,4 @@ def render_operations_view():
         data=csv_bytes,
         file_name=f"STEM_{active_client.replace(' ', '_')}_Enriched_Operational_Register.csv",
         mime="text/csv",
-        help="Compiles the active filtered asset array along with calculated thermal losses and insulation integrity coefficients into an un-truncated CSV format ready for audit records or contractual inclusions.",
     )
