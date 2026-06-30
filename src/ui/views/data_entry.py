@@ -33,13 +33,14 @@ def generate_dynamic_sld_graph(df: pd.DataFrame, policy: str) -> str:
         "",
     ]
 
-    # 🏛️ GEOMETRY MUTATION 1: Centralised Primary Intake Bay Placement
+    # 🏛️ GEOMETRY MUTATION 1: Centralised Primary Intake Bay (Corrected Shunt Ingress Loop)
     if policy == "Centralised Primary Intake Bay (Boundary Patch)":
         dot_nodes.append(
             '  SUB_STEM_CENTRAL [label="🛡️ STEM OPTIMISATION BAY\\nCentralised Filtering Matrix", fillcolor="#D4EDDA", color="#28A745", style="filled,bold", penwidth=2.5];'
         )
+        # Vector points UP into the main intake panel to establish shunt injection clarity
         dot_nodes.append(
-            '  BUS_MAIN -> SUB_STEM_CENTRAL [color="#28A745", penwidth=2.0, label=" Central Correction"];'
+            '  SUB_STEM_CENTRAL -> BUS_MAIN [color="#28A745", penwidth=2.0, arrowhead=normal, label=" Active Injection", weight=0];'
         )
 
     # Data Buckets to harvest items for our 3 isolated vertical columns
@@ -131,13 +132,14 @@ def generate_dynamic_sld_graph(df: pd.DataFrame, policy: str) -> str:
         '    BUS_DRIVES [label="⚙️ Automated Drive Panel\\nBusbar Node B2", fillcolor="#E2F0FE", style="filled,bold"];'
     )
 
-    # 🏛️ GEOMETRY MUTATION 2: Source-Level Distributed Ingress (Spliced inside MCC box)
+    # 🏛️ GEOMETRY MUTATION 2: Source-Level Distributed Ingress (Flipped Upward Active Injection Loop)
     if policy == "Source-Level Distributed Mitigation (Nested MCC Panel) [Consensus]":
         dot_nodes.append(
             '    SUB_STEM_LOCAL [label="🛡️ LOCAL STEM FILTER\\nActive Harmonic Cancellation Node", fillcolor="#D4EDDA", color="#28A745", style="filled,bold", penwidth=2.0];'
         )
+        # Vector points UP into Node B2 to fix the detached look and accurately present shunt compensation
         dot_nodes.append(
-            '    BUS_DRIVES -> SUB_STEM_LOCAL [color="#28A745", penwidth=2.0, label=" Local Correction"];'
+            '    SUB_STEM_LOCAL -> BUS_DRIVES [color="#28A745", penwidth=2.0, arrowhead=normal, label=" Active Injection", weight=0];'
         )
 
     last_id = "BUS_DRIVES"
@@ -313,7 +315,7 @@ def render_data_entry_view():
             "This structural digital twin reads values **live** from the clipboard spreadsheet on Tab 1."
         )
 
-        # 🏛️ THE UPDATED STEERING COMMITTEE SELECTION TOOL
+        # 🏛️ THE STEERING COMMITTEE SELECTION TOOL
         sld_policy_mode = st.radio(
             label="🏛️ Select Active Engineering Mitigation Policy Consensus View:",
             options=[
