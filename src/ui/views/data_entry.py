@@ -17,6 +17,10 @@ from src.ui.views.operations import load_ammanford_alloys_dataset
 from src.modules.data_ingestion.amr_parser import AMRDataReconciler
 from src.modules.data_ingestion.sld_parser import MultimodalSLDParser
 
+# 🚀 STORAGE SYSTEM INJECTIONS: Connecting the SQL repository engine loop
+from src.database.connection import engine
+from src.database.repository import ProjectPersistenceRepository
+
 
 def update_electrical_mitigation_nodes(nodes: list[str]) -> str:
     """Executes a structural mutation of the SLD network architecture memory."""
@@ -370,6 +374,7 @@ def render_data_entry_view():
                     "Local BESS & Hybrid UPS Array (Robotics Asset Protection)",
                 ],
                 key="selected_nodes",
+                help="Select one or more circuits to see how the system seamlessly scales and deploys co-located active power elements.",
             )
 
             st.markdown("---")
@@ -503,6 +508,30 @@ def render_data_entry_view():
                     st.error(
                         f"❌ Ingestion Crash: Error processing asset file stream array. Details: `{str(e)}`"
                     )
+
+            st.markdown("---")
+
+            # 💾 ADDED REQUIREMENT LAYER: Secure project persistence trigger ribbon
+            st.markdown("#### 💾 Project State Management")
+            p_col1, p_col2 = st.columns([3, 1])
+            with p_col1:
+                st.caption(
+                    "Commit the current transient memory grid configuration down to the secure Neon SQL database "
+                    "to prevent loss of project updates on session resets."
+                )
+            with p_col2:
+                if st.button("💾 Save Project State", use_container_width=True):
+                    # Fixed target matching the hardcoded Ammanford site uuid seeded in migration files
+                    target_site_uid = "00000000-0000-0000-0000-000000000002"
+                    repo_writer = ProjectPersistenceRepository(db_engine=engine)
+                    save_report = repo_writer.save_site_inventory_state(
+                        target_site_uid, st.session_state.sandbox_assets
+                    )
+
+                    if save_report["status"] == "SUCCESS":
+                        st.toast(save_report["message"], icon="✅")
+                    else:
+                        st.error(save_report["message"])
 
             st.markdown("---")
             edited_df = st.data_editor(
@@ -742,21 +771,17 @@ def render_data_entry_view():
                     f"**Verification Report Index:** `{recon_summary['action_required']}` | Measured Divergence: `{recon_summary['variance_divergence_pct']}%`."
                 )
 
-    # --------------------------------==========================================
-    # RIGHT CONTAINER: TWO-WAY AI CONVERSATIONAL CO-PILOT WITH INTEGRATED MULTIMODAL CAPABILITY
-    # --------------------------------==========================================
     with col_copilot:
         st.markdown("### 🧠 STEM AI Co-Pilot Console")
-        st.caption("Strategic Multi-Circuit Natural Language Interface")
+        st.caption("Two-Way Conversational Topology Optimisation Gateway")
         st.markdown("---")
 
-        chat_container = st.container(height=400)
+        chat_container = st.container(height=450)
         with chat_container:
             for message in st.session_state.copilot_history:
                 with st.chat_message(message["role"]):
                     st.markdown(message["text"])
 
-        # 🚨 DIRECT CHAT FILE INTERPRETER CAPABILITY INTEGRATION
         st.markdown("##### 📎 Attach Drawing to Active Conversation")
         chat_attachment = st.file_uploader(
             "Upload schematic blueprint for real-time Co-Pilot inspection:",
@@ -777,7 +802,6 @@ def render_data_entry_view():
             try:
                 client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
 
-                # Serialise active workspace asset inventory live to maximize context responsiveness
                 if not st.session_state.sandbox_assets.empty:
                     serialized_sld_matrix = st.session_state.sandbox_assets.to_markdown(
                         index=False
@@ -821,7 +845,6 @@ def render_data_entry_view():
                 5. Local BESS & Hybrid UPS Array (Robotics Asset Protection): £65,000. Provides the sub-20ms ride-through to insulate sensitive equipment from sags, bringing Opportunity Cost exposure to £0.
                 """
 
-                # Construct dynamic contents pipeline handling text prompts + visual binaries simultaneously
                 contents_payload = [system_context]
 
                 if chat_attachment is not None:
