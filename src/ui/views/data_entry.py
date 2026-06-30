@@ -132,7 +132,7 @@ def generate_dynamic_sld_graph(df: pd.DataFrame, selected_mitigations: list) -> 
         last_id = cid
     dot_nodes.append("  }")
 
-    # 🏢 COLUMN LAYER 2: Motor Control Centre (MCC) (With Local Shunt Filter Option)
+    # 🏢 COLUMN LAYER 2: Motor Control Centre (MCC) with Optional Dual-Duty BESS Ingress
     dot_nodes.append("  subgraph cluster_drives {")
     dot_nodes.append('    label="⚙️ Motor Control Centre (MCC)";')
     dot_nodes.append(
@@ -149,6 +149,18 @@ def generate_dynamic_sld_graph(df: pd.DataFrame, selected_mitigations: list) -> 
         )
         dot_nodes.append(
             '    SUB_STEM_DRIVES -> BUS_DRIVES [color="#28A745", penwidth=2.0, arrowhead=normal, label=" Active Injection", weight=0];'
+        )
+
+    # 🏛️ DYNAMIC MITIGATION 5: Creative Idea - Local BESS & Hybrid UPS Array Node Injection
+    if (
+        "Local BESS & Hybrid UPS Array (Robotics Asset Protection)"
+        in selected_mitigations
+    ):
+        dot_nodes.append(
+            '    SUB_STEM_BESS [label="🔋 LOCAL BESS & HYBRID UPS\\nAsset Protection & 20ms Sag Backup", fillcolor="#E6FFFA", color="#00A389", style="filled,bold", penwidth=2.0];'
+        )
+        dot_nodes.append(
+            '    SUB_STEM_BESS -> BUS_DRIVES [color="#00A389", penwidth=2.0, arrowhead=normal, label=" Dual-Duty Shunt/UPS", weight=0];'
         )
 
     last_id = "BUS_DRIVES"
@@ -226,14 +238,7 @@ def generate_synthetic_amr_load_profile(filename: str) -> pd.DataFrame:
 
 
 def update_electrical_mitigation_nodes(nodes: list[str]) -> str:
-    """
-    Executes a structural mutation of the SLD network architecture memory.
-    Supported arguments within the collection array:
-    - "Primary Intake Switchboard (Centralised Bay)"
-    - "Heavy Industrial Process Board (Panel B1)"
-    - "Motor Control Centre (MCC Panel B2)"
-    - "Auxiliary & Building Services (Panel B3)"
-    """
+    """Executes a structural mutation of the SLD network architecture memory."""
     st.session_state.selected_nodes = nodes
     return f"Consensus updated. Native active nodes deployed: {nodes}"
 
@@ -241,9 +246,8 @@ def update_electrical_mitigation_nodes(nodes: list[str]) -> str:
 def render_data_entry_view():
     """
     Renders the unified split workspace combining data ingestion, dynamic SLD visualization,
-    and the conversational Gemini two-way optimization loop side-by-side.
+    and the financially intelligent conversational Gemini co-pilot loop side-by-side.
     """
-    # Establish base persistent state structures cleanly
     if "sandbox_assets" not in st.session_state:
         st.session_state.sandbox_assets = load_ammanford_alloys_dataset()
 
@@ -254,7 +258,7 @@ def render_data_entry_view():
         st.session_state.copilot_history = [
             {
                 "role": "assistant",
-                "text": "👋 Bore da! I am your STEM Co-Pilot. I am connected directly to your active switchgear telemetry state. You can speak to me naturally to modify hardware configurations, analyze distortion spikes, or toggle distribution policies.",
+                "text": "👋 Bore da! I am your updated STEM Co-Pilot. I am connected directly to your active switchgear telemetry state and capital cost heuristics model. You can ask me for strategic CapEx budgeting numbers, ROI profiles, or topology mutations.",
             }
         ]
 
@@ -365,7 +369,6 @@ def render_data_entry_view():
                 "This structural digital twin reads values **live** from the clipboard spreadsheet on Tab 1."
             )
 
-            # Unified widget tied directly into shared memory
             st.multiselect(
                 label="🏛️ Select Steering Committee Target Deployment Nodes:",
                 options=[
@@ -373,9 +376,10 @@ def render_data_entry_view():
                     "Heavy Industrial Process Board (Panel B1)",
                     "Motor Control Centre (MCC Panel B2)",
                     "Auxiliary & Building Services (Panel B3)",
+                    "Local BESS & Hybrid UPS Array (Robotics Asset Protection)",
                 ],
                 key="selected_nodes",
-                help="Select one or more circuits to see how the system seamlessly scales and deploys co-located shunt active filters.",
+                help="Select one or more circuits to see how the system seamlessly scales and deploys co-located active power elements.",
             )
 
             st.markdown("---")
@@ -394,33 +398,30 @@ def render_data_entry_view():
                         "##### 🛡️ Tailored Coordinated Infrastructure Matrix (Active Multi-Node Compensation)"
                     )
                     st.caption(
-                        "Green assets represent parallel shunt compensation nodes injecting correction waveforms back up into their respective boards."
+                        "Green and turquoise assets represent parallel nodes injecting correction or reserve power back up into their respective boards."
                     )
 
                 dot_string = generate_dynamic_sld_graph(
-                    st.session_state.sandbox_assets,
-                    selected_mitigations=st.session_state.selected_nodes,
+                    st.session_state.sandbox_assets, st.session_state.selected_nodes
                 )
                 st.graphviz_chart(dot_string, use_container_width=True)
 
     # --------------------------------------------------------------------------
-    # RIGHT CONTAINER: 🧠 STEM AI CONVERSATIONAL ENGINEERING CO-PILOT
+    # RIGHT CONTAINER: 🧠 STEM AI CONVERSATIONAL ENGINEERING & CFO CO-PILOT
     # --------------------------------------------------------------------------
     with col_copilot:
         st.markdown("### 🧠 STEM AI Co-Pilot Console")
         st.caption("Two-Way Conversational Topology Optimization Gateway")
         st.markdown("---")
 
-        # Render conversation block inside an isolated scrollable frame box
         chat_container = st.container(height=500)
         with chat_container:
             for message in st.session_state.copilot_history:
                 with st.chat_message(message["role"]):
                     st.markdown(message["text"])
 
-        # Capture text prompt inputs conversational stream
         if user_prompt := st.chat_input(
-            "Command Gemini to mutate switchgear topologies..."
+            "Ask about capital costs, local BESS resilience, or layout changes..."
         ):
             st.session_state.copilot_history.append(
                 {"role": "user", "text": user_prompt}
@@ -430,16 +431,24 @@ def render_data_entry_view():
                     st.markdown(user_prompt)
 
             try:
-                # Initialize GenAI Client reading secure API secrets
                 client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
 
-                # Context Injection mapping live system states into agent window
                 system_context = f"""
                 You are the master STEM Power Quality AI Agent. The user is evaluating an industrial electrical grid network.
                 Live Client Telemetry DataFrame: {st.session_state.sandbox_assets.to_json(orient='records')}
                 Currently Deployed Active Shunt Nodes: {st.session_state.selected_nodes}
                 
-                CRITICAL INSTRUCTION: If the user explicitly asks to update, alter, mutate, change, add, or subtract filtering assets or mitigation configurations, you MUST invoke the 'update_electrical_mitigation_nodes' tool immediately to execute the command. Do not merely state that you will do it—run the function.
+                💰 BUDGETARY CAPITAL COST ESTIMATION HEURISTICS:
+                1. Primary Intake Switchboard (Centralised Bay): Estimated capital cost of £85,000 for a modular main switchboard breaker bay insertion.
+                2. Heavy Industrial Process Board (Panel B1): Estimated capital cost of £42,000 including heavy-duty IP54 local enclosure and custom busbar taps.
+                3. Motor Control Centre (MCC Panel B2): Estimated capital cost of £35,000 including standalone automated ventilation integration for VSD panels.
+                4. Auxiliary & Building Services (Panel B3): Estimated capital cost of £18,000 for a compact wall-mounted chassis.
+                5. Local BESS & Hybrid UPS Array (Robotics Asset Protection): Estimated capital cost of £65,000. It includes custom high-speed solid-state static transfer switches (STS) enabling sub-20ms active power injection to insulate sensitive robotics and VFD DC-links from utility voltage sags, avoiding total line shutdown.
+                
+                If the user asks for 'total capital cost' or the cost of the 'proposed intervention', sum up the costs for all items currently listed in 'Currently Deployed Active Shunt Nodes'.
+                Always frame these as directionally accurate strategic engineering estimates optimized for C-suite and investment budgeting reviews. Highlight the system-thinking benefit of double-duty assets (e.g., combining harmonic filtering with sub-cycle resilience).
+                
+                CRITICAL INSTRUCTION: If the user explicitly asks to update, alter, mutate, change, add, or subtract filtering assets or BESS configurations, you MUST invoke the 'update_electrical_mitigation_nodes' tool immediately.
                 """
 
                 response = client.models.generate_content(
@@ -447,33 +456,29 @@ def render_data_entry_view():
                     contents=[system_context, user_prompt],
                     config=types.GenerateContentConfig(
                         tools=[update_electrical_mitigation_nodes],
-                        temperature=0.1,
-                        system_instruction="You are an elite high-voltage and low-voltage industrial electrical engineer specializing in harmonic cancellation. Speak with authoritative precision. If changes are requested, trigger tools immediately.",
+                        temperature=0.15,
+                        system_instruction="You are an elite high-voltage industrial electrical engineer and energy infrastructure cost consultant. You seamlessly integrate technical physics with financial risk management. Speak with authoritative precision. Provide clear budgetary numbers based on the heuristics provided.",
                     ),
                 )
 
-                # Execute Tool Interception Verification Checks
                 if response.function_calls:
                     for call in response.function_calls:
                         if call.name == "update_electrical_mitigation_nodes":
-                            # Extract parameters and run the internal mutation function
                             tool_args = call.args
                             execution_result = update_electrical_mitigation_nodes(
                                 **tool_args
                             )
-
                             st.session_state.copilot_history.append(
                                 {
                                     "role": "assistant",
-                                    "text": f"🤖 **AI Optimization Action Executed:**\n`{execution_result}`\n\nI have rewritten the Single Line Diagram architecture to support your request. Review the live visual changes on Tab 2.",
+                                    "text": f"🤖 **AI Optimization Action Executed:**\n`{execution_result}`\n\nI have mutated the network layout. Review the updated topology tree layout on the left panel.",
                                 }
                             )
                 else:
-                    # Append direct textual conversation returns
                     reply = (
                         response.text
                         if response.text
-                        else "Telemetry analyzed. Layout constraints preserved."
+                        else "Telemetry data processed. Standing by for steering committee directive."
                     )
                     st.session_state.copilot_history.append(
                         {"role": "assistant", "text": reply}
@@ -483,9 +488,8 @@ def render_data_entry_view():
                 st.session_state.copilot_history.append(
                     {
                         "role": "assistant",
-                        "text": f"❌ **Co-Pilot Communication Error:** Required API credentials or dependencies uninitialized. Details: `{str(e)}`",
+                        "text": f"❌ **Co-Pilot Communication Error:** Details: `{str(e)}`",
                     }
                 )
 
-            # Force immediate UI element refresh synchronization loop
             st.rerun()
