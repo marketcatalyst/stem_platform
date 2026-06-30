@@ -18,23 +18,24 @@ def generate_dynamic_sld_graph(
     df: pd.DataFrame, integrate_mitigation: bool = False
 ) -> str:
     """
-    Programmatically constructs a Graphviz DOT engine string mapping out the physical
-    high-voltage electrical network tree directly from the active session dataset.
-    Uses strict double-quotes for all internal attributes to comply with DOT specifications.
+    Programmatically constructs a hierarchical Graphviz DOT engine string mapping out
+    the physical high-voltage electrical network tree directly from the active session dataset.
+    Categorises assets into sub-busbars to preserve engineering fidelity and UX readability.
     """
-    # Using single quotes for Python lets us use standard double quotes for Graphviz syntax
     dot_nodes = [
         "digraph G {",
-        '  graph [rankdir=TB, bgcolor="transparent", fontname="Helvetica"];',
+        '  graph [rankdir=TB, bgcolor="transparent", fontname="Helvetica", nodesep=0.25, ranksep=0.4];',
         '  node [fontname="Helvetica", shape=box, style="filled", fillcolor="#F8F9FA", color="#CED4DA", penwidth=1.5];',
         '  edge [fontname="Helvetica", color="#495057", penwidth=1.2];',
         "",
-        "  // ⚡ Core Infrastructure Node Foundations",
+        "  // ⚡ Core Infrastructure Incoming Grid Foundations",
         '  GRID [label="🔋 National Grid\\n11kV Incoming Boundary", shape=cloud, fillcolor="#E8F4FD", color="#1D82DC"];',
-        '  BUS_MAIN [label="🎛️ Primary Busbar Panel\\nMain Distribution Board", fillcolor="#E9ECEF", style="filled,bold", penwidth=2];',
+        '  BUS_MAIN [label="🎛️ Primary Intake Switchboard\\nMain Busbar Distribution Panel", fillcolor="#E9ECEF", style="filled,bold", penwidth=2];',
         '  GRID -> BUS_MAIN [label=" Main Intake"];',
+        "",
     ]
 
+    # Inject the Active STEM Mitigation Core if toggled on
     if integrate_mitigation:
         dot_nodes.append(
             '  SUB_STEM [label="🛡️ STEM OPTIMISATION HUB\\nActive Filtering & SVG Matrix", fillcolor="#D4EDDA", color="#28A745", style="filled,bold", penwidth=2.5];'
@@ -43,7 +44,28 @@ def generate_dynamic_sld_graph(
             '  BUS_MAIN -> SUB_STEM [color="#28A745", penwidth=2.0, label=" Active Correction"];'
         )
 
-    # Build branches safely using sanitised node keys
+    # 🏢 CASCADE STEP 1: Introduce Structured Sub-Busbars to break up the 18-column flat span
+    dot_nodes.append("  // 🗂️ Intermediary Sub-Distribution Networks")
+    dot_nodes.append(
+        '  BUS_HEAVY [label="⚡ Heavy Industrial Process Board\\nMain Furnace Sub-Distribution", fillcolor="#FFF3CD", color="#D1A113", style="filled,bold"];'
+    )
+    dot_nodes.append(
+        '  BUS_DRIVES [label="⚙️ Motor Control Centre (MCC)\\nAutomated VSD Drive Panel", fillcolor="#E2F0FE", color="#2B72C4", style="filled,bold"];'
+    )
+    dot_nodes.append(
+        '  BUS_AUX [label="🏢 Auxiliary & Building Services\\nCommercial & Lighting Sub-Board", fillcolor="#F1F3F5", color="#6C757D", style="filled,bold"];'
+    )
+
+    dot_nodes.append(
+        '  BUS_MAIN -> BUS_HEAVY [weight=5, color="#D1A113", penwidth=1.5];'
+    )
+    dot_nodes.append(
+        '  BUS_MAIN -> BUS_DRIVES [weight=5, color="#2B72C4", penwidth=1.5];'
+    )
+    dot_nodes.append('  BUS_MAIN -> BUS_AUX [weight=5, color="#6C757D", penwidth=1.5];')
+    dot_nodes.append("")
+
+    # Build branches safely by routing assets to their respective structural board sub-nodes
     for _, row in df.iterrows():
         if pd.isna(row.get("Asset Tag")) or str(row.get("Asset Tag")).strip() == "":
             continue
@@ -52,7 +74,6 @@ def generate_dynamic_sld_graph(
         location = str(row.get("Plant Location", "Unassigned")).strip()
         classification = str(row.get("Classification", "General Load")).strip()
 
-        # Guard rails against type coercion mid-keystroke
         try:
             rating_val = (
                 str(row.get("Rating (kW)", "0"))
@@ -70,12 +91,29 @@ def generate_dynamic_sld_graph(
         except ValueError:
             thd = 0.0
 
-        # Convert any arbitrary user tag into a strict alphanumeric identifier for Graphviz syntax compliance
+        # Alphanumeric filter to protect internal node IDs
         clean_id = "".join(c if c.isalnum() or c == "_" else "_" for c in tag)
         if not clean_id or clean_id == "____":
             continue
 
-        # Strictly use double-quotes around values inside node_style to pass the browser compiler checks
+        # 🧠 CASCADE STEP 2: Intelligent Routing Rules based on functional classification
+        if (
+            "Furnace" in classification
+            or "Large Induction" in classification
+            or rating >= 1000
+        ):
+            parent_busbar = "BUS_HEAVY"
+        elif (
+            "Drive" in classification
+            or "VSD" in classification
+            or "Pump" in classification
+            or "Motor" in classification
+        ):
+            parent_busbar = "BUS_DRIVES"
+        else:
+            parent_busbar = "BUS_AUX"
+
+        # Apply stylized visual properties based on node telemetry values
         if thd > 15.0:
             node_style = f'label="⚠️ {tag}\\n{classification}\\n{rating:,.0f} kW | THD: {thd:.1f}%", fillcolor="#FCE8E6", color="#D9272E", penwidth=1.8'
         elif "Transformer" in classification:
@@ -84,7 +122,7 @@ def generate_dynamic_sld_graph(
             node_style = f'label="⚙️ {tag}\\n{classification}\\n{rating:,.0f} kW", fillcolor="#F8F9FA", color="#6C757D"'
 
         dot_nodes.append(f"  {clean_id} [{node_style}];")
-        dot_nodes.append(f"  BUS_MAIN -> {clean_id};")
+        dot_nodes.append(f"  {parent_busbar} -> {clean_id};")
 
     dot_nodes.append("}")
     return "\n".join(dot_nodes)
@@ -129,7 +167,6 @@ def render_data_entry_view():
     )
     st.markdown("---")
 
-    # Initialize persistence arrays cleanly within the standard runtime session state
     if "sandbox_assets" not in st.session_state:
         st.session_state.sandbox_assets = load_ammanford_alloys_dataset()
 
@@ -141,7 +178,7 @@ def render_data_entry_view():
     )
 
     # --------------------------------------------------------------------------
-    # TAB 1: LIVE SHEET SPREADSHEET ENTRY & FILE PARSING
+    # TAB 1: LIVE SPREADSHEET ENTRY & FILE PARSING
     # --------------------------------------------------------------------------
     with tab_upload:
         st.markdown("### 📋 Excel-Style Batch Asset Clipboard & File Ingestion")
@@ -151,7 +188,6 @@ def render_data_entry_view():
             "the system engineering diagrams and metrics across the entire platform model runtime."
         )
 
-        # Render the editor view mapping changes safely directly back into state memory
         edited_df = st.data_editor(
             data=st.session_state.sandbox_assets,
             use_container_width=True,
@@ -205,9 +241,7 @@ def render_data_entry_view():
             },
         )
 
-        # Save modifications safely
         st.session_state.sandbox_assets = edited_df
-
         st.markdown("---")
 
         col_up1, col_up2 = st.columns(2)
@@ -265,7 +299,6 @@ def render_data_entry_view():
 
         st.markdown("---")
 
-        # Safely capture empty states before sending arrays downstream to compiler
         if st.session_state.sandbox_assets.shape[0] == 0:
             st.info(
                 "No active assets registered. Please append rows inside the staging clipboard."
@@ -276,7 +309,7 @@ def render_data_entry_view():
                     "##### ⚠️ Current Grid Topology (Unmitigated Core Risk Profile)"
                 )
                 st.caption(
-                    "Red nodes highlight assets with severe harmonic stress (>15% THD) running hot."
+                    "Structured sub-distribution blocks cluster assets to maintain readability."
                 )
 
                 dot_string_existing = generate_dynamic_sld_graph(
