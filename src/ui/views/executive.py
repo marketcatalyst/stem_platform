@@ -2,7 +2,8 @@ import os
 import sys
 import streamlit as st
 import pandas as pd
-import numpy as np
+from google import genai
+from google.genai import types
 
 # ==========================================================================
 # 🛡️ PATH INSURANCE POLICY (CRITICAL FOR LINUX CLOUD DEPLOYMENTS)
@@ -11,466 +12,300 @@ repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if repo_root not in sys.path:
     sys.path.insert(0, repo_root)
 
-from src.ui.views.operations import load_ammanford_alloys_dataset
-from src.ui.components.tickers import render_cost_of_inaction_ticker
-from src.modules.gemini_nlp.service import GeminiTranslationService
+# Safe imports for dynamic single-line diagram compiling matching entry models
+from src.ui.views.data_entry import generate_dynamic_sld_graph
 
 
-def load_client_portfolio_matrix(client_name: str) -> pd.DataFrame:
+def render_executive_command_centre():
     """
-    Data routing node that delivers the distinct validated asset profiles
-    for the active Joint Venture pipeline.
+    Renders the central Executive Command Centre dashboard. Elevates opportunity cost,
+    streaming financial tickers, and interactive business continuity scenario simulators
+    to the absolute apex of the platform runtime.
     """
-    if client_name == "Ammanford Alloys Ltd":
-        return load_ammanford_alloys_dataset()
+    # 🔄 Synchronized Global Session State Initialisation Checks
+    if "sandbox_assets" not in st.session_state:
+        from src.ui.views.operations import load_ammanford_alloys_dataset
 
-    elif client_name == "Swansea Silica Mining Operations":
-        mining_data = [
+        st.session_state.sandbox_assets = load_ammanford_alloys_dataset()
+
+    if "selected_nodes" not in st.session_state:
+        st.session_state.selected_nodes = ["Motor Control Centre (MCC Panel B2)"]
+
+    if "prod_val" not in st.session_state:
+        st.session_state.prod_val = 150000
+
+    if "restart_hrs" not in st.session_state:
+        st.session_state.restart_hrs = 4.0
+
+    if "annual_events" not in st.session_state:
+        st.session_state.annual_events = 3
+
+    if "executive_chat_history" not in st.session_state:
+        st.session_state.executive_chat_history = [
             {
-                "Asset Tag": "TX-M-01-MAIN",
-                "Plant Location": "Primary Substation Intake",
-                "Classification": "Grid Step-Down Transformer",
-                "Rating (kW)": 2500,
-                "Weekly Hrs": 168,
-                "Distortion (THD_i)": 4.8,
-            },
-            {
-                "Asset Tag": "PMP-SLURRY-01",
-                "Plant Location": "Extraction Pool Alpha",
-                "Classification": "Heavy Induction Pump",
-                "Rating (kW)": 400,
-                "Weekly Hrs": 140,
-                "Distortion (THD_i)": 18.5,
-            },
-            {
-                "Asset Tag": "PMP-SLURRY-02",
-                "Plant Location": "Extraction Pool Beta",
-                "Classification": "Heavy Induction Pump",
-                "Rating (kW)": 400,
-                "Weekly Hrs": 140,
-                "Distortion (THD_i)": 19.2,
-            },
-            {
-                "Asset Tag": "VSD-CRUSH-01",
-                "Plant Location": "Processing Face Tier 1",
-                "Classification": "Variable Speed Drive (VSD)",
-                "Rating (kW)": 500,
-                "Weekly Hrs": 90,
-                "Distortion (THD_i)": 42.0,
-            },
-            {
-                "Asset Tag": "FAN-VENT-01",
-                "Plant Location": "Deep Shaft Intake 2",
-                "Classification": "Main Ventilation Fan",
-                "Rating (kW)": 200,
-                "Weekly Hrs": 168,
-                "Distortion (THD_i)": 7.5,
-            },
-            {
-                "Asset Tag": "PMP-DEWATER-01",
-                "Plant Location": "Lower Sump Network",
-                "Classification": "Submersible Dewatering Unit",
-                "Rating (kW)": 160,
-                "Weekly Hrs": 110,
-                "Distortion (THD_i)": 6.2,
-            },
-            {
-                "Asset Tag": "CONV-MAIN-FEED",
-                "Plant Location": "Overhead Rail Line",
-                "Classification": "Main Conveyor Drive Motor",
-                "Rating (kW)": 250,
-                "Weekly Hrs": 120,
-                "Distortion (THD_i)": 12.4,
-            },
+                "role": "assistant",
+                "text": "🏛️ **Welcome to the Executive Command Centre.** I am synced live with your plant's grid topology and macro opportunity-cost curves. Ask me to draft executive brief summaries, evaluate business interruption insurance hedges, or mutate switchgear deployment strategies.",
+            }
         ]
-        return pd.DataFrame(mining_data)
-
-    elif client_name == "Killan Farm Solar Array Hub":
-        solar_data = [
-            {
-                "Asset Tag": "INV-SOLAR-01",
-                "Plant Location": "Inverter Enclosure A",
-                "Classification": "Central Solar Inverter",
-                "Rating (kW)": 500,
-                "Weekly Hrs": 70,
-                "Distortion (THD_i)": 14.5,
-            },
-            {
-                "Asset Tag": "INV-SOLAR-02",
-                "Plant Location": "Inverter Enclosure B",
-                "Classification": "Central Solar Inverter",
-                "Rating (kW)": 500,
-                "Weekly Hrs": 70,
-                "Distortion (THD_i)": 15.1,
-            },
-            {
-                "Asset Tag": "BESS-BAT-01",
-                "Plant Location": "Containerised Storage Yard",
-                "Classification": "Bi-Directional Battery Inverter",
-                "Rating (kW)": 750,
-                "Weekly Hrs": 112,
-                "Distortion (THD_i)": 26.4,
-            },
-            {
-                "Asset Tag": "TX-RENEW-01",
-                "Plant Location": "Grid Boundary Compound",
-                "Classification": "Step-Up Export Transformer",
-                "Rating (kW)": 1250,
-                "Weekly Hrs": 168,
-                "Distortion (THD_i)": 3.1,
-            },
-            {
-                "Asset Tag": "AUX-CHILL-01",
-                "Plant Location": "BESS Thermal Shroud",
-                "Classification": "HVAC Cooling Network",
-                "Rating (kW)": 45,
-                "Weekly Hrs": 168,
-                "Distortion (THD_i)": 9.0,
-            },
-        ]
-        return pd.DataFrame(solar_data)
-
-    return pd.DataFrame()
-
-
-def load_compliance_and_headroom_matrix(client_name: str) -> dict:
-    """
-    Returns structured statutory compliance and electrical capacity states
-    for site infrastructure audits.
-    """
-    matrix = {
-        "Ammanford Alloys Ltd": {
-            "sld_status": "🔴 OUTDATED (Verification Required)",
-            "sld_badge": "error",
-            "pfc_status": "⚠️ 0.81 Cos Phi (Lagging)",
-            "grid_compliance": "🔒 G99 Approved under strict G100 Export Limitation (0 kW limitation at boundary)",
-            "unlocked_headroom": "339.4 kVA",
-        },
-        "Swansea Silica Mining Operations": {
-            "sld_status": "🟢 VERIFIED (Field Survey)",
-            "sld_badge": "success",
-            "pfc_status": "🟢 0.86 Cos Phi (Nominal)",
-            "grid_compliance": "🔴 Legacy G59/3 Protection (Mandatory Statutory Transition to G99 Required)",
-            "unlocked_headroom": "151.7 kVA",
-        },
-        "Killan Farm Solar Array Hub": {
-            "sld_status": "🟢 VERIFIED (Commissioning Docs)",
-            "sld_badge": "success",
-            "pfc_status": "🟢 0.97 Cos Phi (Optimized)",
-            "grid_compliance": "🟢 G99 Compliant / Active G100 Import Control Operational",
-            "unlocked_headroom": "0.0 kVA",
-        },
-    }
-    return matrix.get(client_name, {})
-
-
-def calculate_dynamic_systemic_metrics(df: pd.DataFrame, client_name: str) -> dict:
-    """
-    Executes deep structural engineering calculations combining Harmonic Thermal Loss
-    and Power Factor Reactive Penalties to map complete balance sheet risk profiles.
-    """
-    utility_rate = 0.24 if "Mining" in client_name else 0.22
-    total_harmonic_loss = 0.0
-    total_active_kw = df["Rating (kW)"].sum()
-    peak_thd = df["Distortion (THD_i)"].max()
-
-    comp_data = load_compliance_and_headroom_matrix(client_name)
-
-    if "Alloys" in client_name:
-        baseline_cos_phi = 0.81
-    elif "Mining" in client_name:
-        baseline_cos_phi = 0.86
-    else:
-        baseline_cos_phi = 0.97
-
-    # Loop 1: Harmonic Thermal Winding Loss Calculation
-    for _, row in df.iterrows():
-        rating = row["Rating (kW)"]
-        hours = row["Weekly Hrs"]
-        thd = row["Distortion (THD_i)"]
-
-        if thd > 5.0:
-            loss_coefficient = (thd / 100.0) * 0.048
-            annual_kwh_waste = rating * loss_coefficient * hours * 52
-            total_harmonic_loss += annual_kwh_waste * utility_rate
-
-    # Loop 2: Power Factor Correction Framework & Surcharge Math
-    target_cos_phi = 0.96
-    if baseline_cos_phi < target_cos_phi:
-        apparent_kva_existing = total_active_kw / baseline_cos_phi
-        apparent_kva_optimized = total_active_kw / target_cos_phi
-        liberated_headroom_kva = apparent_kva_existing - apparent_kva_optimized
-        annual_pfc_penalty_gbp = liberated_headroom_kva * 14.50
-    else:
-        liberated_headroom_kva = 0.0
-        annual_pfc_penalty_gbp = 0.0
-
-    # Consolidate unified metrics
-    combined_annual_inaction_cost = total_harmonic_loss + annual_pfc_penalty_gbp
-    efficiency_score = max(70.0, (baseline_cos_phi * 100) - (peak_thd * 0.25))
-    downtime_liability = total_active_kw * 18.50 * (peak_thd / 10.0)
-
-    return {
-        "annual_loss_gbp": combined_annual_inaction_cost,
-        "harmonic_loss_share": total_harmonic_loss,
-        "pfc_penalty_share": annual_pfc_penalty_gbp,
-        "efficiency_score": efficiency_score,
-        "downtime_liability": downtime_liability,
-        "peak_thd": peak_thd,
-        "baseline_cos_phi": baseline_cos_phi,
-        "target_cos_phi": target_cos_phi,
-        "liberated_headroom_kva": liberated_headroom_kva,
-        "sld_status": comp_data["sld_status"],
-        "grid_compliance": comp_data["grid_compliance"],
-        "unlocked_headroom_str": comp_data["unlocked_headroom"],
-    }
-
-
-def render_executive_view():
-    """
-    Renders the uncluttered, symmetrically aligned C-Suite Executive Command Hub.
-    Maintains clean visual hierarchy using horizontal workspace nodes.
-    """
-    st.markdown("## 🏢 Executive Command Center: Portfolio Governance")
-    st.markdown(
-        "##### Enterprise Risk Modelling, Financial Loss Mapping, and Asset Longevity Engineering"
-    )
-    st.markdown("---")
-
-    # ==========================================================================
-    # 🗺️ PORTFOLIO CLIENT PROFILE ROUTER SELECTOR
-    # ==========================================================================
-    st.markdown("### 📋 Active Joint Venture Pipeline Profiles")
-    active_client = st.selectbox(
-        label="Select Target Enterprise Client Profile for Analysis:",
-        options=[
-            "Ammanford Alloys Ltd",
-            "Swansea Silica Mining Operations",
-            "Killan Farm Solar Array Hub",
-        ],
-        help="Instantly shifts the underlying infrastructure architectural files, re-executing specialized loss algorithms and rotating active telemetry variables across the dashboard metrics.",
-    )
-
-    df_active = load_client_portfolio_matrix(active_client)
-    metrics = calculate_dynamic_systemic_metrics(df_active, active_client)
-
-    # Execute scrolling ticker injection driven by combined real-time calculations
-    render_cost_of_inaction_ticker(
-        annual_losses_gbp=metrics["annual_loss_gbp"],
-        tenant_colour=(
-            "#D9272E"
-            if metrics["peak_thd"] > 15.0 or metrics["baseline_cos_phi"] < 0.85
-            else "#F39C12"
-        ),
-    )
-
-    st.write("")  # Structural breathing room
-
-    # ==========================================================================
-    # 🗂️ DECOUPLED TABS TO PREVENT INTERFACE CLUTTER
-    # ==========================================================================
-    tab_financial, tab_compliance = st.tabs(
-        ["💰 Financial Balance Sheet Matrix", "🔌 Grid Compliance & Network Headroom"]
-    )
 
     # --------------------------------------------------------------------------
-    # TAB 1: FINANCIAL RISK ANALYSIS
+    # 🗂️ SIDEBAR SCENARIO ENGINE: Interactive Boardroom Modeling Sliders
     # --------------------------------------------------------------------------
-    with tab_financial:
-        st.markdown("### 📊 Balance Sheet Financial Exposure Matrix")
-        m_col1, m_col2, m_col3 = st.columns(3)
-
-        with m_col1:
-            st.metric(
-                label="Annual Cost of Inaction (Total Combined Bleed)",
-                value=f"£{metrics['annual_loss_gbp']:,.2f}",
-                delta="Balance Sheet Erosion Factor",
-                delta_color="inverse",
-                help="The combined annual cash bleeding from the balance sheet. This tracks invisible thermal power leakage and costly reactive power surcharges levied directly by the utility network without producing a single unit of industrial output.",
-            )
-            st.caption(
-                f"Includes £{metrics['harmonic_loss_share']:,.2f} in thermal winding losses and £{metrics['pfc_penalty_share']:,.2f} in DNO capacity reactive penalties."
-            )
-
-        with m_col2:
-            projected_savings = metrics["annual_loss_gbp"] * 0.95
-            st.metric(
-                label="Projected Capital Preservation (Annual Savings)",
-                value=f"£{projected_savings:,.2f}",
-                delta="Optimised Target State",
-                delta_color="normal",
-                help="Guaranteed capital recovery achieved by deploying active harmonic cancellation. Redirects current unmetered operational waste back onto the corporate bottom line with an optimized sub-24 month project amortization.",
-            )
-            st.caption(
-                "Guaranteed cost recovery across a 12-month horizon following complete STEM active filtering and SVG installation."
-            )
-
-        with m_col3:
-            st.metric(
-                label="Estimated Asset Failure & Downtime Liability",
-                value=f"£{metrics['downtime_liability']:,.2f}",
-                help="Vulnerability exposure representing lost manufacturing margin, startup scrap material, and DNO non-compliance penalties triggered if a distorted waveform causes an uncoordinated main breaker trip.",
-            )
-            st.caption(
-                "Capital asset valuation actively positioned at risk over a standard 36-month industrial operating cycle."
-            )
-
-        st.markdown("---")
-
-        st.markdown("#### 🗣️ AI Boardroom Context Translation Node")
-        if st.button(
-            "✨ Compile Strategic Advisory Brief",
-            help="Triggers the advanced Google Gemini NLP translation layer to interpret technical telemetry and compile a pristine, boardroom-ready risk summary.",
-        ):
-            with st.spinner(
-                "Processing asset arrays and modeling balance sheet risk metrics..."
-            ):
-                peak_row = df_active.loc[df_active["Distortion (THD_i)"].idxmax()]
-                telemetry_payload = {
-                    "thd_i": peak_row["Distortion (THD_i)"],
-                    "plant_location": peak_row["Plant Location"],
-                    "weekly_hours": int(peak_row["Weekly Hrs"]),
-                    "annual_losses_gbp": round(metrics["annual_loss_gbp"], 2),
-                    "baseline_cos_phi": metrics["baseline_cos_phi"],
-                    "liberated_headroom_kva": round(
-                        metrics["liberated_headroom_kva"], 1
-                    ),
-                }
-
-                ai_service = GeminiTranslationService()
-                advisory_brief = ai_service.generate_boardroom_summary(
-                    client_name=active_client,
-                    asset_class=peak_row["Classification"],
-                    telemetry=telemetry_payload,
-                )
-                st.markdown(advisory_brief)
-
-                st.download_button(
-                    label="📥 Download Strategic Brief (Markdown)",
-                    data=advisory_brief,
-                    file_name=f"STEM_Executive_Brief_{active_client.replace(' ', '_')}.md",
-                    mime="text/plain",
-                )
-
-    # --------------------------------------------------------------------------
-    # TAB 2: GRID COMPLIANCE & CAPACITY HEADROOM (SYMMETRIC DNO ACRONYM pass)
-    # --------------------------------------------------------------------------
-    with tab_compliance:
-        st.markdown("### 📋 Statutory Grid Compliance & Liberated Capacity Scorecard")
-        st.write(
-            "Auditable infrastructure configuration tracking grid limits, topology safety, and reactive displacement."
-        )
-        st.write("")
-
-        # Establish two equal-weight structural columns
-        c_col1, c_col2 = st.columns(2)
-
-        with c_col1:
-            with st.container(border=True):
-                st.markdown("##### 📌 Physical Network Topology & Headroom")
-                st.divider()
-
-                st.write(
-                    f"**Single Line Diagram (SLD) State:** {metrics['sld_status']}"
-                )
-                st.write(
-                    f"**Measured Displacement Factor:** `{metrics['baseline_cos_phi']:.2f} Cos Phi` (Target: `{metrics['target_cos_phi']:.2f}`)"
-                )
-                st.write("")
-
-                sm_col1, sm_col2 = st.columns(2)
-                with sm_col1:
-                    st.metric(
-                        label="Existing Power Factor",
-                        value=f"{metrics['baseline_cos_phi']:.2f}",
-                        help="The fundamental displacement factor measured at the main grid boundary breaker.",
-                    )
-                with sm_col2:
-                    st.metric(
-                        label="Reclaimable Headroom",
-                        value=metrics["unlocked_headroom_str"],
-                        delta=(
-                            "Liberated kVA"
-                            if metrics["liberated_headroom_kva"] > 0
-                            else None
-                        ),
-                        help="Physical thermal capacity returned to the primary incoming distribution transformer by eliminating reactive magnetizing power.",
-                    )
-
-        with c_col2:
-            with st.container(border=True):
-                # 💎 Symmetrical short-form title applied here to match the left card height plane exactly
-                st.markdown("##### 🔌 DNO Statutory Boundaries")
-                st.divider()
-
-                if "Approved" in metrics["grid_compliance"]:
-                    st.warning(
-                        f"**Active Boundary Protocol:** \n\n {metrics['grid_compliance']}"
-                    )
-                elif "Legacy" in metrics["grid_compliance"]:
-                    st.error(
-                        f"**Active Boundary Protocol:** \n\n {metrics['grid_compliance']}"
-                    )
-                else:
-                    st.success(
-                        f"**Active Boundary Protocol:** \n\n {metrics['grid_compliance']}"
-                    )
-
-                st.markdown("""
-                * **G99 Framework:** Mandatory interconnection specification for generation arrays over 16A per phase.
-                * **G100 Export Control:** Demands active fail-safe hardware limits to arrest uncoordinated back-feed leaks.
-                """)
-
-        st.markdown("---")
-        st.markdown("##### 📈 Integrated Infrastructure Waveform Efficiency Index")
-        eff = metrics["efficiency_score"]
-        st.progress(int(eff), text=f"Calculated Core Network Purity Score: {eff:.1f}%")
-
-    # ==========================================================================
-    # 📚 COMPREHENSIVE METHODOLOGY APPENDIX & AUDIT TRAIL
-    # ==========================================================================
-    st.markdown("---")
-    with st.expander(
-        "📚 View Governing Methodology, Mathematical Equations & Audit Ledger"
+    with st.sidebar.expander(
+        "📊 Executive Sensitivity & Downtime Modeling", expanded=True
     ):
-        st.markdown("#### 🔢 Governing Mathematical Formulations")
-        st.markdown(
-            "The system quantifies total operational financial leakage using standard non-linear loss distribution metrics:"
+        st.markdown("### 💼 Operational Valuation Variables")
+        st.caption(
+            "Adjust these market and operational parameters to evaluate the business risk of grid-level power anomalies."
         )
-        st.latex(
-            r"W_{\text{annual}} = \sum_{n=1}^{N} P_{\text{rating}, n} \times \left( \frac{\text{THD}_{i, n}}{100} \right) \times \alpha \times T_{\text{operational}, n}"
+        st.markdown("---")
+        st.number_input(
+            "Hourly Production Line Value (£)",
+            min_value=100,
+            max_value=1000000,
+            step=5000,
+            key="prod_val",
         )
-        st.markdown(
-            "Capacity liberation maps directly across the displacement vectors to resolve apparent load inflation:"
+        st.slider(
+            "Process Reset & Recalibration (Hours)",
+            min_value=0.5,
+            max_value=24.0,
+            step=0.5,
+            key="restart_hrs",
         )
-        st.latex(
-            r"\Delta S_{\text{headroom}} = \sum P_{\text{capacity}} \times \left( \frac{1}{\cos\phi_{\text{existing}}} - \frac{1}{\cos\phi_{\text{target}}} \right)"
-        )
-        st.markdown(
-            "The combined corporate loss metric reconciles both statutory overheads and thermal waste factors simultaneously:"
-        )
-        st.latex(
-            r"\text{Total Financial Bleed } (\mathfrak{L}) = (W_{\text{annual}} \times \text{Tariff}) + (\Delta S_{\text{headroom}} \times \text{DNO Penalty Rate})"
+        st.slider(
+            "Documented Utility Grid Sags / Year",
+            min_value=1,
+            max_value=50,
+            step=1,
+            key="annual_events",
         )
 
-        st.markdown("""
-        #### 📋 Variable Nomenclature and Definitions
-        * $W_{\text{annual}}$: Total cumulative wasted energy calculated in kilowatt-hours per annum.
-        * $P_{\text{rating}, n}$: Nominal plate capacity of individual monitored hardware node $n$ expressed in kW.
-        * $\text{THD}_{i, n}$: Measured Current Harmonic Distortion percentage bleeding into the local busbar switchgear.
-        * $\alpha$: Empirical scaling factor tracking non-linear eddy current and skin effect transformations ($\alpha = 0.048$).
-        * $T_{\text{operational}, n}$: Logged operational service timeline measured in hours per annum ($Hrs \times 52$).
-        * $\Delta S_{\text{headroom}}$: Total geometric apparent power capacity reclaimed at the distribution transformer boundary expressed in kVA.
-        * $\cos\phi_{\text{existing}}$: Baseline measured site power factor displacement score.
-        * $\cos\phi_{\text{target}}$: Targeted corrected power factor goal optimized for DNO financial compliance ($\cos\phi = 0.96$).
-        
-        #### 🏦 Corporate Financial Parameters & Assumptions
-        * **Blended Energy Tariff:** Configured dynamically between **£0.22/kWh and £0.24/kWh** based on geographical industrial market parameters.
-        * **DNO Apparent Demand Surcharge Penalty:** Evaluated at an empirical run-rate of **£14.50 per excess uncorrected kVA** per annum.
-        * **Asset Lifetime Contraction (Arrhenius Realities):** Transformer thermal models assume solid paper insulation longevity degrades geometrically, halving functional service lifespan for every 10°C of sustained harmonic-induced temperature elevation above nominal design limits.
-        
-        #### 📑 JV Audit Traceability Ledger
-        * **System Status:** Production Build Verified (`2026.1.MVP`).
-        * **Data Stream Source:** Serverless Data Plane Engine (`Neon PostgreSQL Cluster`).
-        * **Validation Target:** Enforced via explicit object validation schemas (`Pydantic BaseSettings`).
-        """)
+    # Live financial exposure calculations matching core staging models
+    single_event_loss = st.session_state.prod_val * st.session_state.restart_hrs
+    total_unmitigated_exposure = single_event_loss * st.session_state.annual_events
+
+    # Assess resilience architecture state
+    has_bess_ups = (
+        "Local BESS & Hybrid UPS Array (Robotics Asset Protection)"
+        in st.session_state.selected_nodes
+    )
+    current_exposure = 0.0 if has_bess_ups else total_unmitigated_exposure
+    insurance_credit = (
+        "£12,400 / yr"
+        if len(st.session_state.selected_nodes) >= 2
+        else "£0 (High Risk Exposure Portfolio)"
+    )
+
+    # --------------------------------------------------------------------------
+    # 🔥 THE TICKER: STREAMING EXECUTIVE RISK & OPPORTUNITY COST MARQUEE
+    # --------------------------------------------------------------------------
+    if current_exposure > 0:
+        ticker_html = f"""
+        <div style="background-color: #FFF0F0; border-left: 5px solid #D9272E; padding: 12px; border-radius: 4px; margin-bottom: 25px; overflow: hidden; white-space: nowrap;">
+            <marquee behavior="scroll" direction="left" scrollamount="6" style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 14px; font-weight: bold; color: #D9272E;">
+                🚨 COMMAND CENTRE RISK ALERT: Unmitigated localized opportunity cost exposure is currently £{current_exposure:,.0f} / year ••• A single utility voltage sag triggers an immediate £{single_event_loss:,.0f} line interruption reset bottleneck ••• Vulnerability: Sensitive robotics and VSD lines exposed to sub-cycle dropouts ••• Deploy high-speed shunt hybrid backup assets to insulate plant revenue streams.
+            </marquee>
+        </div>
+        """
+    else:
+        ticker_html = f"""
+        <div style="background-color: #EBFBFA; border-left: 5px solid #00A389; padding: 12px; border-radius: 4px; margin-bottom: 25px; overflow: hidden; white-space: nowrap;">
+            <marquee behavior="scroll" direction="left" scrollamount="5" style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 14px; font-weight: bold; color: #00A389;">
+                🟢 STEM COMMAND ECOSYSTEM STABILIZED: Financial opportunity cost exposure successfully insulated to £1 / year ••• Active sub-20ms hybrid power blocks actively compensating MCC Node B2 switchgear ••• Actuarial underwriting risk credit status: APPROVED ••• Network operating criteria fully compliant with statutory EREC G5/5 grid boundaries.
+            </marquee>
+        </div>
+        """
+    st.markdown(ticker_html, unsafe_allow_html=True)
+
+    # Main Command Title Blocks
+    st.markdown("## 🎛️ Executive Command Centre Dashboard")
+    st.markdown(
+        "##### Macro Portfolio Optimization, Live Single Line Digital Twins, and Financial De-risking Gateways"
+    )
+    st.markdown("---")
+
+    # 📊 C-SUITE BALANCED CARD INDEX
+    metric_col1, metric_col2, metric_col3 = st.columns(3)
+    with metric_col1:
+        st.metric(
+            label="📉 Active Portfolio Opportunity Cost Risk",
+            value=f"£{current_exposure:,.0f} / yr",
+            delta=(
+                "-100% Fully Shielded"
+                if has_bess_ups
+                else "Unmitigated Revenue Liability"
+            ),
+            delta_color="normal" if has_bess_ups else "inverse",
+        )
+    with metric_col2:
+        st.metric(
+            label="⏱️ Single Outage Interruption Loss",
+            value=f"£{single_event_loss:,.0f}",
+            help="Calculated live as Hourly Production Value multiplied by required process calibration reset duration.",
+        )
+    with metric_col3:
+        st.metric(
+            label="🏆 Underwriter Risk Premium Credit",
+            value=insurance_credit,
+            delta=(
+                "Premium Incentive Unlocked"
+                if len(st.session_state.selected_nodes) >= 2
+                else "High Vulnerability Status"
+            ),
+        )
+
+    st.markdown("---")
+
+    # Split Workspace Layout: Technical/Briefing Controls on Left, AI Co-Pilot on Right
+    col_workspace, col_ai_agent = st.columns([2, 1])
+
+    with col_workspace:
+        tab_digital_twin, tab_investment_brief = st.tabs(
+            [
+                "🗺️ Coordinated Single Line Diagram (SLD) Twin",
+                "📜 Investment Brief & Risk Memorandum",
+            ]
+        )
+
+        with tab_digital_twin:
+            st.multiselect(
+                label="🏛️ Core Switchgear Mitigation Asset Allocation Policy:",
+                options=[
+                    "Primary Intake Switchboard (Centralised Bay)",
+                    "Heavy Industrial Process Board (Panel B1)",
+                    "Motor Control Centre (MCC Panel B2)",
+                    "Auxiliary & Building Services (Panel B3)",
+                    "Local BESS & Hybrid UPS Array (Robotics Asset Protection)",
+                ],
+                key="selected_nodes",
+                help="Toggle network infrastructure assets to observe how the active geometric layout and corresponding streaming ticker metrics adapt.",
+            )
+            st.markdown("---")
+
+            # Programmatically render the adaptive 3-column vertical graphviz chart
+            dot_string = generate_dynamic_sld_graph(
+                st.session_state.sandbox_assets, st.session_state.selected_nodes
+            )
+            st.graphviz_chart(dot_string, use_container_width=True)
+
+        with tab_investment_brief:
+            st.markdown("### 📋 Executive Business Case & Underwriting Brief")
+            st.markdown("---")
+            st.markdown(f"""
+            #### 1. Financial Position & Revenue Bottlenecks
+            The asset portfolio at Ammanford Alloys carries an unmitigated annualized risk posture of **£{current_exposure:,.0f}/year** due to incoming grid power fluctuations. Factoring in an operational valuation run-rate of **£{st.session_state.prod_val:,.0f}/hour** and an average line clearance latency of **{st.session_state.restart_hrs:.1f} hours**, any single sub-cycle voltage sag event triggers an immediate opportunity cost production loss of **£{single_event_loss:,.0f}**.
+            
+            #### 2. Infrastructure Resilience Allocations
+            To protect production margins from grid volatility, the steering committee outlines the following multi-circuit hardware deployment matrix:
+            """)
+
+            if st.session_state.selected_nodes:
+                for asset in st.session_state.selected_nodes:
+                    st.markdown(f" * 🟢 Active Infrastructure Element: **{asset}**")
+            else:
+                st.markdown(
+                    " * ⚠️ **CRITICAL RED-FLAG WARNING:** Zero infrastructure protections active. The facility is fully vulnerable to total line shutdowns."
+                )
+
+            st.markdown(f"""
+            #### 3. Actuarial Risk Posture
+            Implementing localized sub-20ms high-speed shunt compensation converts highly unpredictable grid disruptions into an insulated, predictable corporate asset lifecycle.
+            * **Current Underwriter Financial Yield:** **{insurance_credit}**
+            * **Strategic Validation:** This system-thinking framework replicates the exact risk-mitigation models utilized by world-class high-value regional manufacturers, such as the Aston Martin DBX assembly facility in St Athan, ensuring absolute continuity on critical robotics lines.
+            """)
+            st.button("📥 Export Boardroom Ready Proposal (.md)", key="exec_export_btn")
+
+    # --------------------------------------------------------------------------
+    # RIGHT CONTAINER: TWO-WAY AI CONVERSATIONAL COMMAND CONSOLE
+    # --------------------------------------------------------------------------
+    with col_ai_agent:
+        st.markdown("### 🧠 Command Co-Pilot Console")
+        st.caption("Strategic Multi-Circuit Natural Language Interface")
+        st.markdown("---")
+
+        exec_chat_box = st.container(height=450)
+        with exec_chat_box:
+            for msg in st.session_state.executive_chat_history:
+                with st.chat_message(msg["role"]):
+                    st.markdown(msg["text"])
+
+        if exec_input := st.chat_input(
+            "Command the platform to optimize or recalculate risk profiles..."
+        ):
+            st.session_state.executive_chat_history.append(
+                {"role": "user", "text": exec_input}
+            )
+            with exec_chat_box:
+                st.chat_message("user").markdown(exec_input)
+
+            try:
+                client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
+
+                system_context = f"""
+                You are the master STEM Power Quality AI Agent running inside the executive command center.
+                
+                LIVE EXECUTIVE STATE WINDOW:
+                - Active Shielding Assets: {st.session_state.selected_nodes}
+                - Value / Hour of Production: £{st.session_state.prod_val:,.0f}
+                - Process Line Restart Reset Window: {st.session_state.restart_hrs} hours
+                - Single Outage Interruption Cost: £{single_event_loss:,.0f}
+                - Annualized Risk Exposure: £{current_exposure:,.0f}
+                - Insurance Broker Premium Credit: {insurance_credit}
+                
+                💰 BUDGETARY CAPITAL COST ENGINEERING ESTIMATES:
+                1. Primary Intake Switchboard (Centralised Bay): £85,000
+                2. Heavy Industrial Process Board (Panel B1): £42,000
+                3. Motor Control Centre (MCC Panel B2): £35,000
+                4. Auxiliary & Building Services (Panel B3): £18,000
+                5. Local BESS & Hybrid UPS Array (Robotics Asset Protection): £65,000. Eradicates opportunity cost exposure entirely via sub-20ms sub-cycle transfer capability.
+                
+                HISTORICAL BENCHMARK REFERENCE:
+                - Aston Martin St Athan Plant: Peak output 28 cars/day, target run-rate 16-20 cars/day (DBX line). At £150k+ per vehicle, a 4-hour robotics line failure cost £1.2M - £1.5M in lost throughput per single event.
+                
+                Be conversational, strategic, and highly supportive of executive goals. If the user asks to add, change, remove, or modify active nodes, use your function-calling tools instantly to alter the state.
+                """
+
+                # Safe execution binding matching data entry structures
+                from src.ui.views.data_entry import update_electrical_mitigation_nodes
+
+                exec_response = client.models.generate_content(
+                    model="gemini-2.5-flash",
+                    contents=[system_context, exec_input],
+                    config=types.GenerateContentConfig(
+                        tools=[update_electrical_mitigation_nodes],
+                        temperature=0.15,
+                        system_instruction="You are a trusted strategic C-suite technology advisor. Speak with clear boardroom-ready authority. Natively use built-in financial loss and cost estimation data to frame business cases.",
+                    ),
+                )
+
+                if exec_response.function_calls:
+                    for functional_call in exec_response.function_calls:
+                        if functional_call.name == "update_electrical_mitigation_nodes":
+                            t_args = functional_call.args
+                            res = update_electrical_mitigation_nodes(**t_args)
+                            st.session_state.executive_chat_history.append(
+                                {
+                                    "role": "assistant",
+                                    "text": f"🤖 **Command Executed Upstream:**\n`{res}`\n\nI have rewritten the network topology configuration. The interactive single-line digital twin and the streaming financial ticker have adjusted live across the entire interface view.",
+                                }
+                            )
+                else:
+                    reply_msg = (
+                        exec_response.text
+                        if exec_response.text
+                        else "Command analyzed. State constants remain locked."
+                    )
+                    st.session_state.executive_chat_history.append(
+                        {"role": "assistant", "text": reply_msg}
+                    )
+
+            except Exception as e:
+                st.session_state.executive_chat_history.append(
+                    {
+                        "role": "assistant",
+                        "text": f"❌ **Command Processing Error:** Details: `{str(e)}`",
+                    }
+                )
+
+            st.rerun()
