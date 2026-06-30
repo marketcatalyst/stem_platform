@@ -212,10 +212,7 @@ def generate_dynamic_sld_graph(df: pd.DataFrame, selected_mitigations: list) -> 
 
 
 def generate_synthetic_amr_load_profile(filename: str) -> pd.DataFrame:
-    """
-    Parses an uploaded AMR CSV and converts it into a continuous half-hourly
-    load profile graph representing typical heavy industrial demand fluctuations.
-    """
+    """Parses an uploaded AMR CSV and converts it into a continuous half-hourly load profile."""
     np.random.seed(42)
     timestamps = pd.date_range(
         start="2026-06-01 00:00", end="2026-06-07 23:30", freq="30min"
@@ -263,7 +260,7 @@ def render_data_entry_view():
         ]
 
     # --------------------------------------------------------------------------
-    # 📈 EXECUTIVE HIGH-LEVEL FINANCIAL OPPORTUNITY COST RIBBON
+    # 📈 EXECUTIVE HIGH-LEVEL FINANCIAL OPPORTUNITY COST RIBBON (TOP LOGIC)
     # --------------------------------------------------------------------------
     st.markdown("### 🏛️ Executive Investment & Operational Risk Overview")
 
@@ -341,7 +338,30 @@ def render_data_entry_view():
             ]
         )
 
+        # --------------------------------------------------------------------------
+        # TAB 2A: THE LIVE SLD DIGITAL TWIN + 🔥 NEW TAB-LEVEL FOCUS RIBBON MESSAGE
+        # --------------------------------------------------------------------------
         with tab_sld_sandbox:
+
+            # 🔥 THE NEW VISUAL PENNY-DROP RIBBON BANNER
+            if has_ups_protection:
+                st.success(
+                    f"🟢 **SYSTEM RESILIENCE STATUS: OPTIMISED & INSUALTED** \n"
+                    f"Local hybrid BESS/UPS shunt injection is confirmed active on Busbar Node B2. Sensitive robotics and "
+                    f"VSD panel memory structures are protected against transient grid sags. Net opportunity cost exposure "
+                    f"reduced to **£0/yr**, unlocking an active **{insurance_credit}** underwriting premium credit incentive."
+                )
+            else:
+                st.error(
+                    f"⚠️ **SYSTEM RESILIENCE STATUS: UNMITIGATED EXPOSURE DETECTED** \n"
+                    f"Sensitive manufacturing robotics lines are operating without sub-cycle ride-through protection. A single utility "
+                    f"voltage sag will trigger a cascade line shutdown requiring a **{restart_hrs} hour** manual reset loop, "
+                    f"incurring **£{single_event_loss:,.0f}** in immediate bottleneck revenue loss. Annualized opportunity cost "
+                    f"exposure is **£{total_unmitigated_exposure:,.0f}/yr**."
+                )
+
+            st.markdown(" ")
+
             st.multiselect(
                 label="🏛️ Select Steering Committee Target Deployment Nodes:",
                 options=[
