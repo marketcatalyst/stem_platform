@@ -16,8 +16,6 @@ if repo_root not in sys.path:
 from src.ui.views.operations import load_ammanford_alloys_dataset
 from src.modules.data_ingestion.amr_parser import AMRDataReconciler
 from src.modules.data_ingestion.sld_parser import MultimodalSLDParser
-
-# 🚀 STORAGE SYSTEM INJECTIONS: Connecting the SQL repository engine loop
 from src.database.connection import engine
 from src.database.repository import ProjectPersistenceRepository
 
@@ -264,7 +262,6 @@ def render_data_entry_view():
             key="annual_events",
         )
 
-    # 🧮 HARMONISED TRIPARTITE CALCULATION BLOCK (MATCHES EXECUTIVE VIEW)
     single_event_loss = st.session_state.prod_val * st.session_state.restart_hrs
     total_unmitigated_opportunity_cost = (
         single_event_loss * st.session_state.annual_events
@@ -374,7 +371,6 @@ def render_data_entry_view():
                     "Local BESS & Hybrid UPS Array (Robotics Asset Protection)",
                 ],
                 key="selected_nodes",
-                help="Select one or more circuits to see how the system seamlessly scales and deploys co-located active power elements.",
             )
 
             st.markdown("---")
@@ -510,8 +506,6 @@ def render_data_entry_view():
                     )
 
             st.markdown("---")
-
-            # 💾 ADDED REQUIREMENT LAYER: Secure project persistence trigger ribbon
             st.markdown("#### 💾 Project State Management")
             p_col1, p_col2 = st.columns([3, 1])
             with p_col1:
@@ -521,7 +515,6 @@ def render_data_entry_view():
                 )
             with p_col2:
                 if st.button("💾 Save Project State", use_container_width=True):
-                    # Fixed target matching the hardcoded Ammanford site uuid seeded in migration files
                     target_site_uid = "00000000-0000-0000-0000-000000000002"
                     repo_writer = ProjectPersistenceRepository(db_engine=engine)
                     save_report = repo_writer.save_site_inventory_state(
@@ -802,10 +795,20 @@ def render_data_entry_view():
             try:
                 client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
 
+                # 🛠️ FIXED: Manual string building pattern to completely bypass third-party library dependencies like 'tabulate'
                 if not st.session_state.sandbox_assets.empty:
-                    serialized_sld_matrix = st.session_state.sandbox_assets.to_markdown(
-                        index=False
-                    )
+                    df_inv = st.session_state.sandbox_assets
+                    headers = list(df_inv.columns)
+                    markdown_lines = [
+                        "| " + " | ".join(headers) + " |",
+                        "| " + " | ".join(["---"] * len(headers)) + " |",
+                    ]
+                    for _, row in df_inv.iterrows():
+                        markdown_lines.append(
+                            "| " + " | ".join(str(row[h]) for h in headers) + " |"
+                        )
+                    serialized_sld_matrix = "\n".join(markdown_lines)
+
                     thd_clean_series = (
                         st.session_state.sandbox_assets["Distortion (THD_i)"]
                         .astype(str)
