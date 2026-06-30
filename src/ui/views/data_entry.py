@@ -33,8 +33,8 @@ def generate_dynamic_sld_graph(df: pd.DataFrame, policy: str) -> str:
         "",
     ]
 
-    # 🏛️ POLICY GEOMETRY OPTION 1: Centralized Primary Intake Bay
-    if policy == "Centralized Primary Intake Bay Mitigation (Utility Boundary)":
+    # 🏛️ GEOMETRY MUTATION 1: Centralised Primary Intake Bay Placement
+    if policy == "Centralised Primary Intake Bay (Boundary Patch)":
         dot_nodes.append(
             '  SUB_STEM_CENTRAL [label="🛡️ STEM OPTIMISATION BAY\\nCentralised Filtering Matrix", fillcolor="#D4EDDA", color="#28A745", style="filled,bold", penwidth=2.5];'
         )
@@ -121,7 +121,7 @@ def generate_dynamic_sld_graph(df: pd.DataFrame, policy: str) -> str:
         last_id = cid
     dot_nodes.append("  }")
 
-    # 🏢 COLUMN LAYER 2: Motor Control Centre (MCC) with Optional Consensus Ingress
+    # 🏢 COLUMN LAYER 2: Motor Control Centre (MCC) with Adaptive Consensus Option
     dot_nodes.append("  subgraph cluster_drives {")
     dot_nodes.append('    label="⚙️ Motor Control Centre (MCC)";')
     dot_nodes.append(
@@ -131,11 +131,8 @@ def generate_dynamic_sld_graph(df: pd.DataFrame, policy: str) -> str:
         '    BUS_DRIVES [label="⚙️ Automated Drive Panel\\nBusbar Node B2", fillcolor="#E2F0FE", style="filled,bold"];'
     )
 
-    # 🏛️ POLICY GEOMETRY OPTION 2: Source-Level Distributed Mitigation (Spliced inside MCC)
-    if (
-        policy
-        == "Source-Level Distributed Mitigation (Nested MCC Panel) [Committee Consensus]"
-    ):
+    # 🏛️ GEOMETRY MUTATION 2: Source-Level Distributed Ingress (Spliced inside MCC box)
+    if policy == "Source-Level Distributed Mitigation (Nested MCC Panel) [Consensus]":
         dot_nodes.append(
             '    SUB_STEM_LOCAL [label="🛡️ LOCAL STEM FILTER\\nActive Harmonic Cancellation Node", fillcolor="#D4EDDA", color="#28A745", style="filled,bold", penwidth=2.0];'
         )
@@ -186,10 +183,7 @@ def generate_dynamic_sld_graph(df: pd.DataFrame, policy: str) -> str:
 
 
 def generate_synthetic_amr_load_profile(filename: str) -> pd.DataFrame:
-    """
-    Parses an uploaded AMR CSV and converts it into a continuous half-hourly
-    load profile graph representing typical heavy industrial demand fluctuations.
-    """
+    """Parses an uploaded AMR CSV and converts it into a continuous half-hourly load profile."""
     np.random.seed(42)
     timestamps = pd.date_range(
         start="2026-06-01 00:00", end="2026-06-07 23:30", freq="30min"
@@ -214,7 +208,7 @@ def generate_synthetic_amr_load_profile(filename: str) -> pd.DataFrame:
 def render_data_entry_view():
     """
     Renders the central Data Ingestion, Asset Registration, and Single Line Diagram (SLD)
-    verification workspace. Includes the Steering Committee policy alignment engine.
+    verification workspace. Unlocks active copy-paste grid state simulations for testers.
     """
     st.markdown("## 🧪 Ingest Site Data & Network Configuration Staging")
     st.markdown(
@@ -233,14 +227,13 @@ def render_data_entry_view():
     )
 
     # --------------------------------------------------------------------------
-    # TAB 1: LIVE SPREADSHEET ENTRY & FILE PARSING
+    # TAB 1: LIVE CLIPBOARD ENTRY
     # --------------------------------------------------------------------------
     with tab_upload:
         st.markdown("### 📋 Excel-Style Batch Asset Clipboard & File Ingestion")
         st.markdown(
             "Use the interactive data grid below to **directly copy-paste rows from Excel**, edit configurations "
-            "manually, or append brand new machinery components. Modifying numbers here will automatically recalculate "
-            "the system engineering diagrams and metrics across the entire platform model runtime."
+            "manually, or append brand new machinery components."
         )
 
         edited_df = st.data_editor(
@@ -250,16 +243,13 @@ def render_data_entry_view():
             hide_index=True,
             column_config={
                 "Asset Tag": st.column_config.TextColumn(
-                    "Asset Tag",
-                    help="Unique alpha-numeric site survey tag identifier used to bind physical switchgear keys to the cloud twin database.",
-                    required=True,
+                    "Asset Tag", help="Unique identifier tag.", required=True
                 ),
                 "Plant Location": st.column_config.TextColumn(
                     "Plant Location", required=True
                 ),
                 "Classification": st.column_config.SelectboxColumn(
                     "Classification",
-                    help="The functional electrical sub-type category. Dictates mathematical loss coefficient curves within the financial backend module.",
                     options=[
                         "Main Distribution Transformer",
                         "Auxiliary Step-Down Transformer",
@@ -274,19 +264,13 @@ def render_data_entry_view():
                     required=True,
                 ),
                 "Rating (kW)": st.column_config.NumberColumn(
-                    "Rating (kW)",
-                    help="The continuous mechanical nameplate or active power rating capacity expressed in kilowatts.",
-                    min_value=1,
-                    max_value=10000,
-                    step=5,
-                    required=True,
+                    "Rating (kW)", min_value=1, max_value=10000, step=5, required=True
                 ),
                 "Weekly Hrs": st.column_config.NumberColumn(
                     "Weekly Hrs", min_value=1, max_value=168, step=1, required=True
                 ),
                 "Distortion (THD_i)": st.column_config.NumberColumn(
                     "Distortion (THD_i)",
-                    help="The documented current harmonic waveform distortion total. Threshold values exceeding 5.0% automatically activate loss multipliers.",
                     min_value=0.0,
                     max_value=100.0,
                     step=0.1,
@@ -295,62 +279,50 @@ def render_data_entry_view():
                 ),
             },
         )
-
         st.session_state.sandbox_assets = edited_df
+
         st.markdown("---")
-
         col_up1, col_up2 = st.columns(2)
-
         with col_up1:
             st.markdown("##### 📄 Legacy Print / CAD Blueprint Upload Node")
             uploaded_sld = st.file_uploader(
-                label="Drag and drop existing site drawing prints:",
+                "Drag and drop existing site drawing prints:",
                 type=["pdf", "png", "jpg", "jpeg"],
                 key="sld_uploader_node",
-                help="Accepts legacy CAD files or scanned site blueprints. Ingested data is scrubbed for metadata leaks and cached to your isolated secure session bucket.",
             )
             if uploaded_sld is not None:
-                st.success(
-                    f"🔒 Blueprint '{uploaded_sld.name}' successfully cached to secure session bucket."
-                )
-
+                st.success(f"🔒 Blueprint '{uploaded_sld.name}' successfully cached.")
         with col_up2:
             st.markdown("##### 📊 Half-Hourly AMR Utility Export File Parser")
             uploaded_amr = st.file_uploader(
-                label="Upload active grid boundary smart meter billing logs (.csv):",
+                "Upload active grid boundary smart meter billing logs (.csv):",
                 type=["csv"],
                 key="amr_uploader_node",
-                help="Extracts raw structural 48-period daily settlement logs to dynamically compile power profiles and evaluate kVA demand penalties.",
             )
             if uploaded_amr is not None:
-                st.success(
-                    f"📊 '{uploaded_amr.name}' parsed. 336 half-hourly logging frames synchronized."
-                )
+                st.success(f"📊 '{uploaded_amr.name}' parsed.")
                 df_profile = generate_synthetic_amr_load_profile(uploaded_amr.name)
-                st.markdown(
-                    "###### Active Client Demand Profile Matrix (Ingested Week Loop)"
-                )
                 st.line_chart(df_profile)
 
     # --------------------------------------------------------------------------
-    # TAB 2: LIVE-UPDATING DYNAMIC SLD ARCHITECTURE GRAPH WITH POLICY MATRIX
+    # TAB 2: LIVE-UPDATING 3-WAY CONSENSUS POLICY SLD
     # --------------------------------------------------------------------------
     with tab_sld_sandbox:
         st.markdown("### 🎚️ Network Engineering Topology Visualisation")
         st.markdown(
-            "This structural digital twin reads values **live** from the clipboard spreadsheet on Tab 1. "
-            "Select an engineering policy consensus below to observe how the geometric layout adapts."
+            "This structural digital twin reads values **live** from the clipboard spreadsheet on Tab 1."
         )
 
-        # 🏛️ THE STEERING COMMITTEE INTERACTIVE CONFLICT SELECTOR
+        # 🏛️ THE UPDATED STEERING COMMITTEE SELECTION TOOL
         sld_policy_mode = st.radio(
-            label="🏛️ Select Steering Committee Engineering Design Consensus Policy:",
+            label="🏛️ Select Active Engineering Mitigation Policy Consensus View:",
             options=[
                 "As-Is Existing System State (Unmitigated Core Risk)",
-                "Centralized Primary Intake Bay Mitigation (Utility Boundary)",
-                "Source-Level Distributed Mitigation (Nested MCC Panel) [Committee Consensus]",
+                "Centralised Primary Intake Bay (Boundary Patch)",
+                "Source-Level Distributed Mitigation (Nested MCC Panel) [Consensus]",
             ],
-            help="Directly adjusts the high-voltage electrical architecture geometry, switching between localized protection at the source or broad boundary mitigation.",
+            index=0,
+            help="Directly adjusts the high-voltage electrical architecture geometry, switching between localized protection or broad boundary mitigation.",
         )
 
         st.markdown("---")
@@ -364,26 +336,13 @@ def render_data_entry_view():
                 st.markdown(
                     "##### ⚠️ Current Grid Topology (Unmitigated Core Risk Profile)"
                 )
-                st.caption(
-                    "Baseline unmitigated footprint. Red nodes identify high-distortion assets running hot."
-                )
-            elif (
-                sld_policy_mode
-                == "Centralized Primary Intake Bay Mitigation (Utility Boundary)"
-            ):
+            elif sld_policy_mode == "Centralised Primary Intake Bay (Boundary Patch)":
                 st.markdown("##### 🟢 Centralised Intake Bay Layout (Boundary Masking)")
-                st.caption(
-                    "The green filter asset patches distortion at the boundary breaker, but internal facility cables remain uncorrected."
-                )
             else:
                 st.markdown(
                     "##### 🛡️ Source-Level Distributed Infrastructure Grid (Systems-Thinking Alignment)"
                 )
-                st.caption(
-                    "The green active filter is nested directly inside the MCC panel to eliminate distortion at the source."
-                )
 
-            # Compile the Graphviz DOT strings dynamically based on selected consensus policy
             dot_string = generate_dynamic_sld_graph(
                 st.session_state.sandbox_assets, policy=sld_policy_mode
             )
