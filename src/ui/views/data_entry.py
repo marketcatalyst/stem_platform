@@ -795,7 +795,6 @@ def render_data_entry_view():
             try:
                 client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
 
-                # 🛠️ FIXED: Manual string building pattern to completely bypass third-party library dependencies like 'tabulate'
                 if not st.session_state.sandbox_assets.empty:
                     df_inv = st.session_state.sandbox_assets
                     headers = list(df_inv.columns)
@@ -905,11 +904,22 @@ def render_data_entry_view():
                     )
 
             except Exception as e:
-                st.session_state.copilot_history.append(
-                    {
-                        "role": "assistant",
-                        "text": f"❌ **Co-Pilot Communication Error:** Details: `{str(e)}`",
-                    }
-                )
+                error_str = str(e)
+                # 🚀 Programmatic Quota Exception interception shield to maintain runtime resilience
+                if "429" in error_str or "RESOURCE_EXHAUSTED" in error_str:
+                    st.session_state.copilot_history.append(
+                        {
+                            "role": "assistant",
+                            "text": "⚠️ **Gemini API Free Tier Quota Exhausted (Error 429):**\n\nThe local session has exceeded the standard free request volume allowed for the `gemini-2.5-flash` endpoint. \n\n**Action Items:**\n1. Wait approximately **16 seconds** for the cooling window to close before resubmitting your blueprint attachment.\n2. To support production workloads, navigate to Google AI Studio and link a Google Cloud Billing profile to elevate this project key to the uncapped paid tier.",
+                        }
+                    )
+                else:
+                    st.session_state.copilot_history.append(
+                        {
+                            "role": "assistant",
+                            "text": f"❌ **Co-Pilot Communication Error:** Details: `{error_str}`",
+                        }
+                    )
 
+            st.sidebar.caption("State updated.")
             st.rerun()
