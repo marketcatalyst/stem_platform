@@ -18,13 +18,13 @@ def generate_dynamic_sld_graph(
     df: pd.DataFrame, integrate_mitigation: bool = False
 ) -> str:
     """
-    Programmatically constructs a hierarchical Graphviz DOT engine string mapping out
-    the physical high-voltage electrical network tree directly from the active session dataset.
-    Categorises assets into sub-busbars to preserve engineering fidelity and UX readability.
+    Programmatically constructs a columnar Graphviz DOT engine string mapping out
+    the physical electrical network tree. Employs explicit subgraph boundary clusters
+    to prevent horizontal ribbon stretching and preserve crisp scannable UI fidelity.
     """
     dot_nodes = [
         "digraph G {",
-        '  graph [rankdir=TB, bgcolor="transparent", fontname="Helvetica", nodesep=0.25, ranksep=0.4];',
+        '  graph [rankdir=TB, bgcolor="transparent", fontname="Helvetica", nodesep=0.2, ranksep=0.3, compound=true];',
         '  node [fontname="Helvetica", shape=box, style="filled", fillcolor="#F8F9FA", color="#CED4DA", penwidth=1.5];',
         '  edge [fontname="Helvetica", color="#495057", penwidth=1.2];',
         "",
@@ -35,7 +35,6 @@ def generate_dynamic_sld_graph(
         "",
     ]
 
-    # Inject the Active STEM Mitigation Core if toggled on
     if integrate_mitigation:
         dot_nodes.append(
             '  SUB_STEM [label="🛡️ STEM OPTIMISATION HUB\\nActive Filtering & SVG Matrix", fillcolor="#D4EDDA", color="#28A745", style="filled,bold", penwidth=2.5];'
@@ -44,34 +43,17 @@ def generate_dynamic_sld_graph(
             '  BUS_MAIN -> SUB_STEM [color="#28A745", penwidth=2.0, label=" Active Correction"];'
         )
 
-    # 🏢 CASCADE STEP 1: Introduce Structured Sub-Busbars to break up the 18-column flat span
-    dot_nodes.append("  // 🗂️ Intermediary Sub-Distribution Networks")
-    dot_nodes.append(
-        '  BUS_HEAVY [label="⚡ Heavy Industrial Process Board\\nMain Furnace Sub-Distribution", fillcolor="#FFF3CD", color="#D1A113", style="filled,bold"];'
-    )
-    dot_nodes.append(
-        '  BUS_DRIVES [label="⚙️ Motor Control Centre (MCC)\\nAutomated VSD Drive Panel", fillcolor="#E2F0FE", color="#2B72C4", style="filled,bold"];'
-    )
-    dot_nodes.append(
-        '  BUS_AUX [label="🏢 Auxiliary & Building Services\\nCommercial & Lighting Sub-Board", fillcolor="#F1F3F5", color="#6C757D", style="filled,bold"];'
-    )
+    # Data Buckets to harvest items for our 3 isolated visual columns
+    heavy_assets = []
+    drive_assets = []
+    aux_assets = []
 
-    dot_nodes.append(
-        '  BUS_MAIN -> BUS_HEAVY [weight=5, color="#D1A113", penwidth=1.5];'
-    )
-    dot_nodes.append(
-        '  BUS_MAIN -> BUS_DRIVES [weight=5, color="#2B72C4", penwidth=1.5];'
-    )
-    dot_nodes.append('  BUS_MAIN -> BUS_AUX [weight=5, color="#6C757D", penwidth=1.5];')
-    dot_nodes.append("")
-
-    # Build branches safely by routing assets to their respective structural board sub-nodes
+    # Map raw session data fields safely into their respective layout arrays
     for _, row in df.iterrows():
         if pd.isna(row.get("Asset Tag")) or str(row.get("Asset Tag")).strip() == "":
             continue
 
         tag = str(row.get("Asset Tag")).strip()
-        location = str(row.get("Plant Location", "Unassigned")).strip()
         classification = str(row.get("Classification", "General Load")).strip()
 
         try:
@@ -91,29 +73,11 @@ def generate_dynamic_sld_graph(
         except ValueError:
             thd = 0.0
 
-        # Alphanumeric filter to protect internal node IDs
         clean_id = "".join(c if c.isalnum() or c == "_" else "_" for c in tag)
         if not clean_id or clean_id == "____":
             continue
 
-        # 🧠 CASCADE STEP 2: Intelligent Routing Rules based on functional classification
-        if (
-            "Furnace" in classification
-            or "Large Induction" in classification
-            or rating >= 1000
-        ):
-            parent_busbar = "BUS_HEAVY"
-        elif (
-            "Drive" in classification
-            or "VSD" in classification
-            or "Pump" in classification
-            or "Motor" in classification
-        ):
-            parent_busbar = "BUS_DRIVES"
-        else:
-            parent_busbar = "BUS_AUX"
-
-        # Apply stylized visual properties based on node telemetry values
+        # Enforce distinct telemetry node styling profiles
         if thd > 15.0:
             node_style = f'label="⚠️ {tag}\\n{classification}\\n{rating:,.0f} kW | THD: {thd:.1f}%", fillcolor="#FCE8E6", color="#D9272E", penwidth=1.8'
         elif "Transformer" in classification:
@@ -121,8 +85,75 @@ def generate_dynamic_sld_graph(
         else:
             node_style = f'label="⚙️ {tag}\\n{classification}\\n{rating:,.0f} kW", fillcolor="#F8F9FA", color="#6C757D"'
 
-        dot_nodes.append(f"  {clean_id} [{node_style}];")
-        dot_nodes.append(f"  {parent_busbar} -> {clean_id};")
+        # Route variables directly to column layout queues
+        asset_tuple = (clean_id, node_style)
+        if (
+            "Furnace" in classification
+            or "Large Induction" in classification
+            or rating >= 1000
+        ):
+            heavy_assets.append(asset_tuple)
+        elif (
+            "Drive" in classification
+            or "VSD" in classification
+            or "Pump" in classification
+            or "Motor" in classification
+        ):
+            drive_assets.append(asset_tuple)
+        else:
+            aux_assets.append(asset_tuple)
+
+    # 🏢 COLUMN SILO 1: Heavy Process Sub-Board Box Block
+    dot_nodes.append("  subgraph cluster_heavy {")
+    dot_nodes.append('    label="⚡ Heavy Industrial Process Board";')
+    dot_nodes.append(
+        '    fontname="Helvetica-Bold"; fontsize=12; labelloc="t"; style="filled,dashed"; fillcolor="#FFFDF6"; color="#D1A113"; penwidth=1.5;'
+    )
+    dot_nodes.append(
+        '    BUS_HEAVY [label="⚡ Furnace Sub-Distribution\\nBusbar Node B1", fillcolor="#FFF3CD", style="filled,bold"];'
+    )
+    for cid, style in heavy_assets:
+        dot_nodes.append(f"    {cid} [{style}];")
+        dot_nodes.append(f"    BUS_HEAVY -> {cid};")
+    dot_nodes.append("  }")
+
+    # 🏢 COLUMN SILO 2: Motor Control Centre (MCC) Drive Box Block
+    dot_nodes.append("  subgraph cluster_drives {")
+    dot_nodes.append('    label="⚙️ Motor Control Centre (MCC)";')
+    dot_nodes.append(
+        '    fontname="Helvetica-Bold"; fontsize=12; labelloc="t"; style="filled,dashed"; fillcolor="#F4F9FF"; color="#2B72C4"; penwidth=1.5;'
+    )
+    dot_nodes.append(
+        '    BUS_DRIVES [label="⚙️ Automated Drive Panel\\nBusbar Node B2", fillcolor="#E2F0FE", style="filled,bold"];'
+    )
+    for cid, style in drive_assets:
+        dot_nodes.append(f"    {cid} [{style}];")
+        dot_nodes.append(f"    BUS_DRIVES -> {cid};")
+    dot_nodes.append("  }")
+
+    # 🏢 COLUMN SILO 3: Auxiliary Commercial & Building Services Box Block
+    dot_nodes.append("  subgraph cluster_aux {")
+    dot_nodes.append('    label="🏢 Auxiliary & Building Services";')
+    dot_nodes.append(
+        '    fontname="Helvetica-Bold"; fontsize=12; labelloc="t"; style="filled,dashed"; fillcolor="#F8F9FA"; color="#6C757D"; penwidth=1.5;'
+    )
+    dot_nodes.append(
+        '    BUS_AUX [label="🏢 Commercial Infrastructure\\nBusbar Node B3", fillcolor="#E9ECEF", style="filled,bold"];'
+    )
+    for cid, style in aux_assets:
+        dot_nodes.append(f"    {cid} [{style}];")
+        dot_nodes.append(f"    BUS_AUX -> {cid};")
+    dot_nodes.append("  }")
+
+    # Establish structural main power distribution links from root intake breaker
+    dot_nodes.append("")
+    dot_nodes.append(
+        '  BUS_MAIN -> BUS_HEAVY [weight=3, color="#D1A113", penwidth=2.0];'
+    )
+    dot_nodes.append(
+        '  BUS_MAIN -> BUS_DRIVES [weight=3, color="#2B72C4", penwidth=2.0];'
+    )
+    dot_nodes.append('  BUS_MAIN -> BUS_AUX [weight=3, color="#6C757D", penwidth=2.0];')
 
     dot_nodes.append("}")
     return "\n".join(dot_nodes)
@@ -137,11 +168,9 @@ def generate_synthetic_amr_load_profile(filename: str) -> pd.DataFrame:
     timestamps = pd.date_range(
         start="2026-06-01 00:00", end="2026-06-07 23:30", freq="30min"
     )
-
     base_load = 450.0
     diurnal_cycle = 800.0 * np.sin(2 * np.pi * timestamps.hour / 24.0) ** 2
     random_spikes = np.random.normal(loc=100.0, scale=45.0, size=len(timestamps))
-
     calculated_kw = np.clip(base_load + diurnal_cycle + random_spikes, 200.0, 3800.0)
     calculated_kvar = calculated_kw * 0.45 + np.random.normal(0, 15, len(timestamps))
 
