@@ -18,9 +18,9 @@ def generate_dynamic_sld_graph(
     df: pd.DataFrame, integrate_mitigation: bool = False
 ) -> str:
     """
-    Programmatically constructs a columnar Graphviz DOT engine string mapping out
-    the physical electrical network tree. Employs explicit subgraph boundary clusters
-    to prevent horizontal ribbon stretching and preserve crisp scannable UI fidelity.
+    Programmatically constructs a layered, 3-tier vertical Graphviz DOT engine string.
+    Employs invisible structural alignment vectors to force clusters to stack vertically,
+    preventing ultra-wide horizontal ribbon compression and optimizing screen real estate.
     """
     dot_nodes = [
         "digraph G {",
@@ -43,7 +43,7 @@ def generate_dynamic_sld_graph(
             '  BUS_MAIN -> SUB_STEM [color="#28A745", penwidth=2.0, label=" Active Correction"];'
         )
 
-    # Data Buckets to harvest items for our 3 isolated visual columns
+    # Data Buckets to harvest items for our 3 vertically stacked distribution zones
     heavy_assets = []
     drive_assets = []
     aux_assets = []
@@ -103,7 +103,7 @@ def generate_dynamic_sld_graph(
         else:
             aux_assets.append(asset_tuple)
 
-    # 🏢 COLUMN SILO 1: Heavy Process Sub-Board Box Block
+    # 🏢 TIER LAYER 1: Heavy Process Sub-Board Box Block (Top Cluster)
     dot_nodes.append("  subgraph cluster_heavy {")
     dot_nodes.append('    label="⚡ Heavy Industrial Process Board";')
     dot_nodes.append(
@@ -117,7 +117,7 @@ def generate_dynamic_sld_graph(
         dot_nodes.append(f"    BUS_HEAVY -> {cid};")
     dot_nodes.append("  }")
 
-    # 🏢 COLUMN SILO 2: Motor Control Centre (MCC) Drive Box Block
+    # 🏢 TIER LAYER 2: Motor Control Centre (MCC) Drive Box Block (Middle Cluster)
     dot_nodes.append("  subgraph cluster_drives {")
     dot_nodes.append('    label="⚙️ Motor Control Centre (MCC)";')
     dot_nodes.append(
@@ -131,7 +131,7 @@ def generate_dynamic_sld_graph(
         dot_nodes.append(f"    BUS_DRIVES -> {cid};")
     dot_nodes.append("  }")
 
-    # 🏢 COLUMN SILO 3: Auxiliary Commercial & Building Services Box Block
+    # 🏢 TIER LAYER 3: Auxiliary Commercial & Building Services Box Block (Bottom Cluster)
     dot_nodes.append("  subgraph cluster_aux {")
     dot_nodes.append('    label="🏢 Auxiliary & Building Services";')
     dot_nodes.append(
@@ -147,13 +147,17 @@ def generate_dynamic_sld_graph(
 
     # Establish structural main power distribution links from root intake breaker
     dot_nodes.append("")
+    dot_nodes.append('  BUS_MAIN -> BUS_HEAVY [color="#D1A113", penwidth=2.0];')
+    dot_nodes.append('  BUS_MAIN -> BUS_DRIVES [color="#2B72C4", penwidth=2.0];')
+    dot_nodes.append('  BUS_MAIN -> BUS_AUX [color="#6C757D", penwidth=2.0];')
+
+    # 🔥 THE VISUAL CURE: Enforce structural top-to-bottom cascading hierarchy via invisible alignment nodes
+    dot_nodes.append("")
     dot_nodes.append(
-        '  BUS_MAIN -> BUS_HEAVY [weight=3, color="#D1A113", penwidth=2.0];'
+        "  // Invisible structural anchors forcing vertical stacking of distribution clusters"
     )
-    dot_nodes.append(
-        '  BUS_MAIN -> BUS_DRIVES [weight=3, color="#2B72C4", penwidth=2.0];'
-    )
-    dot_nodes.append('  BUS_MAIN -> BUS_AUX [weight=3, color="#6C757D", penwidth=2.0];')
+    dot_nodes.append('  BUS_HEAVY -> BUS_DRIVES [style="invis"];')
+    dot_nodes.append('  BUS_DRIVES -> BUS_AUX [style="invis"];')
 
     dot_nodes.append("}")
     return "\n".join(dot_nodes)
