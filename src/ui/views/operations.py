@@ -11,6 +11,10 @@ repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if repo_root not in sys.path:
     sys.path.insert(0, repo_root)
 
+# 🚀 CORE ENGINE INJECTIONS: Binding real physics & accounting logic downstream
+from src.modules.finance_engine.arrhenius import calculate_thermal_acceleration_factor
+from src.modules.finance_engine.accounting import calculate_balance_sheet_optimisation
+
 
 def load_ammanford_alloys_dataset() -> pd.DataFrame:
     """
@@ -285,7 +289,8 @@ def load_client_operational_matrix(client_name: str) -> pd.DataFrame:
 def render_operations_view():
     """
     Renders the expanded, interactive Operations Management viewport.
-    Features dynamic client dataset routing, asset filters, and line-item loss analysis.
+    Integrates dynamic multi-asset execution loops bound directly to Arrhenius
+    thermal degradation and straight-line capital amortization modules.
     """
     st.markdown("## ⚙️ Operations Management: Digital Twin Telemetry")
     st.markdown(
@@ -307,7 +312,6 @@ def render_operations_view():
         key="ops_client_selector",
     )
 
-    # 🚨 FIXED: Connect directly to session memory state to avoid data siloing
     if active_client == "Ammanford Alloys Ltd" and "sandbox_assets" in st.session_state:
         df_raw = st.session_state.sandbox_assets.copy()
     else:
@@ -316,40 +320,76 @@ def render_operations_view():
     utility_rate = 0.24 if "Mining" in active_client else 0.22
 
     # ==========================================================================
-    # 🧮 LINE-BY-LINE ASSET LOSS ANALYTICS INJECTION
+    # 🧮 FIXED: DYNAMIC MULTI-ASSET PHYSICS & ACCOUNTING LOOPS
     # ==========================================================================
-    df_enriched = df_raw.copy()
+    annual_wastes = []
+    financial_leakages = []
+    insulation_lifespans = []
 
-    # Calculate annual kWh wasted per individual asset node
-    df_enriched["Annual Waste (kWh)"] = df_enriched.apply(
-        lambda r: (
-            float(str(r["Rating (kW)"]).replace(",", ""))
-            * ((float(str(r["Distortion (THD_i)"]).replace("%", "")) / 100.0) * 0.048)
-            * float(r["Weekly Hrs"])
-            * 52
-            if float(str(r["Distortion (THD_i)"]).replace("%", "")) > 5.0
-            else 0.0
-        ),
-        axis=1,
-    )
-    # Calculate financial leakage per asset
-    df_enriched["Financial Leakage"] = df_enriched["Annual Waste (kWh)"] * utility_rate
+    for _, row in df_raw.iterrows():
+        try:
+            kw = float(str(row["Rating (kW)"]).replace(",", ""))
+            hours = float(row["Weekly Hrs"])
+            thd = float(str(row["Distortion (THD_i)"]).replace("%", ""))
+            classification = str(row["Classification"])
+        except (ValueError, KeyError):
+            annual_wastes.append(0.0)
+            financial_leakages.append(0.0)
+            insulation_lifespans.append(100)
+            continue
 
-    # Calculate remaining insulation asset lifespan factor based on harmonic core heating models
-    df_enriched["Insulation Life Expectancy"] = df_enriched["Distortion (THD_i)"].apply(
-        lambda x: (
-            max(30, round(100.0 - (float(str(x).replace("%", "")) * 1.8)))
-            if float(str(x).replace("%", "")) > 5.0
-            else 100
+        # 1. Calculate Active Grid Copper Losses (Wasted Heat Multiplier)
+        if thd > 5.0:
+            waste_kwh = kw * ((thd / 100.0) * 0.048) * hours * 52
+        else:
+            waste_kwh = 0.0
+
+        leakage_gbp = waste_kwh * utility_rate
+        annual_wastes.append(waste_kwh)
+        financial_leakages.append(leakage_gbp)
+
+        # 2. Map Baseline Thermodynamic Stress Factors (Textbook Rules)
+        thermal_stress_factor = 1.0 + (thd / 50.0) if thd > 5.0 else 1.0
+
+        # 3. Call the Core Arrhenius Model
+        acceleration_factor = calculate_thermal_acceleration_factor(
+            thermal_stress_factor
         )
-    )
+
+        # 4. Determine Asset Procurement Horizons & Base Lifespans
+        if "Transformer" in classification:
+            base_useful_life = 30.0
+            asset_purchase_value = kw * 90.0  # Heavy-duty industrial substation grading
+        elif "Arc Furnace" in classification or "Ladle" in classification:
+            base_useful_life = 20.0
+            asset_purchase_value = kw * 140.0
+        else:
+            base_useful_life = 15.0
+            asset_purchase_value = kw * 180.0  # Automated manufacturing drive nodes
+
+        # 5. Call the Core Balance Sheet Ledger Model
+        accounting_ledger = calculate_balance_sheet_optimisation(
+            asset_purchase_value, base_useful_life, acceleration_factor
+        )
+
+        # 6. Extract Winding Integrity Percentage Index
+        degraded_life = accounting_ledger["degraded_useful_life_years"]
+        optimal_life = accounting_ledger["optimised_useful_life_years"]
+
+        life_pct = min(100, max(0, round((degraded_life / optimal_life) * 100)))
+        insulation_lifespans.append(life_pct)
+
+    # Attach verified calculated telemetry back to the active dataframe container
+    df_enriched = df_raw.copy()
+    df_enriched["Annual Waste (kWh)"] = annual_wastes
+    df_enriched["Financial Leakage"] = financial_leakages
+    df_enriched["Insulation Life Expectancy"] = insulation_lifespans
 
     # ==========================================================================
     # 🎛️ DYNAMIC SUMMARY METRIC CARDS
     # ==========================================================================
     total_registered_nodes = df_enriched.shape[0]
 
-    # Safely compute numeric demand arrays filtering out string formats if present
     ratings_clean = (
         df_enriched["Rating (kW)"].astype(str).str.replace(",", "").astype(float)
     )
@@ -432,7 +472,6 @@ def render_operations_view():
             ],
         )
 
-    # Apply interactive filters to the layout state
     df_filtered = df_enriched[
         df_enriched["Classification"].isin(selected_classes)
     ].copy()
@@ -473,6 +512,7 @@ def render_operations_view():
             ),
             "Insulation Life Expectancy": st.column_config.ProgressColumn(
                 "Winding Insulation Integrity",
+                help="Calculated live via Arrhenius chemical wear modeling: mapped as (Degraded useful life years / Optimised base useful life years) x 100.",
                 min_value=0,
                 max_value=100,
                 format="%d%%",
