@@ -8,7 +8,7 @@ from google.genai import types
 # ==========================================================================
 # 🛡️ PATH INSURANCE POLICY (CRITICAL FOR LINUX CLOUD DEPLOYMENTS)
 # ==========================================================================
-repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 if repo_root not in sys.path:
     sys.path.insert(0, repo_root)
 
@@ -21,7 +21,6 @@ def render_executive_view():
     streaming financial tickers, dynamic capital cost overrides, and real-time payback
     calculators to the absolute apex of the platform runtime.
     """
-    # 🔄 Synchronized Global Session State Initialisation Checks
     if "sandbox_assets" not in st.session_state:
         from src.ui.views.operations import load_ammanford_alloys_dataset
 
@@ -39,7 +38,6 @@ def render_executive_view():
     if "annual_events" not in st.session_state:
         st.session_state.annual_events = 3
 
-    # Baseline CapEx State Initializers
     if "capex_intake" not in st.session_state:
         st.session_state.capex_intake = 85000
     if "capex_heavy" not in st.session_state:
@@ -59,9 +57,6 @@ def render_executive_view():
             }
         ]
 
-    # --------------------------------------------------------------------------
-    # 🗂️ SIDEBAR SCENARIO ENGINE: Sensitivity Inputs & CapEx Overwrites
-    # --------------------------------------------------------------------------
     with st.sidebar.expander(
         "📊 Executive Sensitivity & Downtime Modeling", expanded=True
     ):
@@ -110,11 +105,12 @@ def render_executive_view():
             "Local BESS / Hybrid UPS Array", min_value=0, step=1000, key="capex_bess"
         )
 
-    # 📈 DYNAMIC FINANCIAL HARDENING ENGINE
+    # 📈 HARMONIZED TRIPARTITE CALCULATION BLOCK
     single_event_loss = st.session_state.prod_val * st.session_state.restart_hrs
-    total_unmitigated_exposure = single_event_loss * st.session_state.annual_events
+    total_unmitigated_opportunity_cost = (
+        single_event_loss * st.session_state.annual_events
+    )
 
-    # Track physical mitigation states independently
     has_mcc_filter = (
         "Motor Control Centre (MCC Panel B2)" in st.session_state.selected_nodes
     )
@@ -123,25 +119,24 @@ def render_executive_view():
         in st.session_state.selected_nodes
     )
 
-    # Compute baseline dynamic engineering tracking variables
     insulation_depreciation_exposure = 23800.0 if not has_mcc_filter else 0.0
     copper_loss_energy_exposure = 26400.0 if not has_mcc_filter else 0.0
     active_technical_bleed = (
         insulation_depreciation_exposure + copper_loss_energy_exposure
     )
 
-    # Realized annualized cash savings values
     insulation_savings_captured = 23800.0 if has_mcc_filter else 0.0
     copper_savings_captured = 26400.0 if has_mcc_filter else 0.0
-    opportunity_savings_captured = total_unmitigated_exposure if has_bess_ups else 0.0
-
+    opportunity_savings_captured = (
+        total_unmitigated_opportunity_cost if has_bess_ups else 0.0
+    )
     total_combined_annual_savings = (
         insulation_savings_captured
         + copper_savings_captured
         + opportunity_savings_captured
     )
+    operational_annual_savings = insulation_savings_captured + copper_savings_captured
 
-    # Calculate active installation CapEx based on dynamic state inputs
     capex_total = 0.0
     if (
         "Primary Intake Switchboard (Centralised Bay)"
@@ -160,14 +155,17 @@ def render_executive_view():
     ):
         capex_total += st.session_state.capex_bess
 
-    # Calculate payback natively using the user's specific CapEx values
     if total_combined_annual_savings > 0:
         calculated_payback_months = (capex_total / total_combined_annual_savings) * 12.0
         payback_display_value = f"{calculated_payback_months:.2f} Months"
     else:
         payback_display_value = "0.00 Months"
 
-    current_opportunity_exposure = 0.0 if has_bess_ups else total_unmitigated_exposure
+    current_opportunity_exposure = (
+        0.0 if has_bess_ups else total_unmitigated_opportunity_cost
+    )
+    total_residual_leak = current_opportunity_exposure + active_technical_bleed
+
     insurance_credit = (
         "£12,400 / yr"
         if len(st.session_state.selected_nodes) >= 2
@@ -175,27 +173,26 @@ def render_executive_view():
     )
 
     # --------------------------------------------------------------------------
-    # 🎚️ THE TICKER: STREAMING EXECUTIVE RISK & SYSTEMIC FAILURE MARQUEE
+    # 🚨 DYNAMIC SCROLLING RISK MARQUEE
     # --------------------------------------------------------------------------
-    if (current_opportunity_exposure + active_technical_bleed) > 0:
+    if total_residual_leak > 0:
         ticker_html = f"""
-        <div style="background-color: #FFF0F0; border-left: 5px solid #D9272E; padding: 12px; border-radius: 4px; margin-bottom: 25px; overflow: hidden; white-space: nowrap;">
-            <marquee behavior="scroll" direction="left" scrollamount="6" style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 14px; font-weight: bold; color: #D9272E;">
-                🚨 COMMAND CENTRE RISK ALERT: Unmitigated localized opportunity cost exposure is currently £{current_opportunity_exposure:,.0f} / year ••• [ACTIVE TECHNICAL BLISTERS: Insulation Depreciation At £{insulation_depreciation_exposure:,.0f}/yr | Copper Loss Grid Energy Wastage At £{copper_loss_energy_exposure:,.0f}/yr] ••• A single utility voltage sag triggers an immediate £{single_event_loss:,.0f} production bottleneck loss.
+        <div style="background-color: #FCE8E6; padding: 12px; border-radius: 6px; border-left: 6px solid #D9272E; margin-bottom: 25px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+            <marquee scrollamount="5" style="color: #A81C1C; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-weight: bold; font-size: 13px; letter-spacing: 0.5px;">
+                🚨 STEM LIVE THREAT INVENTORY // TOTAL RESIDUAL FACILITY BLEED: £{total_residual_leak:,.0f}/YR ••• DETAILED UNMITIGATED LEAKS ➔ [DOWNTIME OPPORTUNITY RISK: £{current_opportunity_exposure:,.0f}/YR] ••• [EXCESS INSULATION WEAR PENALTY: £{insulation_depreciation_exposure:,.0f}/YR] ••• [WASTED COPPER LOSS ENERGY: £{copper_loss_energy_exposure:,.0f}/YR]
             </marquee>
         </div>
         """
     else:
         ticker_html = f"""
-        <div style="background-color: #EBFBFA; border-left: 5px solid #00A389; padding: 12px; border-radius: 4px; margin-bottom: 25px; overflow: hidden; white-space: nowrap;">
-            <marquee behavior="scroll" direction="left" scrollamount="5" style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 14px; font-weight: bold; color: #00A389;">
-                🟢 STEM COMMAND ECOSYSTEM STABILIZED: Financial opportunity cost exposure successfully insulated to £0 / year ••• Harmonic degradation mitigated across all distribution layers ••• [INSULATION LIFESPAN RESTORED: £23,800/YR SAVED] ••• [COPPER LOSSES MINIMISED: £26,400/YR RECLAIMED] ••• Actuarial underwriting risk credit status: APPROVED.
+        <div style="background-color: #E6FFFA; padding: 12px; border-radius: 6px; border-left: 6px solid #00A389; margin-bottom: 25px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+            <marquee scrollamount="4" style="color: #006654; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-weight: bold; font-size: 13px; letter-spacing: 0.5px;">
+                🟢 STEM ACTIVE BLOCKADES // TOTAL RECLAIMED CASH SAVINGS: £{total_combined_annual_savings:,.0f}/YR ••• [ENERGY BILL REDUCTIONS: £{copper_savings_captured:,.0f}/YR] ••• [DEPRECIATION RECOVERY: £{insulation_savings_captured:,.0f}/YR] ••• RISK INSULATED TO £0
             </marquee>
         </div>
         """
     st.markdown(ticker_html, unsafe_allow_html=True)
 
-    # Main Command Title Blocks
     st.markdown("## 🎛️ Executive Command Centre Dashboard")
     st.markdown(
         "##### Macro Portfolio Optimization, Live Single Line Digital Twins, and Financial De-risking Gateways"
@@ -214,9 +211,9 @@ def render_executive_view():
     with metric_col2:
         st.metric(
             label="⚙️ Technical Cash Bleed",
-            value=f"£{active_technical_bleed:,.0f} / yr",
+            value=f"£{total_residual_leak - current_opportunity_exposure:,.0f} / yr",
             delta=(
-                f"£{insulation_savings_captured + copper_savings_captured:,.0f}/yr Saved"
+                f"£{operational_annual_savings:,.0f}/yr Saved"
                 if has_mcc_filter
                 else "Thermal Waste Loading"
             ),
@@ -238,7 +235,6 @@ def render_executive_view():
 
     st.markdown("---")
 
-    # Split Workspace Layout: Technical/Briefing Controls on Left, AI Co-Pilot on Right
     col_workspace, col_ai_agent = st.columns([2, 1])
 
     with col_workspace:
@@ -260,7 +256,6 @@ def render_executive_view():
                     "Local BESS & Hybrid UPS Array (Robotics Asset Protection)",
                 ],
                 key="selected_nodes",
-                help="Toggle network infrastructure assets to observe how the active geometric layout and corresponding streaming ticker metrics adapt.",
             )
             st.markdown("---")
 
@@ -288,9 +283,6 @@ def render_executive_view():
             """)
             st.button("📥 Export Boardroom Ready Proposal (.md)", key="exec_export_btn")
 
-    # --------------------------------------------------------------------------
-    # RIGHT CONTAINER: TWO-WAY AI CONVERSATIONAL COMMAND CONSOLE
-    # --------------------------------------------------------------------------
     with col_ai_agent:
         st.markdown("### 🧠 Command Co-Pilot Console")
         st.caption("Strategic Multi-Circuit Natural Language Interface")
@@ -322,23 +314,9 @@ def render_executive_view():
                 - Value / Hour of Production: £{st.session_state.prod_val:,.0f}
                 - Process Line Restart Reset Window: {st.session_state.restart_hrs} hours
                 - Single Outage Interruption Cost: £{single_event_loss:,.0f}
-                - Annualized Opportunity Risk Exposure: £{current_opportunity_exposure:,.0f}
-                - Annualized Direct Technical Harmonics Bleed: £{active_technical_bleed:,.0f}
                 - Annualized Project Savings (Before Opportunity Cost): £{insulation_savings_captured + copper_savings_captured:,.0f}
                 - Active Combined Project Payback Period: {payback_display_value}
                 - Insurance Broker Premium Credit: {insurance_credit}
-                
-                💰 CURRENT RE-INITIALISED USER MODIFIABLE COST MATRIX:
-                1. Primary Intake Switchboard Bay: £{st.session_state.capex_intake:,.0f}
-                2. Heavy Process Sub-Board (Panel B1): £{st.session_state.capex_heavy:,.0f}
-                3. Motor Control Centre (MCC Panel B2): £{st.session_state.capex_mcc:,.0f}
-                4. Auxiliary Infrastructure Panel (Panel B3): £{st.session_state.capex_aux:,.0f}
-                5. Local BESS & Hybrid UPS Array: £{st.session_state.capex_bess:,.0f}
-                
-                CASE STUDY BENCHMARK REFERENCE:
-                - Aston Martin St Athan Plant: Peak output 28 cars/day, target run-rate 16-20 cars/day (DBX line). At £150k+ per vehicle, a 4-hour robotics line failure cost £1.2M - £1.5M in lost throughput per single event.
-                
-                Be conversational, strategic, and highly supportive of executive goals. Use your built-in cost overrides natively to frame dynamic financial engineering recommendations. If changes to asset layout selections are requested, call tools instantly.
                 """
 
                 from src.ui.views.data_entry import update_electrical_mitigation_nodes
@@ -349,7 +327,7 @@ def render_executive_view():
                     config=types.GenerateContentConfig(
                         tools=[update_electrical_mitigation_nodes],
                         temperature=0.15,
-                        system_instruction="You are a trusted strategic C-suite technology advisor. Speak with clear boardroom-ready authority. Natively use user-adjusted cost overrides and data vectors to frame your financial reasoning.",
+                        system_instruction="You are a trusted strategic C-suite technology advisor. Speak with clear boardroom-ready authority.",
                     ),
                 )
 
@@ -361,7 +339,7 @@ def render_executive_view():
                             st.session_state.executive_chat_history.append(
                                 {
                                     "role": "assistant",
-                                    "text": f"🤖 **Command Executed Upstream:**\n`{res}`\n\nI have rewritten the network topology configuration. The interactive single-line digital twin, the strategic brief text, and the financial metrics cards have adjusted live.",
+                                    "text": f"🤖 **Command Executed Upstream:**\n`{res}`\n\nI have rewritten the network topology configuration.",
                                 }
                             )
                 else:
