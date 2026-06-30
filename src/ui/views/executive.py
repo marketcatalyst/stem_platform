@@ -105,7 +105,7 @@ def render_executive_view():
             "Local BESS / Hybrid UPS Array", min_value=0, step=1000, key="capex_bess"
         )
 
-    # 🧮 HARMONISED TRIPARTITE CALCULATION BLOCK
+    # 📈 HARMONISED TRIPARTITE CALCULATION BLOCK
     single_event_loss = st.session_state.prod_val * st.session_state.restart_hrs
     total_unmitigated_opportunity_cost = (
         single_event_loss * st.session_state.annual_events
@@ -191,6 +191,7 @@ def render_executive_view():
     st.markdown(ticker_html, unsafe_allow_html=True)
 
     st.markdown("## 🎛️ Executive Command Centre Dashboard")
+    # 🎯 FIXED: Replaced "Optimization" with proper UK English spelling "Optimisation"
     st.markdown(
         "##### Macro Portfolio Optimisation, Live Single Line Digital Twins, and Financial De-risking Gateways"
     )
@@ -311,8 +312,6 @@ def render_executive_view():
                 - Value / Hour of Production: £{st.session_state.prod_val:,.0f}
                 - Process Line Restart Reset Window: {st.session_state.restart_hrs} hours
                 - Single Outage Interruption Cost: £{single_event_loss:,.0f}
-                - Annualised Opportunity Risk Exposure: £{current_opportunity_exposure:,.0f}
-                - Annualised Direct Technical Harmonics Bleed: £{active_technical_bleed:,.0f}
                 - Annualised Project Savings (Before Opportunity Cost): £{insulation_savings_captured + copper_savings_captured:,.0f}
                 - Active Combined Project Payback Period: {payback_display_value}
                 - Insurance Broker Premium Credit: {insurance_credit}
