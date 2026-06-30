@@ -19,3 +19,5 @@ plotly>=5.22.0
 
 # AI Orchestration & NLP Translation Layer
 google-generativeai>=0.5.4
+
+google-genai
