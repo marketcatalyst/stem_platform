@@ -14,6 +14,13 @@ if repo_root not in sys.path:
     sys.path.insert(0, repo_root)
 
 from src.ui.views.operations import load_ammanford_alloys_dataset
+from src.modules.data_ingestion.amr_parser import AMRDataReconciler
+
+
+def update_electrical_mitigation_nodes(nodes: list[str]) -> str:
+    """Executes a structural mutation of the SLD network architecture memory."""
+    st.session_state.selected_nodes = nodes
+    return f"Consensus updated. Native active nodes deployed: {nodes}"
 
 
 def generate_dynamic_sld_graph(df: pd.DataFrame, selected_mitigations: list) -> str:
@@ -201,35 +208,6 @@ def generate_dynamic_sld_graph(df: pd.DataFrame, selected_mitigations: list) -> 
     return "\n".join(dot_nodes)
 
 
-def generate_synthetic_amr_load_profile(filename: str) -> pd.DataFrame:
-    """Parses an uploaded AMR CSV and converts it into a continuous half-hourly load profile."""
-    np.random.seed(42)
-    timestamps = pd.date_range(
-        start="2026-06-01 00:00", end="2026-06-07 23:30", freq="30min"
-    )
-    base_load = 450.0
-    diurnal_cycle = 800.0 * np.sin(2 * np.pi * timestamps.hour / 24.0) ** 2
-    random_spikes = np.random.normal(loc=100.0, scale=45.0, size=len(timestamps))
-    calculated_kw = np.clip(base_load + diurnal_cycle + random_spikes, 200.0, 3800.0)
-    calculated_kvar = calculated_kw * 0.45 + np.random.normal(0, 15, len(timestamps))
-
-    df_amr = pd.DataFrame(
-        {
-            "Settlement Period Time": timestamps,
-            "Active Demand (kW)": calculated_kw,
-            "Reactive Demand (kVAr)": calculated_kvar,
-        }
-    )
-    df_amr.set_index("Settlement Period Time", inplace=True)
-    return df_amr
-
-
-def update_electrical_mitigation_nodes(nodes: list[str]) -> str:
-    """Executes a structural mutation of the SLD network architecture memory."""
-    st.session_state.selected_nodes = nodes
-    return f"Consensus updated. Native active nodes deployed: {nodes}"
-
-
 def render_data_entry_view():
     """
     Renders the unified split workspace combining streaming financial tickers,
@@ -281,7 +259,6 @@ def render_data_entry_view():
             key="annual_events",
         )
 
-    # 🧮 HARMONIZED TRIPARTITE CALCULATION BLOCK (MATCHES EXECUTIVE VIEW)
     single_event_loss = st.session_state.prod_val * st.session_state.restart_hrs
     total_unmitigated_opportunity_cost = (
         single_event_loss * st.session_state.annual_events
@@ -319,9 +296,6 @@ def render_data_entry_view():
         else "£0 (High Risk Exposure Portfolio)"
     )
 
-    # --------------------------------------------------------------------------
-    # 🚨 DYNAMIC SCROLLING RISK MARQUEE (PERFECT MULTI-TAB ALIGNMENT)
-    # --------------------------------------------------------------------------
     if total_residual_leak > 0:
         ticker_html = f"""
         <div style="background-color: #FCE8E6; padding: 12px; border-radius: 6px; border-left: 6px solid #D9272E; margin-bottom: 25px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
@@ -340,7 +314,6 @@ def render_data_entry_view():
         """
     st.markdown(ticker_html, unsafe_allow_html=True)
 
-    # 📈 SECONDARY EXECUTIVE RIBBON DATA METRICS
     metric_col1, metric_col2, metric_col3 = st.columns(3)
     with metric_col1:
         st.metric(
@@ -375,11 +348,12 @@ def render_data_entry_view():
     col_workspace, col_copilot = st.columns([2, 1])
 
     with col_workspace:
-        tab_sld_sandbox, tab_brief, tab_upload = st.tabs(
+        tab_sld_sandbox, tab_brief, tab_upload, tab_amr = st.tabs(
             [
                 "🗺️ Dynamic Single Line Diagram (SLD) Digital Twin",
                 "📜 Live Automated Strategic Brief",
-                "📥 Excel Clipboard & Document Feed",
+                "🗃️ Excel Clipboard Asset Registry",
+                "⚡ AMR Half-Hourly Ingestion Engine",
             ]
         )
 
@@ -491,6 +465,194 @@ def render_data_entry_view():
             )
             st.session_state.sandbox_assets = edited_df
 
+        with tab_amr:
+            st.markdown("### ⚡ Half-Hourly AMR Utility Log Ingestion Engine")
+            st.markdown(
+                "Upload an interval log file stream to cross-reference your surveyor checklist totals "
+                "against actual peak utility demands."
+            )
+
+            with st.expander("📝 View Required CSV Header Schema Spec", expanded=False):
+                st.markdown("""
+                The ingestion data pipeline expects a CSV file containing three continuous headers:
+                * **`timestamp`**: Scheduled date-time strings (`YYYY-MM-DD HH:MM:SS`)
+                * **`active_kwh`**: Total active energy registered in the 30-min settlement block
+                * **`reactive_kvarh`**: Total reactive energy registered in the 30-min settlement block
+                """)
+                dummy_df = pd.DataFrame(
+                    {
+                        "timestamp": [
+                            "2026-06-22 06:00:00",
+                            "2026-06-22 06:30:00",
+                            "2026-06-22 07:00:00",
+                        ],
+                        "active_kwh": [40.0, 42.0, 95.0],
+                        "reactive_kvarh": [20.0, 21.0, 45.0],
+                    }
+                )
+                st.dataframe(dummy_df, hide_index=True)
+
+            uploaded_amr = st.file_uploader(
+                "Ingest Smart Meter Profile Logs (.csv)",
+                type=["csv"],
+                key="active_amr_uploader",
+            )
+
+            ratings_clean = (
+                st.session_state.sandbox_assets["Rating (kW)"]
+                .astype(str)
+                .str.replace(",", "")
+                .astype(float)
+            )
+            total_survey_kw = float(ratings_clean.sum())
+
+            if uploaded_amr is not None:
+                try:
+                    df_uploaded = pd.read_csv(uploaded_amr)
+                    df_uploaded.columns = [
+                        str(c).strip().lower() for c in df_uploaded.columns
+                    ]
+
+                    target_columns = {"timestamp", "active_kwh", "reactive_kvarh"}
+                    if not target_columns.issubset(df_uploaded.columns):
+                        st.error(
+                            f"❌ Ingestion Blocked: Uploaded file is missing required components. Target: {list(target_columns)}"
+                        )
+                    else:
+                        current_tenant = st.session_state.get("role", "swalek")
+                        reconciler = AMRDataReconciler(tenant_id=current_tenant)
+
+                        processed_intervals = []
+                        for _, row in df_uploaded.iterrows():
+                            read_node = {
+                                "timestamp": str(row["timestamp"]),
+                                "active_kwh": float(row["active_kwh"]),
+                                "reactive_kvarh": float(row["reactive_kvarh"]),
+                            }
+                            processed_intervals.append(
+                                reconciler.parse_half_hourly_reading(read_node)
+                            )
+
+                        df_processed = pd.DataFrame(processed_intervals)
+                        df_processed.set_index("timestamp", inplace=True)
+
+                        st.success(
+                            f"📊 Pipeline Engaged: Successfully reconciled {len(df_processed)} half-hourly records."
+                        )
+                        st.line_chart(df_processed[["demand_kw", "apparent_kva"]])
+
+                        st.markdown("#### 🔍 Transient Inrush Anomaly Diagnostics")
+                        jumps = reconciler.detect_sudden_consumption_jumps(
+                            processed_intervals, jump_threshold_kw=50.0
+                        )
+                        if jumps:
+                            for jump in jumps:
+                                st.warning(
+                                    f"⚠️ **Heavy Start Event Caught:** Sharp step-change registered at `{jump['timestamp']}`! "
+                                    f"Magnitude: `+{jump['magnitude_step_kw']} kW` (Profile transitioned from `{jump['pre_jump_kw']} kW` up to `{jump['post_jump_kw']} kW`)."
+                                )
+                        else:
+                            st.info(
+                                "🟢 Zero sudden load jumps caught across the current utility billing horizon."
+                            )
+
+                        st.markdown("#### 📑 Auditor Capacity Allocation Report")
+                        recon_summary = reconciler.reconcile_desktop_survey(
+                            total_survey_kw, processed_intervals
+                        )
+
+                        r_col1, r_col2, r_col3 = st.columns(3)
+                        with r_col1:
+                            st.metric(
+                                "Empirical Peak Grid Demand",
+                                f"{recon_summary['measured_peak_demand_kw']:,} kW",
+                            )
+                        with r_col2:
+                            st.metric(
+                                "Surveyor Estimated Checklist",
+                                f"{recon_summary['surveyor_estimated_load_kw']:,} kW",
+                            )
+                        with r_col3:
+                            st.metric(
+                                "Relational Capacity Variance",
+                                f"{recon_summary['variance_gap_kw']:,} kW",
+                                delta=f"{recon_summary['variance_divergence_pct']}% Divergence",
+                                delta_color=(
+                                    "inverse"
+                                    if recon_summary["variance_divergence_pct"] > 25.0
+                                    else "normal"
+                                ),
+                            )
+
+                        if (
+                            recon_summary["action_required"]
+                            == "RE_CALIBRATE_DUTY_CYCLES"
+                        ):
+                            st.error(
+                                f"🚨 **Auditor Action Required:** Static survey inventory calculations overshoot actual maximum observed "
+                                f"demands by **{recon_summary['variance_divergence_pct']}%**. The asset register contains exaggerated duty cycles "
+                                f"or missing diversity factors. Re-calibrate names and schedules before submitting CapEx requests."
+                            )
+                        else:
+                            st.success(
+                                "🎯 **Checklist Integrity Approved:** Surveyor checklist load matrices align perfectly within the "
+                                "acceptable engineering diversity limits of actual site operations."
+                            )
+                except Exception as err:
+                    st.error(
+                        f"❌ Execution Fault: Failed to process interval stream array. Details: `{str(err)}`"
+                    )
+            else:
+                st.info(
+                    "💡 Sandbox Staging View: No file uploaded yet. Parsing validation seed profile records below:"
+                )
+
+                reconciler = AMRDataReconciler(tenant_id="swalek")
+                simulated_meter_logs = [
+                    {
+                        "timestamp": "2026-06-22 06:00:00",
+                        "active_kwh": 40.0,
+                        "reactive_kvarh": 20.0,
+                    },
+                    {
+                        "timestamp": "2026-06-22 06:30:00",
+                        "active_kwh": 42.0,
+                        "reactive_kvarh": 21.0,
+                    },
+                    {
+                        "timestamp": "2026-06-22 07:00:00",
+                        "active_kwh": 95.0,
+                        "reactive_kvarh": 45.0,
+                    },
+                    {
+                        "timestamp": "2026-06-22 07:30:00",
+                        "active_kwh": 93.0,
+                        "reactive_kvarh": 44.0,
+                    },
+                ]
+                processed_stream = [
+                    reconciler.parse_half_hourly_reading(log)
+                    for log in simulated_meter_logs
+                ]
+                df_sim = pd.DataFrame(processed_stream).set_index("timestamp")
+
+                st.line_chart(df_sim[["demand_kw", "apparent_kva"]])
+
+                jumps = reconciler.detect_sudden_consumption_jumps(
+                    processed_stream, jump_threshold_kw=50.0
+                )
+                for jump in jumps:
+                    st.warning(
+                        f"⚠️ **Heavy Start Event Caught:** Registered load jump at `{jump['timestamp']}`! Step: `+{jump['magnitude_step_kw']} kW` ."
+                    )
+
+                recon_summary = reconciler.reconcile_desktop_survey(
+                    total_survey_kw, processed_stream
+                )
+                st.write(
+                    f"**Verification Report Index:** `{recon_summary['action_required']}` | Measured Divergence: `{recon_summary['variance_divergence_pct']}%` ."
+                )
+
     with col_copilot:
         st.markdown("### 🧠 STEM AI Co-Pilot Console")
         st.caption("Two-Way Conversational Topology Optimization Gateway")
@@ -524,11 +686,6 @@ def render_data_entry_view():
                 - Single Interruption Interruption Cost: £{single_event_loss:,.0f}
                 - Annualized Risk Exposure: £{total_residual_leak:,.0f} / yr
                 - Expected Annual Insurance Premium Reduction: {insurance_credit}
-                
-                Budgetary Cost Metrics: Switchboard=£85k, Furnace Sub-Board=£42k, MCC B2=£35k, Aux Panel=£18k, UPS/BESS=£65k.
-                
-                CASE STUDY BENCHMARK (ASTON MARTIN ST ATHAN):
-                - Peak capacity of 7,000 cars/yr (~28 cars/day). Normal rate ~4,000-5,000 cars/yr (~16-20 cars/day). At £150k+ per vehicle, a 4-hour reset bottleneck costs £1.2M - £1.5M in lost throughput per single grid anomaly event.
                 """
 
                 response = client.models.generate_content(
@@ -572,4 +729,5 @@ def render_data_entry_view():
                     }
                 )
 
+            st.sidebar.caption("State updated.")
             st.rerun()
