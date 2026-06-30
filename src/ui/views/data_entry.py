@@ -15,7 +15,7 @@ from src.ui.views.operations import load_ammanford_alloys_dataset
 
 
 def generate_dynamic_sld_graph(
-    df: pd.DataFrame, incorporate_mitigation: bool = False
+    df: pd.DataFrame, integrate_mitigation: bool = False
 ) -> str:
     """
     Programmatically constructs a Graphviz DOT engine string mapping out the physical
@@ -34,7 +34,8 @@ def generate_dynamic_sld_graph(
         '  GRID -> BUS_MAIN [label=" Main Intake"];',
     ]
 
-    if incorporate_mitigation:
+    # Parameter name here is fully synchronized with the function signature
+    if integrate_mitigation:
         dot_nodes.append(
             "  SUB_STEM [label=\"🛡️ STEM OPTIMISATION HUB\\nActive Filtering & SVG Matrix\", fillcolor='#D4EDDA', color='#28A745', style='filled,bold', penwidth=2.5];"
         )
@@ -70,8 +71,7 @@ def generate_dynamic_sld_graph(
         except ValueError:
             thd = 0.0
 
-        # 🔥 CRITICAL EXCEPTION GUARD: Convert any arbitrary user tag into a strict alphanumeric identifier
-        # Graphviz nodes crash if they contain characters like hyphens, slashes, or spaces unless handled internally
+        # Convert any arbitrary user tag into a strict alphanumeric identifier for Graphviz syntax compliance
         clean_id = "".join(c if c.isalnum() or c == "_" else "_" for c in tag)
         if not clean_id or clean_id == "____":
             continue
@@ -280,6 +280,7 @@ def render_data_entry_view():
                     "Red nodes highlight assets with severe harmonic stress (>15% THD) running hot."
                 )
 
+                # Naming parameters are now fully unified with the signature definition
                 dot_string_existing = generate_dynamic_sld_graph(
                     st.session_state.sandbox_assets, integrate_mitigation=False
                 )
@@ -293,6 +294,7 @@ def render_data_entry_view():
                     "The green block illustrates exactly where our active cancellation filters splice into the main busbar."
                 )
 
+                # Naming parameters are now fully unified with the signature definition
                 dot_string_optimized = generate_dynamic_sld_graph(
                     st.session_state.sandbox_assets, integrate_mitigation=True
                 )
