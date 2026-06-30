@@ -105,49 +105,46 @@ def generate_dynamic_sld_graph(df: pd.DataFrame, selected_mitigations: list) -> 
             aux_assets.append(asset_tuple)
 
     # 🏢 COLUMN LAYER 1: Heavy Process Sub-Board (With Local Shunt Filter Option)
-    dot_nodes.append("  subgraph cluster_heavy {")
-    dot_nodes.append('    label="⚡ Heavy Industrial Process Board";')
-    dot_nodes.append(
-        '    fontname="Helvetica-Bold"; fontsize=12; labelloc="t"; style="filled,dashed"; fillcolor="#FFFDF6"; color="#D1A113"; penwidth=1.5;'
-    )
-    dot_nodes.append(
-        '    BUS_HEAVY [label="⚡ Furnace Sub-Distribution\\nBusbar Node B1", fillcolor="#FFF3CD", style="filled,bold"];'
-    )
+    sub_heavy_nodes = [
+        "  subgraph cluster_heavy {",
+        '    label="⚡ Heavy Industrial Process Board";',
+        '    fontname="Helvetica-Bold"; fontsize=12; labelloc="t"; style="filled,dashed"; fillcolor="#FFFDF6"; color="#D1A113"; penwidth=1.5;',
+        '    BUS_HEAVY [label="⚡ Furnace Sub-Distribution\\nBusbar Node B1", fillcolor="#FFF3CD", style="filled,bold"];',
+    ]
 
     # 🏛️ DYNAMIC MITIGATION 2: Heavy Board Localized Ingress
     if "Heavy Industrial Process Board (Panel B1)" in selected_mitigations:
-        dot_nodes.append(
+        sub_heavy_nodes.append(
             '    SUB_STEM_HEAVY [label="🛡️ LOCAL STEM FILTER B1\\nActive Furnace Compensation", fillcolor="#D4EDDA", color="#28A745", style="filled,bold", penwidth=2.0];'
         )
-        dot_nodes.append(
+        sub_heavy_nodes.append(
             '    SUB_STEM_HEAVY -> BUS_HEAVY [color="#28A745", penwidth=2.0, arrowhead=normal, label=" Active Injection", weight=0];'
         )
 
     last_id = "BUS_HEAVY"
     for cid, style in heavy_assets:
-        dot_nodes.append(f"    {cid} [{style}];")
-        dot_nodes.append(f"    BUS_HEAVY -> {cid} [weight=10];")
+        sub_heavy_nodes.append(f"    {cid} [{style}];")
+        sub_heavy_nodes.append(f"    BUS_HEAVY -> {cid} [weight=10];")
         if last_id != "BUS_HEAVY":
-            dot_nodes.append(f'    {last_id} -> {cid} [style="invis"];')
+            sub_heavy_nodes.append(f'    {last_id} -> {cid} [style="invis"];')
         last_id = cid
-    dot_nodes.append("  }")
+    sub_heavy_nodes.append("  }")
+    dot_nodes.extend(sub_heavy_nodes)
 
     # 🏢 COLUMN LAYER 2: Motor Control Centre (MCC) with Optional Dual-Duty BESS Ingress
-    dot_nodes.append("  subgraph cluster_drives {")
-    dot_nodes.append('    label="⚙️ Motor Control Centre (MCC)";')
-    dot_nodes.append(
-        '    fontname="Helvetica-Bold"; fontsize=12; labelloc="t"; style="filled,dashed"; fillcolor="#F4F9FF"; color="#2B72C4"; penwidth=1.5;'
-    )
-    dot_nodes.append(
-        '    BUS_DRIVES [label="⚙️ Automated Drive Panel\\nBusbar Node B2", fillcolor="#E2F0FE", style="filled,bold"];'
-    )
+    sub_mcc_nodes = [
+        "  subgraph cluster_drives {",
+        '    label="⚙️ Motor Control Centre (MCC)";',
+        '    fontname="Helvetica-Bold"; fontsize=12; labelloc="t"; style="filled,dashed"; fillcolor="#F4F9FF"; color="#2B72C4"; penwidth=1.5;',
+        '    BUS_DRIVES [label="⚙️ Automated Drive Panel\\nBusbar Node B2", fillcolor="#E2F0FE", style="filled,bold"];',
+    ]
 
     # 🏛️ DYNAMIC MITIGATION 3: MCC Board Localized Ingress
     if "Motor Control Centre (MCC Panel B2)" in selected_mitigations:
-        dot_nodes.append(
+        sub_mcc_nodes.append(
             '    SUB_STEM_DRIVES [label="🛡️ LOCAL STEM FILTER B2\\nActive VSD Drive Cancellation", fillcolor="#D4EDDA", color="#28A745", style="filled,bold", penwidth=2.0];'
         )
-        dot_nodes.append(
+        sub_mcc_nodes.append(
             '    SUB_STEM_DRIVES -> BUS_DRIVES [color="#28A745", penwidth=2.0, arrowhead=normal, label=" Active Injection", weight=0];'
         )
 
@@ -156,49 +153,49 @@ def generate_dynamic_sld_graph(df: pd.DataFrame, selected_mitigations: list) -> 
         "Local BESS & Hybrid UPS Array (Robotics Asset Protection)"
         in selected_mitigations
     ):
-        dot_nodes.append(
+        sub_mcc_nodes.append(
             '    SUB_STEM_BESS [label="🔋 LOCAL BESS & HYBRID UPS\\nAsset Protection & 20ms Sag Backup", fillcolor="#E6FFFA", color="#00A389", style="filled,bold", penwidth=2.0];'
         )
-        dot_nodes.append(
+        sub_mcc_nodes.append(
             '    SUB_STEM_BESS -> BUS_DRIVES [color="#00A389", penwidth=2.0, arrowhead=normal, label=" Dual-Duty Shunt/UPS", weight=0];'
         )
 
     last_id = "BUS_DRIVES"
     for cid, style in drive_assets:
-        dot_nodes.append(f"    {cid} [{style}];")
-        dot_nodes.append(f"    BUS_DRIVES -> {cid} [weight=10];")
+        sub_mcc_nodes.append(f"    {cid} [{style}];")
+        sub_mcc_nodes.append(f"    BUS_DRIVES -> {cid} [weight=10];")
         if last_id != "BUS_DRIVES":
-            dot_nodes.append(f'    {last_id} -> {cid} [style="invis"];')
+            sub_mcc_nodes.append(f'    {last_id} -> {cid} [style="invis"];')
         last_id = cid
-    dot_nodes.append("  }")
+    sub_mcc_nodes.append("  }")
+    dot_nodes.extend(sub_mcc_nodes)
 
-    # 🏢 COLUMN LAYER 3: Auxiliary Infrastructure (Stacked Vertically)
-    dot_nodes.append("  subgraph cluster_aux {")
-    dot_nodes.append('    label="🏢 Auxiliary & Building Services";')
-    dot_nodes.append(
-        '    fontname="Helvetica-Bold"; fontsize=12; labelloc="t"; style="filled,dashed"; fillcolor="#F8F9FA"; color="#6C757D"; penwidth=1.5;'
-    )
-    dot_nodes.append(
-        '    BUS_AUX [label="🏢 Commercial Infrastructure\\nBusbar Node B3", fillcolor="#E9ECEF", style="filled,bold"];'
-    )
+    # 🏢 COLUMN LAYER 3: Auxiliary Infrastructure
+    sub_aux_nodes = [
+        "  subgraph cluster_aux {",
+        '    label="🏢 Auxiliary & Building Services";',
+        '    fontname="Helvetica-Bold"; fontsize=12; labelloc="t"; style="filled,dashed"; fillcolor="#F8F9FA"; color="#6C757D"; penwidth=1.5;',
+        '    BUS_AUX [label="🏢 Commercial Infrastructure\\nBusbar Node B3", fillcolor="#E9ECEF", style="filled,bold"];',
+    ]
 
     # 🏛️ DYNAMIC MITIGATION 4: Auxiliary Board Localized Ingress
     if "Auxiliary & Building Services (Panel B3)" in selected_mitigations:
-        dot_nodes.append(
+        sub_aux_nodes.append(
             '    SUB_STEM_AUX [label="🛡️ LOCAL STEM FILTER B3\\nAuxiliary Clean Power Bank", fillcolor="#D4EDDA", color="#28A745", style="filled,bold", penwidth=2.0];'
         )
-        dot_nodes.append(
+        sub_aux_nodes.append(
             '    SUB_STEM_AUX -> BUS_AUX [color="#28A745", penwidth=2.0, arrowhead=normal, label=" Active Injection", weight=0];'
         )
 
     last_id = "BUS_AUX"
     for cid, style in aux_assets:
-        dot_nodes.append(f"    {cid} [{style}];")
-        dot_nodes.append(f"    BUS_AUX -> {cid} [weight=10];")
+        sub_aux_nodes.append(f"    {cid} [{style}];")
+        sub_aux_nodes.append(f"    BUS_AUX -> {cid} [weight=10];")
         if last_id != "BUS_AUX":
-            dot_nodes.append(f'    {last_id} -> {cid} [style="invis"];')
+            sub_aux_nodes.append(f'    {last_id} -> {cid} [style="invis"];')
         last_id = cid
-    dot_nodes.append("  }")
+    sub_aux_nodes.append("  }")
+    dot_nodes.extend(sub_aux_nodes)
 
     # Establish structural incoming distribution lines from the primary intake breaker
     dot_nodes.append("")
@@ -215,7 +212,10 @@ def generate_dynamic_sld_graph(df: pd.DataFrame, selected_mitigations: list) -> 
 
 
 def generate_synthetic_amr_load_profile(filename: str) -> pd.DataFrame:
-    """Parses an uploaded AMR CSV and converts it into a continuous half-hourly load profile."""
+    """
+    Parses an uploaded AMR CSV and converts it into a continuous half-hourly
+    load profile graph representing typical heavy industrial demand fluctuations.
+    """
     np.random.seed(42)
     timestamps = pd.date_range(
         start="2026-06-01 00:00", end="2026-06-07 23:30", freq="30min"
@@ -245,7 +245,7 @@ def update_electrical_mitigation_nodes(nodes: list[str]) -> str:
 
 def render_data_entry_view():
     """
-    Renders the unified split workspace combining data ingestion, dynamic SLD visualization,
+    Renders the unified split workspace combining financial param decks, executive metric ribbons,
     and the financially intelligent conversational Gemini co-pilot loop side-by-side.
     """
     if "sandbox_assets" not in st.session_state:
@@ -258,37 +258,117 @@ def render_data_entry_view():
         st.session_state.copilot_history = [
             {
                 "role": "assistant",
-                "text": "👋 Bore da! I am your updated STEM Co-Pilot. I am connected directly to your active switchgear telemetry state, capital cost heuristics, and regional factory production loss data models. You can ask me for strategic CapEx budgeting numbers, layout mutations, or factory downtime calculations.",
+                "text": "👋 Welcome to the upgraded STEM Executive Portal. I am synced with your plant parameters, macro opportunity-cost models, and insurance premium risk curves. Let's optimize the network's financial engineering.",
             }
         ]
+
+    # --------------------------------------------------------------------------
+    # 📈 EXECUTIVE HIGH-LEVEL FINANCIAL OPPORTUNITY COST RIBBON
+    # --------------------------------------------------------------------------
+    st.markdown("### 🏛️ Executive Investment & Operational Risk Overview")
+
+    # Baseline Parameters for Calculations
+    with st.sidebar.expander("💼 Macro Facility Valuation Variables", expanded=True):
+        prod_val = st.number_input(
+            "Hourly Production Value (£)",
+            min_value=100,
+            max_value=500000,
+            value=150000,
+            step=5000,
+        )
+        restart_hrs = st.number_input(
+            "Process Reset Loop Duration (Hrs)",
+            min_value=1.0,
+            max_value=24.0,
+            value=4.0,
+            step=0.5,
+        )
+        annual_events = st.number_input(
+            "Typical Utility Grid Sags / Year", min_value=1, max_value=50, value=3
+        )
+
+    # Dynamic Calculations based on active policy state
+    single_event_loss = prod_val * restart_hrs
+    total_unmitigated_exposure = single_event_loss * annual_events
+
+    # Assess if protective measures are deployed
+    has_ups_protection = (
+        "Local BESS & Hybrid UPS Array (Robotics Asset Protection)"
+        in st.session_state.selected_nodes
+    )
+    current_exposure = 0.0 if has_ups_protection else total_unmitigated_exposure
+    insurance_credit = (
+        "£12,400 / yr"
+        if len(st.session_state.selected_nodes) >= 2
+        else "£0 (High Risk Profile)"
+    )
+
+    metric_col1, metric_col2, metric_col3 = st.columns(3)
+    with metric_col1:
+        st.metric(
+            label="📈 Active Opportunity Cost Exposure",
+            value=f"£{current_exposure:,.0f} / yr",
+            delta="-100% Mitigated" if has_ups_protection else "Critical Risk Flag",
+            delta_color="normal" if has_ups_protection else "inverse",
+        )
+    with metric_col2:
+        st.metric(
+            label="⏱️ Single Event Bottleneck Interruption Loss",
+            value=f"£{single_event_loss:,.0f}",
+            help="Calculated as Hourly Production Value multiplied by the required process reset and recalibration loop duration.",
+        )
+    with metric_col3:
+        st.metric(
+            label="🛡️ Negotiated Insurance Premium Credit",
+            value=insurance_credit,
+            delta=(
+                "Underwriter Approved"
+                if len(st.session_state.selected_nodes) >= 2
+                else "G5/5 Penalty Exposure"
+            ),
+        )
+
+    st.markdown("---")
 
     # Establish Workspace Layout Split
     col_workspace, col_copilot = st.columns([2, 1])
 
-    # --------------------------------------------------------------------------
-    # LEFT CONTAINER: THE INTERACTIVE ENGINEERING WORKSPACE
-    # --------------------------------------------------------------------------
     with col_workspace:
-        st.markdown("## 🧪 Ingest Site Data & Network Configuration Staging")
-        st.markdown(
-            "##### Technical Data Onboarding, Automated SLD Mapping, and Verification Gateways"
-        )
-        st.markdown("---")
-
-        tab_upload, tab_sld_sandbox = st.tabs(
+        tab_sld_sandbox, tab_upload = st.tabs(
             [
-                "📥 Excel Clipboard & Document Feed",
                 "🗺️ Dynamic Single Line Diagram (SLD) Digital Twin",
+                "📥 Excel Clipboard & Document Feed",
             ]
         )
 
-        with tab_upload:
-            st.markdown("### 📋 Excel-Style Batch Asset Clipboard & File Ingestion")
-            st.markdown(
-                "Use the interactive data grid below to **directly copy-paste rows from Excel**, edit configurations "
-                "manually, or append brand new machinery components."
+        with tab_sld_sandbox:
+            st.multiselect(
+                label="🏛️ Select Steering Committee Target Deployment Nodes:",
+                options=[
+                    "Primary Intake Switchboard (Centralised Bay)",
+                    "Heavy Industrial Process Board (Panel B1)",
+                    "Motor Control Centre (MCC Panel B2)",
+                    "Auxiliary & Building Services (Panel B3)",
+                    "Local BESS & Hybrid UPS Array (Robotics Asset Protection)",
+                ],
+                key="selected_nodes",
+                help="Select one or more circuits to see how the system seamlessly scales and deploys co-located active power elements.",
             )
 
+            st.markdown("---")
+
+            if st.session_state.sandbox_assets.shape[0] == 0:
+                st.info(
+                    "No active assets registered. Please append rows inside the staging clipboard."
+                )
+            else:
+                dot_string = generate_dynamic_sld_graph(
+                    st.session_state.sandbox_assets, st.session_state.selected_nodes
+                )
+                st.graphviz_chart(dot_string, use_container_width=True)
+
+        with tab_upload:
+            st.markdown("### 📋 Excel-Style Batch Asset Clipboard & File Ingestion")
             edited_df = st.data_editor(
                 data=st.session_state.sandbox_assets,
                 use_container_width=True,
@@ -296,7 +376,7 @@ def render_data_entry_view():
                 hide_index=True,
                 column_config={
                     "Asset Tag": st.column_config.TextColumn(
-                        "Asset Tag", help="Unique identifier tag.", required=True
+                        "Asset Tag", required=True
                     ),
                     "Plant Location": st.column_config.TextColumn(
                         "Plant Location", required=True
@@ -363,65 +443,22 @@ def render_data_entry_view():
                     df_profile = generate_synthetic_amr_load_profile(uploaded_amr.name)
                     st.line_chart(df_profile)
 
-        with tab_sld_sandbox:
-            st.markdown("### 🎚️ Network Engineering Topology Visualisation")
-            st.markdown(
-                "This structural digital twin reads values **live** from the clipboard spreadsheet on Tab 1."
-            )
-
-            st.multiselect(
-                label="🏛️ Select Steering Committee Target Deployment Nodes:",
-                options=[
-                    "Primary Intake Switchboard (Centralised Bay)",
-                    "Heavy Industrial Process Board (Panel B1)",
-                    "Motor Control Centre (MCC Panel B2)",
-                    "Auxiliary & Building Services (Panel B3)",
-                    "Local BESS & Hybrid UPS Array (Robotics Asset Protection)",
-                ],
-                key="selected_nodes",
-                help="Select one or more circuits to see how the system seamlessly scales and deploys co-located active power elements.",
-            )
-
-            st.markdown("---")
-
-            if st.session_state.sandbox_assets.shape[0] == 0:
-                st.info(
-                    "No active assets registered. Please append rows inside the staging clipboard."
-                )
-            else:
-                if not st.session_state.selected_nodes:
-                    st.markdown(
-                        "##### ⚠️ Current Grid Topology (Unmitigated Baseline Risk)"
-                    )
-                else:
-                    st.markdown(
-                        "##### 🛡️ Tailored Coordinated Infrastructure Matrix (Active Multi-Node Compensation)"
-                    )
-                    st.caption(
-                        "Green and turquoise assets represent parallel nodes injecting correction or reserve power back up into their respective boards."
-                    )
-
-                dot_string = generate_dynamic_sld_graph(
-                    st.session_state.sandbox_assets, st.session_state.selected_nodes
-                )
-                st.graphviz_chart(dot_string, use_container_width=True)
-
     # --------------------------------------------------------------------------
-    # RIGHT CONTAINER: 🧠 STEM AI CONVERSATIONAL ENGINEERING, COST & RISK CO-PILOT
+    # RIGHT CONTAINER: 🧠 CO-PILOT WITH INTEGRATED RISK CONTEXT WINDOW
     # --------------------------------------------------------------------------
     with col_copilot:
         st.markdown("### 🧠 STEM AI Co-Pilot Console")
         st.caption("Two-Way Conversational Topology Optimization Gateway")
         st.markdown("---")
 
-        chat_container = st.container(height=500)
+        chat_container = st.container(height=450)
         with chat_container:
             for message in st.session_state.copilot_history:
                 with st.chat_message(message["role"]):
                     st.markdown(message["text"])
 
         if user_prompt := st.chat_input(
-            "Ask about capital costs, local BESS resilience, or layout changes..."
+            "Ask about capital costs, opportunity costs, or insurance credits..."
         ):
             st.session_state.copilot_history.append(
                 {"role": "user", "text": user_prompt}
@@ -434,26 +471,27 @@ def render_data_entry_view():
                 client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
 
                 system_context = f"""
-                You are the master STEM Power Quality AI Agent. The user is evaluating an industrial electrical grid network.
-                Live Client Telemetry DataFrame: {st.session_state.sandbox_assets.to_json(orient='records')}
-                Currently Deployed Active Shunt Nodes: {st.session_state.selected_nodes}
+                You are the master STEM Power Quality AI Agent. You blend technical electrical physics with corporate financial risk modeling.
+                
+                LIVE FACILITY DATA OVERVIEW:
+                - Deployed Active Shunt Nodes: {st.session_state.selected_nodes}
+                - Hourly Plant Production Value: £{prod_val:,.0f} / hr
+                - Process Reset Loop Downtime: {restart_hrs} hours
+                - Single Interruption Interruption Cost: £{single_event_loss:,.0f}
+                - Annualized Risk Exposure: £{current_exposure:,.0f} / yr
+                - Expected Annual Insurance Premium Reduction: {insurance_credit}
                 
                 💰 BUDGETARY CAPITAL COST ESTIMATION HEURISTICS:
-                1. Primary Intake Switchboard (Centralised Bay): £85,000 for a modular main breaker bay insertion.
-                2. Heavy Industrial Process Board (Panel B1): £42,000 including heavy-duty IP54 local enclosure.
-                3. Motor Control Centre (MCC Panel B2): £35,000 including standalone automated ventilation integration.
-                4. Auxiliary & Building Services (Panel B3): £18,000 for a compact wall-mounted chassis.
-                5. Local BESS & Hybrid UPS Array (Robotics Asset Protection): £65,000. Includes solid-state static transfer switches (STS) for sub-20ms active power injection to insulate sensitive robotics and VFD DC-links from utility voltage sags, avoiding line shutdown.
+                1. Primary Intake Switchboard (Centralised Bay): £85,000
+                2. Heavy Industrial Process Board (Panel B1): £42,000
+                3. Motor Control Centre (MCC Panel B2): £35,000
+                4. Auxiliary & Building Services (Panel B3): £18,000
+                5. Local BESS & Hybrid UPS Array (Robotics Asset Protection): £65,000. Provides the sub-20ms ride-through to insulate sensitive equipment from voltage sags, bringing Opportunity Cost exposure to £0.
                 
-                🚗 HIGH-VALUE CASE STUDY REFERENCE - ASTON MARTIN ST ATHAN AUTOMOTIVE RISK DATA:
-                - Facility: 90-acre super-hangar assembly site in St Athan, Wales.
-                - Production Capacity: Max engineered capacity of 7,000 vehicles/year. Baseline operational target run-rate stabilizes at ~4,000 to 5,000 luxury SUVs/year (DBX line).
-                - Daily Output Breakdown: Over a standard 250-day production year, this equates to ~16 to 20 vehicles per day (approx. 2.0 to 2.5 vehicles per hour on a single 8-hour shift).
-                - Financial Vulnerability: Vehicles retail at £150,000+ each. A single unmitigated voltage sag tripping out sensitive panel electronics or robotics lines requires a 4-hour clearance/re-calibration reset, costing 8 to 10 cars in lost throughput. This maps to a staggering £1.2M to £1.5M bottleneck inventory loss per single grid anomaly event.
+                CASE STUDY BENCHMARK (ASTON MARTIN ST ATHAN):
+                - Peak capacity of 7,000 cars/yr (~28 cars/day). Normal rate ~4,000-5,000 cars/yr (~16-20 cars/day). At £150k+ per vehicle, a 4-hour reset bottleneck costs £1.2M - £1.5M in lost throughput per single grid anomaly event.
                 
-                Always integrate this St Athan data creatively if the user asks about production capacities, robotics failures, or high-value downtime modeling. Speak as an insightful, supportive systems-thinking advisor, not a rigid robot.
-                
-                CRITICAL INSTRUCTION: If the user explicitly asks to update, alter, mutate, change, add, or subtract filtering assets or BESS configurations, you MUST invoke the 'update_electrical_mitigation_nodes' tool immediately.
+                Leverage this financial context natively in your text replies. Be conversational, insightful, and supportive. If the user asks to modify configurations, use tools immediately.
                 """
 
                 response = client.models.generate_content(
@@ -461,8 +499,8 @@ def render_data_entry_view():
                     contents=[system_context, user_prompt],
                     config=types.GenerateContentConfig(
                         tools=[update_electrical_mitigation_nodes],
-                        temperature=0.2,
-                        system_instruction="You are a brilliant, highly collaborative energy infrastructure cost consultant and systems-thinking power engineer. You merge technical physics with macro-financial risk management. Be conversational, insightful, and supportive. Use your built-in cost and factory downtime heuristics natively to build business cases.",
+                        temperature=0.15,
+                        system_instruction="You are a brilliant cost consultant and systems-thinking power engineer. Speak with professional, boardroom-ready authority. Never give canned robotic disclaimers; use your built-in financial heuristics natively to articulate business value.",
                     ),
                 )
 
@@ -476,14 +514,14 @@ def render_data_entry_view():
                             st.session_state.copilot_history.append(
                                 {
                                     "role": "assistant",
-                                    "text": f"🤖 **AI Optimization Action Executed:**\n`{execution_result}`\n\nI have rewritten the Single Line Diagram architecture to support your request. Review the live visual changes on Tab 2.",
+                                    "text": f"🤖 **AI Optimization Action Executed:**\n`{execution_result}`\n\nI have rewritten the network topology tree and updated the active business risk metrics on your executive ribbon.",
                                 }
                             )
                 else:
                     reply = (
                         response.text
                         if response.text
-                        else "Telemetry data processed. Standing by for steering committee directive."
+                        else "Telemetry data parsed. System state stabilized."
                     )
                     st.session_state.copilot_history.append(
                         {"role": "assistant", "text": reply}
