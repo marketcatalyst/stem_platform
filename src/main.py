@@ -36,7 +36,7 @@ def check_password():
         "##### Managed Joint Venture Framework | Market Catalyst Ltd & Swalek Ltd"
     )
     st.write(
-        "Please enter your corporate authorization credential to access the active portfolio twin."
+        "Please enter your corporate authorisation credential to access the active portfolio twin."
     )
 
     # Securely retrieve credentials from Streamlit's secrets manager
@@ -45,35 +45,35 @@ def check_password():
         tester_password = st.secrets["auth_credentials"]["tester_password"]
         reviewer_password = st.secrets["auth_credentials"]["reviewer_password"]
     except KeyError:
-        # Secure fallbacks for local staging runs on your laptop
+        # Secure fallbacks for local staging runs
         admin_password = "STEM_Admin_2026"
         tester_password = "STEM_Staging_2026"
         reviewer_password = "STEM_Reviewer_2026"
 
     with st.form("credential_logging_gateway"):
         user_password = st.text_input("Enterprise Security Access Key", type="password")
-        submit_key = st.form_submit_button("Authorize Session")
+        submit_key = st.form_submit_button("Authorise Session")
 
         if submit_key:
             if user_password == admin_password:
                 st.session_state.authenticated = True
                 st.session_state.role = "admin"
                 st.success(
-                    "🔒 Admin Session Authorized. Full Read-Write Privileges Granted."
+                    "🔒 Admin Session Authorised. Full Read-Write Privileges Granted."
                 )
                 st.rerun()
             elif user_password == tester_password:
                 st.session_state.authenticated = True
                 st.session_state.role = "tester"
                 st.warning(
-                    "🧪 Sandbox Tester Session Authorized. Data Ingestion Walk-Through Enabled."
+                    "🧪 Sandbox Tester Session Authorised. Data Ingestion Walk-Through Enabled."
                 )
                 st.rerun()
             elif user_password == reviewer_password:
                 st.session_state.authenticated = True
                 st.session_state.role = "viewer"
                 st.info(
-                    "👁️ Reviewer Session Authorized. Read-Only Portfolio Mode Activated."
+                    "👁️ Reviewer Session Authorised. Read-Only Portfolio Mode Activated."
                 )
                 st.rerun()
             else:
@@ -86,7 +86,7 @@ def check_password():
 
 # Execute the security boundary check
 if check_password():
-    # Lazy-load the dashboard view nodes to optimize runtime speeds
+    # Lazy-load the dashboard view nodes to optimise runtime speeds
     from src.ui.views.executive import render_executive_view
     from src.ui.views.operations import render_operations_view
     from src.ui.views.data_entry import render_data_entry_view
@@ -97,7 +97,7 @@ if check_password():
     st.sidebar.title("⚡ STEM")
     st.sidebar.markdown("**High-Voltage Joint Venture**")
 
-    # Render localized status configurations based on authorized role
+    # Render localised status configurations based on authorised role
     if st.session_state.role == "admin":
         st.sidebar.caption("🔥 **Session Status:** `MASTER ADMIN (RW)`")
         workspace_options = [
@@ -135,5 +135,4 @@ if check_password():
     elif workspace_selection == "Operations Management":
         render_operations_view()
     elif workspace_selection == "Ingest Site Data":
-        # Let the view layer know if a tester is running it so it can handle sandboxed session states
         render_data_entry_view()

@@ -9,7 +9,7 @@ from google.genai import types
 # ==========================================================================
 # 🛡️ PATH INSURANCE POLICY (CRITICAL FOR LINUX CLOUD DEPLOYMENTS)
 # ==========================================================================
-repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 if repo_root not in sys.path:
     sys.path.insert(0, repo_root)
 
@@ -232,7 +232,7 @@ def render_data_entry_view():
         st.session_state.copilot_history = [
             {
                 "role": "assistant",
-                "text": "👋 Welcome to the upgraded STEM Executive Portal. I am synced with your plant parameters, macro opportunity-cost models, and insurance premium risk curves. Let's optimize the network's financial engineering.",
+                "text": "👋 Welcome to the upgraded STEM Executive Portal. I am synced with your plant parameters, macro opportunity-cost models, and insurance premium risk curves. Let's optimise the network's financial engineering.",
             }
         ]
 
@@ -259,7 +259,7 @@ def render_data_entry_view():
             key="annual_events",
         )
 
-    # 🧮 HARMONIZED TRIPARTITE CALCULATION BLOCK (MATCHES EXECUTIVE VIEW)
+    # 🧮 HARMONISED TRIPARTITE CALCULATION BLOCK (MATCHES EXECUTIVE VIEW)
     single_event_loss = st.session_state.prod_val * st.session_state.restart_hrs
     total_unmitigated_opportunity_cost = (
         single_event_loss * st.session_state.annual_events
@@ -294,7 +294,7 @@ def render_data_entry_view():
     insurance_credit = (
         "£12,400 / yr"
         if len(st.session_state.selected_nodes) >= 2
-        else "£0 (High Risk Profile)"
+        else "£0 (High Risk Exposure Portfolio)"
     )
 
     if total_residual_leak > 0:
@@ -393,7 +393,7 @@ def render_data_entry_view():
 
             st.markdown(f"""
             #### 1. Financial Exposure & Opportunity Cost Assessment
-            Ammanford Alloys currently carries an active annualized operational risk posture of **£{total_residual_leak:,.0f}/year** consisting of parallel downtime vulnerabilities, unmitigated energy friction, and accelerated hardware degradation. Based on an active line valuation of **£{st.session_state.prod_val:,.0f}/hour** and an average process calibration restart curve of **{st.session_state.restart_hrs:.1f} hours**, a single sub-cycle voltage sag event results in an immediate opportunity cost bottleneck loss of **£{single_event_loss:,.0f}**.
+            Ammanford Alloys currently carries an active annualised operational risk posture of **£{total_residual_leak:,.0f}/year** consisting of parallel downtime vulnerabilities, unmitigated energy friction, and accelerated hardware degradation. Based on an active line valuation of **£{st.session_state.prod_val:,.0f}/hour** and an average process calibration restart curve of **{st.session_state.restart_hrs:.1f} hours**, a single sub-cycle voltage sag event results in an immediate opportunity cost bottleneck loss of **£{single_event_loss:,.0f}**.
             
             #### 2. Technical Single Line Architecture Interventions
             To insulate the factory floor from macro grid volatility, the steering committee outlines the following physical network infrastructure modification:
@@ -415,7 +415,6 @@ def render_data_entry_view():
             """)
             st.button("📥 Export Audit-Ready Proposal (.md)")
 
-        # 🚨 NEW FEATURE ADDED HERE: INGEST ENTIRE BULK FLEET SPREADSHEETS AUTOMATICALLY
         with tab_upload:
             st.markdown("### 📋 Excel-Style Batch Asset Clipboard & File Ingestion")
             st.markdown(
@@ -432,7 +431,6 @@ def render_data_entry_view():
             if uploaded_register is not None:
                 try:
                     df_uploaded_reg = pd.read_csv(uploaded_register)
-                    # Clean hidden boundary white-spaces from column header keys
                     df_uploaded_reg.columns = [
                         str(c).strip() for c in df_uploaded_reg.columns
                     ]
@@ -448,7 +446,7 @@ def render_data_entry_view():
                     if all(c in df_uploaded_reg.columns for c in required_cols):
                         st.session_state.sandbox_assets = df_uploaded_reg[required_cols]
                         st.success(
-                            "🎯 Asset register spreadsheet parsed and synchronized into memory successfully!"
+                            "🎯 Asset register spreadsheet parsed and synchronised into memory successfully!"
                         )
                     else:
                         st.error(
@@ -699,7 +697,7 @@ def render_data_entry_view():
 
     with col_copilot:
         st.markdown("### 🧠 STEM AI Co-Pilot Console")
-        st.caption("Two-Way Conversational Topology Optimization Gateway")
+        st.caption("Two-Way Conversational Topology Optimisation Gateway")
         st.markdown("---")
 
         chat_container = st.container(height=450)
@@ -721,14 +719,14 @@ def render_data_entry_view():
                 client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
 
                 system_context = f"""
-                You are the master STEM Power Quality AI Agent. You blend technical electrical physics with corporate financial risk modeling.
+                You are the master STEM Power Quality AI Agent. You blend technical electrical physics with corporate financial risk modelling.
                 
                 LIVE FACILITY DATA OVERVIEW:
                 - Deployed Active Shunt Nodes: {st.session_state.selected_nodes}
                 - Hourly Plant Production Value: £{st.session_state.prod_val:,.0f} / hr
                 - Process Reset Loop Downtime: {st.session_state.restart_hrs} hours
                 - Single Interruption Interruption Cost: £{single_event_loss:,.0f}
-                - Annualized Risk Exposure: £{total_residual_leak:,.0f} / yr
+                - Annualised Risk Exposure: £{total_residual_leak:,.0f} / yr
                 - Expected Annual Insurance Premium Reduction: {insurance_credit}
                 """
 
@@ -752,14 +750,14 @@ def render_data_entry_view():
                             st.session_state.copilot_history.append(
                                 {
                                     "role": "assistant",
-                                    "text": f"🤖 **AI Optimization Action Executed:**\n`{execution_result}`\n\nI have rewritten the network topology tree and updated the active business risk metrics on your executive ribbon.",
+                                    "text": f"🤖 **AI Optimisation Action Executed:**\n`{execution_result}`\n\nI have rewritten the network topology tree and updated the active business risk metrics on your executive ribbon.",
                                 }
                             )
                 else:
                     reply = (
                         response.text
                         if response.text
-                        else "Telemetry data parsed. System state stabilized."
+                        else "Telemetry data parsed. System state stabilised."
                     )
                     st.session_state.copilot_history.append(
                         {"role": "assistant", "text": reply}
@@ -773,4 +771,5 @@ def render_data_entry_view():
                     }
                 )
 
+            st.sidebar.caption("State updated.")
             st.rerun()

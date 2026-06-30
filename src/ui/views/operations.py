@@ -11,7 +11,6 @@ repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if repo_root not in sys.path:
     sys.path.insert(0, repo_root)
 
-# 🚀 CORE ENGINE INJECTIONS: Binding real physics & accounting logic downstream
 from src.modules.finance_engine.arrhenius import calculate_thermal_acceleration_factor
 from src.modules.finance_engine.accounting import calculate_balance_sheet_optimisation
 
@@ -290,7 +289,7 @@ def render_operations_view():
     """
     Renders the expanded, interactive Operations Management viewport.
     Integrates dynamic multi-asset execution loops bound directly to Arrhenius
-    thermal degradation and straight-line capital amortization modules.
+    thermal degradation and straight-line capital amortisation modules.
     """
     st.markdown("## ⚙️ Operations Management: Digital Twin Telemetry")
     st.markdown(
@@ -299,7 +298,7 @@ def render_operations_view():
     st.markdown("---")
 
     # ==========================================================================
-    # 🗺️ SYNCHRONIZED CLIENT SELECTION ROUTER
+    # 🗺️ SYNCHRONISED CLIENT SELECTION ROUTER
     # ==========================================================================
     st.markdown("### 📋 Portfolio Engineering Target")
     active_client = st.selectbox(
@@ -320,7 +319,7 @@ def render_operations_view():
     utility_rate = 0.24 if "Mining" in active_client else 0.22
 
     # ==========================================================================
-    # 🧮 FIXED: DYNAMIC MULTI-ASSET PHYSICS & ACCOUNTING LOOPS
+    # 🧮 DYNAMIC MULTI-ASSET PHYSICS & ACCOUNTING LOOPS
     # ==========================================================================
     annual_wastes = []
     financial_leakages = []
@@ -338,7 +337,7 @@ def render_operations_view():
             insulation_lifespans.append(100)
             continue
 
-        # 1. Calculate Active Grid Copper Losses (Wasted Heat Multiplier)
+        # Calculate Active Grid Copper Losses (Wasted Heat Multiplier)
         if thd > 5.0:
             waste_kwh = kw * ((thd / 100.0) * 0.048) * hours * 52
         else:
@@ -348,15 +347,15 @@ def render_operations_view():
         annual_wastes.append(waste_kwh)
         financial_leakages.append(leakage_gbp)
 
-        # 2. Map Baseline Thermodynamic Stress Factors (Textbook Rules)
+        # Map Baseline Thermodynamic Stress Factors (Textbook Rules)
         thermal_stress_factor = 1.0 + (thd / 50.0) if thd > 5.0 else 1.0
 
-        # 3. Call the Core Arrhenius Model
+        # Call the Core Arrhenius Model
         acceleration_factor = calculate_thermal_acceleration_factor(
             thermal_stress_factor
         )
 
-        # 4. Determine Asset Procurement Horizons & Base Lifespans
+        # Determine Asset Procurement Horizons & Base Lifespans
         if "Transformer" in classification:
             base_useful_life = 30.0
             asset_purchase_value = kw * 90.0  # Heavy-duty industrial substation grading
@@ -367,12 +366,12 @@ def render_operations_view():
             base_useful_life = 15.0
             asset_purchase_value = kw * 180.0  # Automated manufacturing drive nodes
 
-        # 5. Call the Core Balance Sheet Ledger Model
+        # Call the Core Balance Sheet Ledger Model
         accounting_ledger = calculate_balance_sheet_optimisation(
             asset_purchase_value, base_useful_life, acceleration_factor
         )
 
-        # 6. Extract Winding Integrity Percentage Index
+        # Extract Winding Integrity Percentage Index
         degraded_life = accounting_ledger["degraded_useful_life_years"]
         optimal_life = accounting_ledger["optimised_useful_life_years"]
 
@@ -512,7 +511,7 @@ def render_operations_view():
             ),
             "Insulation Life Expectancy": st.column_config.ProgressColumn(
                 "Winding Insulation Integrity",
-                help="Calculated live via Arrhenius chemical wear modeling: mapped as (Degraded useful life years / Optimised base useful life years) x 100.",
+                help="Calculated live via Arrhenius chemical wear modelling: mapped as (Degraded useful life years / Optimised base useful life years) x 100.",
                 min_value=0,
                 max_value=100,
                 format="%d%%",
