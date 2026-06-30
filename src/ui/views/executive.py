@@ -17,8 +17,8 @@ from src.ui.views.operations import load_ammanford_alloys_dataset
 def render_executive_view():
     """
     Renders the comprehensive C-suite Financial Risk, Strategic Investment Briefing,
-    and Actuarial Appraisal Dashboard. Features an all-inclusive scrolling ticker tape
-    integrating opportunity costs, asset depreciation, and energy consumption losses.
+    and Actuarial Appraisal Dashboard. Clears visual ambiguities by strictly separating
+    active operational asset savings from residual facility risk exposure.
     """
     st.markdown("## 🏛️ Executive Boardroom Command Center")
     st.markdown(
@@ -85,7 +85,7 @@ def render_executive_view():
     max_energy_waste = sum(energy_loss_mapping.values())
     max_depreciation_penalty = sum(depreciation_loss_mapping.values())
 
-    # Calculate ongoing operational bleeding
+    # Calculate ongoing operational leaks cleanly
     current_wasted_energy = max_energy_waste - active_energy_savings
     current_excess_depreciation = max_depreciation_penalty - active_depreciation_saved
 
@@ -97,6 +97,13 @@ def render_executive_view():
         0.0 if has_ups_protection else total_unmitigated_opportunity_cost
     )
 
+    # Total combined unmitigated operational cash bleed still leaking out
+    total_residual_leak = (
+        current_opportunity_exposure
+        + current_excess_depreciation
+        + current_wasted_energy
+    )
+
     insurance_credit_val = 12400 if len(st.session_state.selected_nodes) >= 2 else 0
     insurance_credit = (
         f"£{insurance_credit_val:,}/yr"
@@ -105,9 +112,9 @@ def render_executive_view():
     )
 
     # Final C-Suite Valuation Calculations
+    operational_annual_savings = active_energy_savings + active_depreciation_saved
     total_annual_benefit = (
-        active_energy_savings
-        + active_depreciation_saved
+        operational_annual_savings
         + (total_unmitigated_opportunity_cost if has_ups_protection else 0)
         + insurance_credit_val
     )
@@ -116,13 +123,13 @@ def render_executive_view():
     )
 
     # --------------------------------------------------------------------------
-    # 🚨 THE UNIFIED TRIPARTITE DYNAMIC SCROLLING TICKER TAPE
+    # 🚨 FIXED: CRYSTAL CLEAR TRACEABLE SCROLLING TICKER TAPE
     # --------------------------------------------------------------------------
     if has_ups_protection and len(st.session_state.selected_nodes) >= 3:
         ticker_html = f"""
         <div style="background-color: #E6FFFA; padding: 12px; border-radius: 6px; border-left: 6px solid #00A389; margin-bottom: 25px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
             <marquee scrollamount="4" style="color: #006654; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-weight: bold; font-size: 13px; letter-spacing: 0.5px;">
-                🟢 STEM OPTIMISED SUSTAINABLE GRID ACTIVE ••• NET OPPORTUNITY COST EXPOSURE INSULATED TO: £0/YR ••• RECLAIMED DIRECT ELECTRICITY CONSUMPTION SAVINGS: £{active_energy_savings:,.0f}/YR ••• FOREGONE ACCELERATED ASSET DEPRECIATION SAVINGS: £{active_depreciation_saved:,.0f}/YR ••• ACTUARIAL COMPLIANCE PREMIUM CREDIT: {insurance_credit} ••• TOTAL ANNUAL RECOVERED BALANCE SHEET VALUE: £{total_annual_benefit:,.0f}/YR
+                🟢 STEM ACTIVE BLOCKADES // TOTAL RECLAIMED CASH SAVINGS: £{total_annual_benefit:,.0f}/YR ••• [ENERGY BILL REDUCTIONS: £{active_energy_savings:,.0f}/YR] ••• [DEPRECIATION RECOVERY: £{active_depreciation_saved:,.0f}/YR] ••• RISK INSULATED TO £0
             </marquee>
         </div>
         """
@@ -130,7 +137,7 @@ def render_executive_view():
         ticker_html = f"""
         <div style="background-color: #FCE8E6; padding: 12px; border-radius: 6px; border-left: 6px solid #D9272E; margin-bottom: 25px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
             <marquee scrollamount="5" style="color: #A81C1C; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-weight: bold; font-size: 13px; letter-spacing: 0.5px;">
-                🚨 STEM LIVE THREAT INVENTORY // UNMITIGATED CONCURRENT EXPOSURES RUNNING ••• DOWNTIME OPPORTUNITY COST EXPOSURE: £{current_opportunity_exposure:,.0f}/YR ••• HARMONIC ACCELERATED ASSET DEPRECIATION PENALTY: £{current_excess_depreciation:,.0f}/YR ••• WASTED ELECTRICITY EFFICIENCY DIRECT CONSUMPTION LOSS: £{current_wasted_energy:,.0f}/YR ••• TOTAL UNMITIGATED CASH BLEED RATE: £{(current_opportunity_exposure + current_excess_depreciation + current_wasted_energy):,.0f}/YR // ACTION REQUIRED
+                🚨 STEM LIVE THREAT INVENTORY // TOTAL RESIDUAL FACILITY BLEED: £{total_residual_leak:,.0f}/YR ••• DETAILED UNMITIGATED LEAKS ➔ [DOWNTIME OPPORTUNITY RISK: £{current_opportunity_exposure:,.0f}/YR] ••• [EXCESS INSULATION WEAR PENALTY: £{current_excess_depreciation:,.0f}/YR] ••• [WASTED COPPER LOSS ENERGY: £{current_wasted_energy:,.0f}/YR]
             </marquee>
         </div>
         """
@@ -142,18 +149,19 @@ def render_executive_view():
     metric_col1, metric_col2, metric_col3 = st.columns(3)
     with metric_col1:
         st.metric(
-            label="📉 Annualised Operational & Opportunity Exposure",
-            value=f"£{(current_opportunity_exposure + current_excess_depreciation + current_wasted_energy):,.0f} / yr",
+            label="📉 Residual Cash Bleed (Remaining Exposure)",
+            value=f"£{total_residual_leak:,.0f} / yr",
             delta=(
-                f"£{total_annual_benefit:,.0f}/yr Saved"
-                if total_annual_benefit > 0
-                else "Unmitigated Bleed"
+                f"£{operational_annual_savings:,.0f}/yr Captured"
+                if operational_annual_savings > 0
+                else "Full Bleed Active"
             ),
-            delta_color="normal" if total_annual_benefit > 0 else "inverse",
+            delta_color="normal" if operational_annual_savings > 0 else "inverse",
+            help="Sum of all remaining unmitigated opportunity risks, insulation depreciation, and energy waste.",
         )
     with metric_col2:
         st.metric(
-            label="💰 Implemented Mitigation CapEx",
+            label="💰 Active Mitigation CapEx",
             value=f"£{total_capex:,.0f}",
             delta=(
                 f"Payback: {payback_months:.1f} Months"
@@ -164,7 +172,7 @@ def render_executive_view():
         )
     with metric_col3:
         st.metric(
-            label="🛡 extinction Underwriter Premium Credit",
+            label="🛡️ Underwriter Premium Credit",
             value=insurance_credit,
             delta=(
                 "Risk Profile Approved"
