@@ -16,6 +16,9 @@ if repo_root not in sys.path:
 from src.ui.views.operations import load_ammanford_alloys_dataset
 from src.modules.data_ingestion.amr_parser import AMRDataReconciler
 
+# 🚀 MODULAR CODE INJECTIONS: Connecting our standalone drawing ingestion engine
+from src.modules.data_ingestion.sld_parser import MultimodalSLDParser
+
 
 def update_electrical_mitigation_nodes(nodes: list[str]) -> str:
     """Executes a structural mutation of the SLD network architecture memory."""
@@ -294,7 +297,7 @@ def render_data_entry_view():
     insurance_credit = (
         "£12,400 / yr"
         if len(st.session_state.selected_nodes) >= 2
-        else "£0 (High Risk Exposure Portfolio)"
+        else "£0 (High Risk Profile)"
     )
 
     if total_residual_leak > 0:
@@ -415,43 +418,96 @@ def render_data_entry_view():
             """)
             st.button("📥 Export Audit-Ready Proposal (.md)")
 
+        # 🚨 TRACK 2 INGESTION UPDATE: Multi-format drawing interpreter integration
         with tab_upload:
             st.markdown("### 📋 Excel-Style Batch Asset Clipboard & File Ingestion")
             st.markdown(
                 "You can manually adjust machine specs inside the live grid editor below, copy-paste cell blocks "
-                "directly from Microsoft Excel, or directly drop a structured Asset Register spreadsheet file."
+                "directly from Microsoft Excel, or directly drop a structured Asset Register CSV table or an official "
+                "**PDF/JPEG Single Line Diagram (SLD) Schematic drawing**."
             )
 
+            # Expanded file format handling capability
             uploaded_register = st.file_uploader(
-                "Bulk Ingest Fleet Asset Register sheet (.csv)",
-                type=["csv"],
+                "Bulk Ingest Fleet Asset Register spreadsheet or Blueprints (.csv, .pdf, .jpg, .jpeg, .png)",
+                type=["csv", "pdf", "jpg", "jpeg", "png"],
                 key="asset_register_sheet_uploader",
             )
 
             if uploaded_register is not None:
                 try:
-                    df_uploaded_reg = pd.read_csv(uploaded_register)
-                    df_uploaded_reg.columns = [
-                        str(c).strip() for c in df_uploaded_reg.columns
-                    ]
+                    filename = uploaded_register.name.lower()
+                    file_bytes = uploaded_register.read()
 
-                    required_cols = [
-                        "Asset Tag",
-                        "Plant Location",
-                        "Classification",
-                        "Rating (kW)",
-                        "Weekly Hrs",
-                        "Distortion (THD_i)",
-                    ]
-                    if all(c in df_uploaded_reg.columns for c in required_cols):
-                        st.session_state.sandbox_assets = df_uploaded_reg[required_cols]
-                        st.success(
-                            "🎯 Asset register spreadsheet parsed and synchronised into memory successfully!"
-                        )
+                    # Track A: Direct CSV execution block
+                    if filename.endswith(".csv"):
+                        import io
+
+                        df_uploaded_reg = pd.read_csv(io.BytesIO(file_bytes))
+                        df_uploaded_reg.columns = [
+                            str(c).strip() for c in df_uploaded_reg.columns
+                        ]
+                        required_cols = [
+                            "Asset Tag",
+                            "Plant Location",
+                            "Classification",
+                            "Rating (kW)",
+                            "Weekly Hrs",
+                            "Distortion (THD_i)",
+                        ]
+
+                        if all(c in df_uploaded_reg.columns for c in required_cols):
+                            st.session_state.sandbox_assets = df_uploaded_reg[
+                                required_cols
+                            ]
+                            st.success(
+                                "🎯 Asset register spreadsheet parsed and synchronised into memory successfully!"
+                            )
+                        else:
+                            st.error(
+                                f"❌ Ingestion Aborted: Missing column components. Expected explicit schema keys: {required_cols}"
+                            )
+
+                    # Track B: Multimodal Vision Ingestion block (PDF/JPEG Layout Interpretation)
                     else:
-                        st.error(
-                            f"❌ Ingestion Aborted: Missing column components. Expected explicit schema keys: {required_cols}"
+                        mime_mapping = {
+                            "pdf": "application/pdf",
+                            "jpg": "image/jpeg",
+                            "jpeg": "image/jpeg",
+                            "png": "image/png",
+                        }
+                        ext = filename.split(".")[-1]
+                        active_mime = mime_mapping.get(ext, "image/jpeg")
+
+                        st.info(
+                            "🧠 STEM Vision AI Module engaged. Executing programmatic drawing parsing..."
                         )
+
+                        # Call standalone Tier 1 functional parser backend
+                        parser_engine = MultimodalSLDParser(
+                            api_key=st.secrets["GEMINI_API_KEY"]
+                        )
+                        raw_extracted_json = (
+                            parser_engine.extract_structured_json_from_drawing(
+                                file_bytes, active_mime
+                            )
+                        )
+                        df_extracted_twin = (
+                            parser_engine.convert_extracted_payload_to_registry(
+                                raw_extracted_json
+                            )
+                        )
+
+                        if not df_extracted_twin.empty:
+                            st.session_state.sandbox_assets = df_extracted_twin
+                            st.success(
+                                f"⚡ Vision Audit Complete! reverse-engineered {len(df_extracted_twin)} equipment nodes straight from blueprint schematics."
+                            )
+                        else:
+                            st.error(
+                                "⚠️ Ingestion Warning: Blueprint analyzed successfully but no distinct non-linear load groups were identified."
+                            )
+
                 except Exception as e:
                     st.error(
                         f"❌ Ingestion Crash: Error processing asset file stream array. Details: `{str(e)}`"
@@ -771,5 +827,4 @@ def render_data_entry_view():
                     }
                 )
 
-            st.sidebar.caption("State updated.")
             st.rerun()
