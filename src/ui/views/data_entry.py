@@ -9,7 +9,7 @@ from google.genai import types
 # ==========================================================================
 # 🛡️ PATH INSURANCE POLICY (CRITICAL FOR LINUX CLOUD DEPLOYMENTS)
 # ==========================================================================
-repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if repo_root not in sys.path:
     sys.path.insert(0, repo_root)
 
@@ -294,7 +294,7 @@ def render_data_entry_view():
     insurance_credit = (
         "£12,400 / yr"
         if len(st.session_state.selected_nodes) >= 2
-        else "£0 (High Risk Exposure Portfolio)"
+        else "£0 (High Risk Profile)"
     )
 
     if total_residual_leak > 0:
@@ -349,12 +349,11 @@ def render_data_entry_view():
     col_workspace, col_copilot = st.columns([2, 1])
 
     with col_workspace:
-        # 🎯 VERIFIED: Restoring full 4-tab infrastructure to split workspace layout
         tab_sld_sandbox, tab_brief, tab_upload, tab_amr = st.tabs(
             [
                 "🗺️ Dynamic Single Line Diagram (SLD) Digital Twin",
                 "📜 Live Automated Strategic Brief",
-                "🗃️ Excel Clipboard Asset Registry",
+                "🗃️ Excel Clipboard & Asset Register Ingestion",
                 "⚡ AMR Half-Hourly Ingestion Engine",
             ]
         )
@@ -416,8 +415,51 @@ def render_data_entry_view():
             """)
             st.button("📥 Export Audit-Ready Proposal (.md)")
 
+        # 🚨 NEW FEATURE ADDED HERE: INGEST ENTIRE BULK FLEET SPREADSHEETS AUTOMATICALLY
         with tab_upload:
             st.markdown("### 📋 Excel-Style Batch Asset Clipboard & File Ingestion")
+            st.markdown(
+                "You can manually adjust machine specs inside the live grid editor below, copy-paste cell blocks "
+                "directly from Microsoft Excel, or directly drop a structured Asset Register spreadsheet file."
+            )
+
+            uploaded_register = st.file_uploader(
+                "Bulk Ingest Fleet Asset Register sheet (.csv)",
+                type=["csv"],
+                key="asset_register_sheet_uploader",
+            )
+
+            if uploaded_register is not None:
+                try:
+                    df_uploaded_reg = pd.read_csv(uploaded_register)
+                    # Clean hidden boundary white-spaces from column header keys
+                    df_uploaded_reg.columns = [
+                        str(c).strip() for c in df_uploaded_reg.columns
+                    ]
+
+                    required_cols = [
+                        "Asset Tag",
+                        "Plant Location",
+                        "Classification",
+                        "Rating (kW)",
+                        "Weekly Hrs",
+                        "Distortion (THD_i)",
+                    ]
+                    if all(c in df_uploaded_reg.columns for c in required_cols):
+                        st.session_state.sandbox_assets = df_uploaded_reg[required_cols]
+                        st.success(
+                            "🎯 Asset register spreadsheet parsed and synchronized into memory successfully!"
+                        )
+                    else:
+                        st.error(
+                            f"❌ Ingestion Aborted: Missing column components. Expected explicit schema keys: {required_cols}"
+                        )
+                except Exception as e:
+                    st.error(
+                        f"❌ Ingestion Crash: Error processing asset file stream array. Details: `{str(e)}`"
+                    )
+
+            st.markdown("---")
             edited_df = st.data_editor(
                 data=st.session_state.sandbox_assets,
                 use_container_width=True,
@@ -688,18 +730,6 @@ def render_data_entry_view():
                 - Single Interruption Interruption Cost: £{single_event_loss:,.0f}
                 - Annualized Risk Exposure: £{total_residual_leak:,.0f} / yr
                 - Expected Annual Insurance Premium Reduction: {insurance_credit}
-                
-                💰 BUDGETARY CAPITAL COST ESTIMATION HEURISTICS:
-                1. Primary Intake Switchboard (Centralised Bay): £85,000
-                2. Heavy Industrial Process Board (Panel B1): £42,000
-                3. Motor Control Centre (MCC Panel B2): £35,000
-                4. Auxiliary & Building Services (Panel B3): £18,000
-                5. Local BESS & Hybrid UPS Array (Robotics Asset Protection): £65,000. Provides the sub-20ms ride-through to insulate sensitive equipment from sags, bringing Opportunity Cost exposure to £0.
-                
-                CASE STUDY BENCHMARK (ASTON MARTIN ST ATHAN):
-                - Peak capacity of 7,000 cars/yr (~28 cars/day). Normal rate ~4,000-5,000 cars/yr (~16-20 cars/day). At £150k+ per vehicle, a 4-hour robotics line failure costs £1.2M - £1.5M in lost throughput per single grid anomaly event.
-                
-                Leverage this financial context natively in your text replies. Be conversational, insightful, and supportive. If the user asks to modify configurations, use tools immediately.
                 """
 
                 response = client.models.generate_content(
@@ -708,7 +738,7 @@ def render_data_entry_view():
                     config=types.GenerateContentConfig(
                         tools=[update_electrical_mitigation_nodes],
                         temperature=0.15,
-                        system_instruction="You are a brilliant cost consultant and systems-thinking power engineer. Speak with professional, boardroom-ready authority. Never give canned robotic disclaimers; use your built-in financial heuristics natively to articulate business value.",
+                        system_instruction="You are a brilliant cost consultant and systems-thinking power engineer. Speak with professional, boardroom-ready authority. Never give canned robotic disclaimers.",
                     ),
                 )
 
@@ -743,5 +773,4 @@ def render_data_entry_view():
                     }
                 )
 
-            st.sidebar.caption("State updated.")
             st.rerun()
