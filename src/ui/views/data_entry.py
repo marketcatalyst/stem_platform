@@ -105,46 +105,49 @@ def generate_dynamic_sld_graph(df: pd.DataFrame, selected_mitigations: list) -> 
             aux_assets.append(asset_tuple)
 
     # 🏢 COLUMN LAYER 1: Heavy Process Sub-Board (With Local Shunt Filter Option)
-    sub_heavy_nodes = [
-        "  subgraph cluster_heavy {",
-        '    label="⚡ Heavy Industrial Process Board";',
-        '    fontname="Helvetica-Bold"; fontsize=12; labelloc="t"; style="filled,dashed"; fillcolor="#FFFDF6"; color="#D1A113"; penwidth=1.5;',
-        '    BUS_HEAVY [label="⚡ Furnace Sub-Distribution\\nBusbar Node B1", fillcolor="#FFF3CD", style="filled,bold"];',
-    ]
+    dot_nodes.append("  subgraph cluster_heavy {")
+    dot_nodes.append('    label="⚡ Heavy Industrial Process Board";')
+    dot_nodes.append(
+        '    fontname="Helvetica-Bold"; fontsize=12; labelloc="t"; style="filled,dashed"; fillcolor="#FFFDF6"; color="#D1A113"; penwidth=1.5;'
+    )
+    dot_nodes.append(
+        '    BUS_HEAVY [label="⚡ Furnace Sub-Distribution\\nBusbar Node B1", fillcolor="#FFF3CD", style="filled,bold"];'
+    )
 
     # 🏛️ DYNAMIC MITIGATION 2: Heavy Board Localized Ingress
     if "Heavy Industrial Process Board (Panel B1)" in selected_mitigations:
-        sub_heavy_nodes.append(
+        dot_nodes.append(
             '    SUB_STEM_HEAVY [label="🛡️ LOCAL STEM FILTER B1\\nActive Furnace Compensation", fillcolor="#D4EDDA", color="#28A745", style="filled,bold", penwidth=2.0];'
         )
-        sub_heavy_nodes.append(
+        dot_nodes.append(
             '    SUB_STEM_HEAVY -> BUS_HEAVY [color="#28A745", penwidth=2.0, arrowhead=normal, label=" Active Injection", weight=0];'
         )
 
     last_id = "BUS_HEAVY"
     for cid, style in heavy_assets:
-        sub_heavy_nodes.append(f"    {cid} [{style}];")
-        sub_heavy_nodes.append(f"    BUS_HEAVY -> {cid} [weight=10];")
+        dot_nodes.append(f"    {cid} [{style}];")
+        dot_nodes.append(f"    BUS_HEAVY -> {cid} [weight=10];")
         if last_id != "BUS_HEAVY":
-            sub_heavy_nodes.append(f'    {last_id} -> {cid} [style="invis"];')
+            dot_nodes.append(f'    {last_id} -> {cid} [style="invis"];')
         last_id = cid
-    sub_heavy_nodes.append("  }")
-    dot_nodes.extend(sub_heavy_nodes)
+    dot_nodes.append("  }")
 
     # 🏢 COLUMN LAYER 2: Motor Control Centre (MCC) with Optional Dual-Duty BESS Ingress
-    sub_mcc_nodes = [
-        "  subgraph cluster_drives {",
-        '    label="⚙️ Motor Control Centre (MCC)";',
-        '    fontname="Helvetica-Bold"; fontsize=12; labelloc="t"; style="filled,dashed"; fillcolor="#F4F9FF"; color="#2B72C4"; penwidth=1.5;',
-        '    BUS_DRIVES [label="⚙️ Automated Drive Panel\\nBusbar Node B2", fillcolor="#E2F0FE", style="filled,bold"];',
-    ]
+    dot_nodes.append("  subgraph cluster_drives {")
+    dot_nodes.append('    label="⚙️ Motor Control Centre (MCC)";')
+    dot_nodes.append(
+        '    fontname="Helvetica-Bold"; fontsize=12; labelloc="t"; style="filled,dashed"; fillcolor="#F4F9FF"; color="#2B72C4"; penwidth=1.5;'
+    )
+    dot_nodes.append(
+        '    BUS_DRIVES [label="⚙️ Automated Drive Panel\\nBusbar Node B2", fillcolor="#E2F0FE", style="filled,bold"];'
+    )
 
     # 🏛️ DYNAMIC MITIGATION 3: MCC Board Localized Ingress
     if "Motor Control Centre (MCC Panel B2)" in selected_mitigations:
-        sub_mcc_nodes.append(
+        dot_nodes.append(
             '    SUB_STEM_DRIVES [label="🛡️ LOCAL STEM FILTER B2\\nActive VSD Drive Cancellation", fillcolor="#D4EDDA", color="#28A745", style="filled,bold", penwidth=2.0];'
         )
-        sub_mcc_nodes.append(
+        dot_nodes.append(
             '    SUB_STEM_DRIVES -> BUS_DRIVES [color="#28A745", penwidth=2.0, arrowhead=normal, label=" Active Injection", weight=0];'
         )
 
@@ -153,49 +156,49 @@ def generate_dynamic_sld_graph(df: pd.DataFrame, selected_mitigations: list) -> 
         "Local BESS & Hybrid UPS Array (Robotics Asset Protection)"
         in selected_mitigations
     ):
-        sub_mcc_nodes.append(
+        dot_nodes.append(
             '    SUB_STEM_BESS [label="🔋 LOCAL BESS & HYBRID UPS\\nAsset Protection & 20ms Sag Backup", fillcolor="#E6FFFA", color="#00A389", style="filled,bold", penwidth=2.0];'
         )
-        sub_mcc_nodes.append(
+        dot_nodes.append(
             '    SUB_STEM_BESS -> BUS_DRIVES [color="#00A389", penwidth=2.0, arrowhead=normal, label=" Dual-Duty Shunt/UPS", weight=0];'
         )
 
     last_id = "BUS_DRIVES"
     for cid, style in drive_assets:
-        sub_mcc_nodes.append(f"    {cid} [{style}];")
-        sub_mcc_nodes.append(f"    BUS_DRIVES -> {cid} [weight=10];")
+        dot_nodes.append(f"    {cid} [{style}];")
+        dot_nodes.append(f"    BUS_DRIVES -> {cid} [weight=10];")
         if last_id != "BUS_DRIVES":
-            sub_mcc_nodes.append(f'    {last_id} -> {cid} [style="invis"];')
+            dot_nodes.append(f'    {last_id} -> {cid} [style="invis"];')
         last_id = cid
-    sub_mcc_nodes.append("  }")
-    dot_nodes.extend(sub_mcc_nodes)
+    dot_nodes.append("  }")
 
-    # 🏢 COLUMN LAYER 3: Auxiliary Infrastructure
-    sub_aux_nodes = [
-        "  subgraph cluster_aux {",
-        '    label="🏢 Auxiliary & Building Services";',
-        '    fontname="Helvetica-Bold"; fontsize=12; labelloc="t"; style="filled,dashed"; fillcolor="#F8F9FA"; color="#6C757D"; penwidth=1.5;',
-        '    BUS_AUX [label="🏢 Commercial Infrastructure\\nBusbar Node B3", fillcolor="#E9ECEF", style="filled,bold"];',
-    ]
+    # 🏢 COLUMN LAYER 3: Auxiliary Infrastructure (Stacked Vertically)
+    dot_nodes.append("  subgraph cluster_aux {")
+    dot_nodes.append('    label="🏢 Auxiliary & Building Services";')
+    dot_nodes.append(
+        '    fontname="Helvetica-Bold"; fontsize=12; labelloc="t"; style="filled,dashed"; fillcolor="#F8F9FA"; color="#6C757D"; penwidth=1.5;'
+    )
+    dot_nodes.append(
+        '    BUS_AUX [label="🏢 Commercial Infrastructure\\nBusbar Node B3", fillcolor="#E9ECEF", style="filled,bold"];'
+    )
 
     # 🏛️ DYNAMIC MITIGATION 4: Auxiliary Board Localized Ingress
     if "Auxiliary & Building Services (Panel B3)" in selected_mitigations:
-        sub_aux_nodes.append(
+        dot_nodes.append(
             '    SUB_STEM_AUX [label="🛡️ LOCAL STEM FILTER B3\\nAuxiliary Clean Power Bank", fillcolor="#D4EDDA", color="#28A745", style="filled,bold", penwidth=2.0];'
         )
-        sub_aux_nodes.append(
+        dot_nodes.append(
             '    SUB_STEM_AUX -> BUS_AUX [color="#28A745", penwidth=2.0, arrowhead=normal, label=" Active Injection", weight=0];'
         )
 
     last_id = "BUS_AUX"
     for cid, style in aux_assets:
-        sub_aux_nodes.append(f"    {cid} [{style}];")
-        sub_aux_nodes.append(f"    BUS_AUX -> {cid} [weight=10];")
+        dot_nodes.append(f"    {cid} [{style}];")
+        dot_nodes.append(f"    BUS_AUX -> {cid} [weight=10];")
         if last_id != "BUS_AUX":
-            sub_aux_nodes.append(f'    {last_id} -> {cid} [style="invis"];')
+            dot_nodes.append(f'    {last_id} -> {cid} [style="invis"];')
         last_id = cid
-    sub_aux_nodes.append("  }")
-    dot_nodes.extend(sub_aux_nodes)
+    dot_nodes.append("  }")
 
     # Establish structural incoming distribution lines from the primary intake breaker
     dot_nodes.append("")
@@ -242,14 +245,24 @@ def update_electrical_mitigation_nodes(nodes: list[str]) -> str:
 
 def render_data_entry_view():
     """
-    Renders the unified split workspace combining financial param decks, executive metric ribbons,
-    and the financially intelligent conversational Gemini co-pilot loop side-by-side.
+    Renders the unified split workspace combining streaming financial tickers,
+    executive ribbons, and a fully parameter-aware conversational Gemini co-pilot engine.
     """
+    # Global persistent state memory alignment
     if "sandbox_assets" not in st.session_state:
         st.session_state.sandbox_assets = load_ammanford_alloys_dataset()
 
     if "selected_nodes" not in st.session_state:
         st.session_state.selected_nodes = ["Motor Control Centre (MCC Panel B2)"]
+
+    if "prod_val" not in st.session_state:
+        st.session_state.prod_val = 150000
+
+    if "restart_hrs" not in st.session_state:
+        st.session_state.restart_hrs = 4.0
+
+    if "annual_events" not in st.session_state:
+        st.session_state.annual_events = 3
 
     if "copilot_history" not in st.session_state:
         st.session_state.copilot_history = [
@@ -259,36 +272,35 @@ def render_data_entry_view():
             }
         ]
 
-    # --------------------------------------------------------------------------
-    # 📈 EXECUTIVE HIGH-LEVEL FINANCIAL OPPORTUNITY COST RIBBON (TOP LOGIC)
-    # --------------------------------------------------------------------------
-    st.markdown("### 🏛️ Executive Investment & Operational Risk Overview")
-
-    # Baseline Parameters for Calculations
+    # Persistent Global Input Form Bindings via direct State Keys
     with st.sidebar.expander("💼 Macro Facility Valuation Variables", expanded=True):
-        prod_val = st.number_input(
+        st.number_input(
             "Hourly Production Value (£)",
             min_value=100,
             max_value=500000,
-            value=150000,
             step=5000,
+            key="prod_val",
         )
-        restart_hrs = st.number_input(
+        st.number_input(
             "Process Reset Loop Duration (Hrs)",
             min_value=1.0,
             max_value=24.0,
-            value=4.0,
             step=0.5,
+            key="restart_hrs",
         )
-        annual_events = st.number_input(
-            "Typical Utility Grid Sags / Year", min_value=1, max_value=50, value=3
+        st.number_input(
+            "Typical Utility Grid Sags / Year",
+            min_value=1,
+            max_value=50,
+            step=1,
+            key="annual_events",
         )
 
-    # Dynamic Calculations based on active policy state
-    single_event_loss = prod_val * restart_hrs
-    total_unmitigated_exposure = single_event_loss * annual_events
+    # Real-time state formulas
+    single_event_loss = st.session_state.prod_val * st.session_state.restart_hrs
+    total_unmitigated_exposure = single_event_loss * st.session_state.annual_events
 
-    # Assess if protective measures are deployed
+    # Assess if active sub-cycle protection is online
     has_ups_protection = (
         "Local BESS & Hybrid UPS Array (Robotics Asset Protection)"
         in st.session_state.selected_nodes
@@ -297,31 +309,53 @@ def render_data_entry_view():
     insurance_credit = (
         "£12,400 / yr"
         if len(st.session_state.selected_nodes) >= 2
-        else "£0 (High Risk Profile)"
+        else "£0 (High Risk Exposure)"
     )
 
+    # --------------------------------------------------------------------------
+    # 🔥 THE TRUE WOW MOMENT: STREAMING EXECUTIVE RISK & OPPORTUNITY COST TICKER
+    # --------------------------------------------------------------------------
+    if current_exposure > 0:
+        ticker_html = f"""
+        <div style="background-color: #FFF0F0; border-left: 5px solid #D9272E; padding: 12px; border-radius: 4px; margin-bottom: 20px; overflow: hidden; white-space: nowrap;">
+            <marquee behavior="scroll" direction="left" scrollamount="6" style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 14px; font-weight: bold; color: #D9272E;">
+                🚨 CRITICAL SYSTEM RISK TRANSMISSION: Active annualized opportunity cost exposure is currently £{current_exposure:,.0f} / year ••• Single grid sag interruption event yields an immediate £{single_event_loss:,.0f} production line bottleneck loss ••• Downstream Variable Speed Drives operating unmitigated (THD_i at 38.0%) ••• Action Required: Intercept voltage anomalies via localized sub-cycle hybrid BESS shielding infrastructure.
+            </marquee>
+        </div>
+        """
+    else:
+        ticker_html = f"""
+        <div style="background-color: #EBFBFA; border-left: 5px solid #00A389; padding: 12px; border-radius: 4px; margin-bottom: 20px; overflow: hidden; white-space: nowrap;">
+            <marquee behavior="scroll" direction="left" scrollamount="5" style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 14px; font-weight: bold; color: #00A389;">
+                🟢 STEM NETWORK OPTIMIZED TICKER: Opportunity cost risk exposure neutralized to £0 / year ••• Active sub-20ms hybrid power injection loops stabilizing main MCC busbar terminals ••• Actuarial underwriter credit status approved ••• Power quality metrics fully compliant with statutory EREC G5/5 grid boundaries.
+            </marquee>
+        </div>
+        """
+    st.markdown(ticker_html, unsafe_allow_html=True)
+
+    # 📈 SECONDARY EXECUTIVE RIBBON DATA METRICS
     metric_col1, metric_col2, metric_col3 = st.columns(3)
     with metric_col1:
         st.metric(
-            label="📈 Active Opportunity Cost Exposure",
+            label="📉 Active Opportunity Cost Liability",
             value=f"£{current_exposure:,.0f} / yr",
-            delta="-100% Mitigated" if has_ups_protection else "Critical Risk Flag",
+            delta="-100% Shielded" if has_ups_protection else "Core System Exposed",
             delta_color="normal" if has_ups_protection else "inverse",
         )
     with metric_col2:
         st.metric(
             label="⏱️ Single Event Bottleneck Interruption Loss",
             value=f"£{single_event_loss:,.0f}",
-            help="Calculated as Hourly Production Value multiplied by the required process reset and recalibration loop duration.",
+            help="Calculated live as Hourly Production Value x Process Reset Loop Duration.",
         )
     with metric_col3:
         st.metric(
-            label="🛡️ Negotiated Insurance Premium Credit",
+            label="🏆 Negotiated Insurance Underwriting Credit",
             value=insurance_credit,
             delta=(
-                "Underwriter Approved"
+                "Premium Credit Approved"
                 if len(st.session_state.selected_nodes) >= 2
-                else "G5/5 Penalty Exposure"
+                else "G5/5 Penalty Risk Flag"
             ),
         )
 
@@ -331,37 +365,16 @@ def render_data_entry_view():
     col_workspace, col_copilot = st.columns([2, 1])
 
     with col_workspace:
-        tab_sld_sandbox, tab_upload = st.tabs(
+        tab_sld_sandbox, tab_brief, tab_upload = st.tabs(
             [
                 "🗺️ Dynamic Single Line Diagram (SLD) Digital Twin",
+                "📜 Live Automated Strategic Brief",
                 "📥 Excel Clipboard & Document Feed",
             ]
         )
 
-        # --------------------------------------------------------------------------
-        # TAB 2A: THE LIVE SLD DIGITAL TWIN + 🔥 NEW TAB-LEVEL FOCUS RIBBON MESSAGE
-        # --------------------------------------------------------------------------
+        # WORKSPACE TAB 1: LIVE GRAPHVIZ INTERACTIVE TWIN
         with tab_sld_sandbox:
-
-            # 🔥 THE NEW VISUAL PENNY-DROP RIBBON BANNER
-            if has_ups_protection:
-                st.success(
-                    f"🟢 **SYSTEM RESILIENCE STATUS: OPTIMISED & INSUALTED** \n"
-                    f"Local hybrid BESS/UPS shunt injection is confirmed active on Busbar Node B2. Sensitive robotics and "
-                    f"VSD panel memory structures are protected against transient grid sags. Net opportunity cost exposure "
-                    f"reduced to **£0/yr**, unlocking an active **{insurance_credit}** underwriting premium credit incentive."
-                )
-            else:
-                st.error(
-                    f"⚠️ **SYSTEM RESILIENCE STATUS: UNMITIGATED EXPOSURE DETECTED** \n"
-                    f"Sensitive manufacturing robotics lines are operating without sub-cycle ride-through protection. A single utility "
-                    f"voltage sag will trigger a cascade line shutdown requiring a **{restart_hrs} hour** manual reset loop, "
-                    f"incurring **£{single_event_loss:,.0f}** in immediate bottleneck revenue loss. Annualized opportunity cost "
-                    f"exposure is **£{total_unmitigated_exposure:,.0f}/yr**."
-                )
-
-            st.markdown(" ")
-
             st.multiselect(
                 label="🏛️ Select Steering Committee Target Deployment Nodes:",
                 options=[
@@ -386,6 +399,38 @@ def render_data_entry_view():
                     st.session_state.sandbox_assets, st.session_state.selected_nodes
                 )
                 st.graphviz_chart(dot_string, use_container_width=True)
+
+        # WORKSPACE TAB 2: THE PARAMETERIZED STRATEGIC BRIEF DECK
+        with tab_brief:
+            st.markdown("### 📋 STEM Unified Investment & Risk Mitigation Brief")
+            st.caption(
+                "This brief updates natively as you adjust valuation variables on your sidebar or check switchgear nodes."
+            )
+            st.markdown("---")
+
+            st.markdown(f"""
+            #### 1. Financial Exposure & Opportunity Cost Assessment
+            Ammanford Alloys currently carries an active annualized operational risk of **£{current_exposure:,.0f}/year** due to unmitigated utility grid disruptions. Based on an active line valuation of **£{st.session_state.prod_val:,.0f}/hour** and an average process calibration restart curve of **{st.session_state.restart_hrs:.1f} hours**, a single sub-cycle voltage sag event results in an immediate opportunity cost bottleneck loss of **£{single_event_loss:,.0f}**.
+            
+            #### 2. Technical Single Line Architecture Interventions
+            To insulate the factory floor from macro grid volatility, the steering committee outlines the following physical network infrastructure modification:
+            """)
+
+            if st.session_state.selected_nodes:
+                for node in st.session_state.selected_nodes:
+                    st.markdown(f"* 🟢 Deployed Parallel Asset: **{node}**")
+            else:
+                st.markdown(
+                    "* ⚠️ **CRITICAL WARNING:** No mitigation assets active. The plant is fully exposed to incoming harmonic degradation and line trips."
+                )
+
+            st.markdown(f"""
+            #### 3. Actuarial Risk Profile & Underwriting Adjustments
+            By demonstrating compliance with EREC G5/5 and implementing sub-20ms ride-through asset protection on sensitive electronics, the plant's structural risk posture decreases. 
+            * **Current Underwriter Credit Yield:** **{insurance_credit}**
+            * **Macro Benchmark Perspective:** This protective model successfully implements the systems-thinking framework validated by regional high-value facilities like the Aston Martin super-hangar in St Athan, converting volatile power quality anomalies into a predictable asset lifecycle.
+            """)
+            st.button("📥 Export Audit-Ready Proposal (.md)")
 
         with tab_upload:
             st.markdown("### 📋 Excel-Style Batch Asset Clipboard & File Ingestion")
@@ -438,31 +483,6 @@ def render_data_entry_view():
             )
             st.session_state.sandbox_assets = edited_df
 
-            st.markdown("---")
-            col_up1, col_up2 = st.columns(2)
-            with col_up1:
-                st.markdown("##### 📄 Legacy Print / CAD Blueprint Upload Node")
-                uploaded_sld = st.file_uploader(
-                    "Drag and drop existing site drawing prints:",
-                    type=["pdf", "png", "jpg", "jpeg"],
-                    key="sld_uploader_node",
-                )
-                if uploaded_sld is not None:
-                    st.success(
-                        f"🔒 Blueprint '{uploaded_sld.name}' successfully cached."
-                    )
-            with col_up2:
-                st.markdown("##### 📊 Half-Hourly AMR Utility Export File Parser")
-                uploaded_amr = st.file_uploader(
-                    "Upload active grid boundary smart meter billing logs (.csv):",
-                    type=["csv"],
-                    key="amr_uploader_node",
-                )
-                if uploaded_amr is not None:
-                    st.success(f"📊 '{uploaded_amr.name}' parsed.")
-                    df_profile = generate_synthetic_amr_load_profile(uploaded_amr.name)
-                    st.line_chart(df_profile)
-
     # --------------------------------------------------------------------------
     # RIGHT CONTAINER: 🧠 CO-PILOT WITH INTEGRATED RISK CONTEXT WINDOW
     # --------------------------------------------------------------------------
@@ -484,8 +504,7 @@ def render_data_entry_view():
                 {"role": "user", "text": user_prompt}
             )
             with chat_container:
-                with st.chat_message("user"):
-                    st.markdown(user_prompt)
+                st.chat_message("user").markdown(user_prompt)
 
             try:
                 client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
@@ -495,8 +514,8 @@ def render_data_entry_view():
                 
                 LIVE FACILITY DATA OVERVIEW:
                 - Deployed Active Shunt Nodes: {st.session_state.selected_nodes}
-                - Hourly Plant Production Value: £{prod_val:,.0f} / hr
-                - Process Reset Loop Downtime: {restart_hrs} hours
+                - Hourly Plant Production Value: £{st.session_state.prod_val:,.0f} / hr
+                - Process Reset Loop Downtime: {st.session_state.restart_hrs} hours
                 - Single Interruption Interruption Cost: £{single_event_loss:,.0f}
                 - Annualized Risk Exposure: £{current_exposure:,.0f} / yr
                 - Expected Annual Insurance Premium Reduction: {insurance_credit}
@@ -506,7 +525,7 @@ def render_data_entry_view():
                 2. Heavy Industrial Process Board (Panel B1): £42,000
                 3. Motor Control Centre (MCC Panel B2): £35,000
                 4. Auxiliary & Building Services (Panel B3): £18,000
-                5. Local BESS & Hybrid UPS Array (Robotics Asset Protection): £65,000. Provides the sub-20ms ride-through to insulate sensitive equipment from voltage sags, bringing Opportunity Cost exposure to £0.
+                5. Local BESS & Hybrid UPS Array (Robotics Asset Protection): £65,000. Provides the sub-20ms ride-through to insulate sensitive equipment from sags, bringing Opportunity Cost exposure to £0.
                 
                 CASE STUDY BENCHMARK (ASTON MARTIN ST ATHAN):
                 - Peak capacity of 7,000 cars/yr (~28 cars/day). Normal rate ~4,000-5,000 cars/yr (~16-20 cars/day). At £150k+ per vehicle, a 4-hour reset bottleneck costs £1.2M - £1.5M in lost throughput per single grid anomaly event.
