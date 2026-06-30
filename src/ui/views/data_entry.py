@@ -151,7 +151,7 @@ def generate_dynamic_sld_graph(df: pd.DataFrame, selected_mitigations: list) -> 
             '    SUB_STEM_DRIVES -> BUS_DRIVES [color="#28A745", penwidth=2.0, arrowhead=normal, label=" Active Injection", weight=0];'
         )
 
-    # 🏛️ DYNAMIC MITIGATION 5: Creative Idea - Local BESS & Hybrid UPS Array Node Injection
+    # 🏛️ DYNAMIC MITIGATION 5: Local BESS & Hybrid UPS Array Node Injection
     if (
         "Local BESS & Hybrid UPS Array (Robotics Asset Protection)"
         in selected_mitigations
@@ -258,7 +258,7 @@ def render_data_entry_view():
         st.session_state.copilot_history = [
             {
                 "role": "assistant",
-                "text": "👋 Bore da! I am your updated STEM Co-Pilot. I am connected directly to your active switchgear telemetry state and capital cost heuristics model. You can ask me for strategic CapEx budgeting numbers, ROI profiles, or topology mutations.",
+                "text": "👋 Bore da! I am your updated STEM Co-Pilot. I am connected directly to your active switchgear telemetry state, capital cost heuristics, and regional factory production loss data models. You can ask me for strategic CapEx budgeting numbers, layout mutations, or factory downtime calculations.",
             }
         ]
 
@@ -407,7 +407,7 @@ def render_data_entry_view():
                 st.graphviz_chart(dot_string, use_container_width=True)
 
     # --------------------------------------------------------------------------
-    # RIGHT CONTAINER: 🧠 STEM AI CONVERSATIONAL ENGINEERING & CFO CO-PILOT
+    # RIGHT CONTAINER: 🧠 STEM AI CONVERSATIONAL ENGINEERING, COST & RISK CO-PILOT
     # --------------------------------------------------------------------------
     with col_copilot:
         st.markdown("### 🧠 STEM AI Co-Pilot Console")
@@ -439,14 +439,19 @@ def render_data_entry_view():
                 Currently Deployed Active Shunt Nodes: {st.session_state.selected_nodes}
                 
                 💰 BUDGETARY CAPITAL COST ESTIMATION HEURISTICS:
-                1. Primary Intake Switchboard (Centralised Bay): Estimated capital cost of £85,000 for a modular main switchboard breaker bay insertion.
-                2. Heavy Industrial Process Board (Panel B1): Estimated capital cost of £42,000 including heavy-duty IP54 local enclosure and custom busbar taps.
-                3. Motor Control Centre (MCC Panel B2): Estimated capital cost of £35,000 including standalone automated ventilation integration for VSD panels.
-                4. Auxiliary & Building Services (Panel B3): Estimated capital cost of £18,000 for a compact wall-mounted chassis.
-                5. Local BESS & Hybrid UPS Array (Robotics Asset Protection): Estimated capital cost of £65,000. It includes custom high-speed solid-state static transfer switches (STS) enabling sub-20ms active power injection to insulate sensitive robotics and VFD DC-links from utility voltage sags, avoiding total line shutdown.
+                1. Primary Intake Switchboard (Centralised Bay): £85,000 for a modular main breaker bay insertion.
+                2. Heavy Industrial Process Board (Panel B1): £42,000 including heavy-duty IP54 local enclosure.
+                3. Motor Control Centre (MCC Panel B2): £35,000 including standalone automated ventilation integration.
+                4. Auxiliary & Building Services (Panel B3): £18,000 for a compact wall-mounted chassis.
+                5. Local BESS & Hybrid UPS Array (Robotics Asset Protection): £65,000. Includes solid-state static transfer switches (STS) for sub-20ms active power injection to insulate sensitive robotics and VFD DC-links from utility voltage sags, avoiding line shutdown.
                 
-                If the user asks for 'total capital cost' or the cost of the 'proposed intervention', sum up the costs for all items currently listed in 'Currently Deployed Active Shunt Nodes'.
-                Always frame these as directionally accurate strategic engineering estimates optimized for C-suite and investment budgeting reviews. Highlight the system-thinking benefit of double-duty assets (e.g., combining harmonic filtering with sub-cycle resilience).
+                🚗 HIGH-VALUE CASE STUDY REFERENCE - ASTON MARTIN ST ATHAN AUTOMOTIVE RISK DATA:
+                - Facility: 90-acre super-hangar assembly site in St Athan, Wales.
+                - Production Capacity: Max engineered capacity of 7,000 vehicles/year. Baseline operational target run-rate stabilizes at ~4,000 to 5,000 luxury SUVs/year (DBX line).
+                - Daily Output Breakdown: Over a standard 250-day production year, this equates to ~16 to 20 vehicles per day (approx. 2.0 to 2.5 vehicles per hour on a single 8-hour shift).
+                - Financial Vulnerability: Vehicles retail at £150,000+ each. A single unmitigated voltage sag tripping out sensitive panel electronics or robotics lines requires a 4-hour clearance/re-calibration reset, costing 8 to 10 cars in lost throughput. This maps to a staggering £1.2M to £1.5M bottleneck inventory loss per single grid anomaly event.
+                
+                Always integrate this St Athan data creatively if the user asks about production capacities, robotics failures, or high-value downtime modeling. Speak as an insightful, supportive systems-thinking advisor, not a rigid robot.
                 
                 CRITICAL INSTRUCTION: If the user explicitly asks to update, alter, mutate, change, add, or subtract filtering assets or BESS configurations, you MUST invoke the 'update_electrical_mitigation_nodes' tool immediately.
                 """
@@ -456,8 +461,8 @@ def render_data_entry_view():
                     contents=[system_context, user_prompt],
                     config=types.GenerateContentConfig(
                         tools=[update_electrical_mitigation_nodes],
-                        temperature=0.15,
-                        system_instruction="You are an elite high-voltage industrial electrical engineer and energy infrastructure cost consultant. You seamlessly integrate technical physics with financial risk management. Speak with authoritative precision. Provide clear budgetary numbers based on the heuristics provided.",
+                        temperature=0.2,
+                        system_instruction="You are a brilliant, highly collaborative energy infrastructure cost consultant and systems-thinking power engineer. You merge technical physics with macro-financial risk management. Be conversational, insightful, and supportive. Use your built-in cost and factory downtime heuristics natively to build business cases.",
                     ),
                 )
 
@@ -471,7 +476,7 @@ def render_data_entry_view():
                             st.session_state.copilot_history.append(
                                 {
                                     "role": "assistant",
-                                    "text": f"🤖 **AI Optimization Action Executed:**\n`{execution_result}`\n\nI have mutated the network layout. Review the updated topology tree layout on the left panel.",
+                                    "text": f"🤖 **AI Optimization Action Executed:**\n`{execution_result}`\n\nI have rewritten the Single Line Diagram architecture to support your request. Review the live visual changes on Tab 2.",
                                 }
                             )
                 else:
