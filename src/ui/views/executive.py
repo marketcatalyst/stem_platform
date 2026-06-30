@@ -17,8 +17,8 @@ from src.ui.views.operations import load_ammanford_alloys_dataset
 def render_executive_view():
     """
     Renders the comprehensive C-suite Financial Risk, Strategic Investment Briefing,
-    and Actuarial Appraisal Dashboard. Synchronises perfectly with live site telemetry
-    and shared parameter configurations.
+    and Actuarial Appraisal Dashboard. Features an active scrolling opportunity cost
+    ticker banner synced with live sandbox parameters.
     """
     st.markdown("## 🏛️ Executive Boardroom Command Center")
     st.markdown(
@@ -75,6 +75,27 @@ def render_executive_view():
     payback_months = (
         (total_capex / total_annual_benefit * 12) if total_annual_benefit > 0 else 0.0
     )
+
+    # --------------------------------------------------------------------------
+    # 🚨 🔥 NEW FEATURE: THE DYNAMIC OPPORTUNITY COST TICKER TAPE
+    # --------------------------------------------------------------------------
+    if has_ups_protection:
+        ticker_html = f"""
+        <div style="background-color: #E6FFFA; padding: 12px; border-radius: 6px; border-left: 6px solid #00A389; margin-bottom: 25px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+            <marquee scrollamount="4" style="color: #006654; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-weight: bold; font-size: 14px; letter-spacing: 0.5px;">
+                🟢 STEM RESILIENCE OPTI-FEED // LOCAL HYBRID BESS ACTIVATED ON MCC PANEL B2 ••• ROBOTICS BUSBAR COMPLETELY SHIELDED FROM VOLTAGE SAGS ••• ACTUARIAL PREMIUM CREDIT UNLOCKED: {insurance_credit} ••• ACTIVE OPPORTUNITY COST EXPOSURE INSULATED TO: £0/YR
+            </marquee>
+        </div>
+        """
+    else:
+        ticker_html = f"""
+        <div style="background-color: #FCE8E6; padding: 12px; border-radius: 6px; border-left: 6px solid #D9272E; margin-bottom: 25px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+            <marquee scrollamount="5" style="color: #A81C1C; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-weight: bold; font-size: 14px; letter-spacing: 0.5px;">
+                🚨 STEM LIVE THREAT INVENTORY // UNMITIGATED EXPOSURE DETECTED ON CORE AUTOMATION CIRCUITS ••• BOTTLENECK LOSS EXPOSURE: £{single_event_loss:,.0f} PER UTILITY DROP ••• REAL-TIME OPPORTUNITY COST EXPOSURE RUNNING AT: £{total_unmitigated_exposure:,.0f}/YR // INTERVENTION REQUIRED
+            </marquee>
+        </div>
+        """
+    st.markdown(ticker_html, unsafe_allow_html=True)
 
     # --------------------------------------------------------------------------
     # 📈 THE C-SUITE FINANCIAL RISK SCORECARD RIBBON
