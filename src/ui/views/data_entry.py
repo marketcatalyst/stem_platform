@@ -109,6 +109,7 @@ def generate_dynamic_sld_graph(df: pd.DataFrame, selected_mitigations: list) -> 
         else:
             aux_assets.append(asset_tuple)
 
+    # 1. Heavy Process Board Subgraph
     dot_nodes.append("  subgraph cluster_heavy {")
     dot_nodes.append('    label="⚡ Heavy Industrial Process Board";')
     dot_nodes.append(
@@ -127,6 +128,7 @@ def generate_dynamic_sld_graph(df: pd.DataFrame, selected_mitigations: list) -> 
         last_id = cid
     dot_nodes.append("  }")
 
+    # 2. Automated Drives MCC Subgraph
     dot_nodes.append("  subgraph cluster_drives {")
     dot_nodes.append('    label="⚙️ Motor Control Centre (MCC)";')
     dot_nodes.append(
@@ -153,6 +155,7 @@ def generate_dynamic_sld_graph(df: pd.DataFrame, selected_mitigations: list) -> 
         last_id = cid
     dot_nodes.append("  }")
 
+    # 3. Auxiliary Infrastructure Subgraph
     dot_nodes.append("  subgraph cluster_aux {")
     dot_nodes.append('    label="🏢 Auxiliary & Building Services";')
     dot_nodes.append(
@@ -189,8 +192,25 @@ def render_data_entry_view():
     Renders the unified split workspace combining streaming financial tickers,
     executive ribbons, and a fully parameter-aware conversational Gemini co-pilot engine.
     """
+    target_site_uid = "00000000-0000-0000-0000-000000000002"
+    repo_engine = ProjectPersistenceRepository(db_engine=engine)
+
+    # ==========================================================================
+    # 🔄 AUTOMATED SESSION RECALL HYDRATION ENGINE
+    # ==========================================================================
     if "sandbox_assets" not in st.session_state:
-        st.session_state.sandbox_assets = load_ammanford_alloys_dataset()
+        # Check if the relational database contains an existing saved fleet state
+        df_historical_session = repo_engine.load_site_inventory_state(target_site_uid)
+
+        if not df_historical_session.empty:
+            st.session_state.sandbox_assets = df_historical_session
+            st.toast(
+                "💾 Welcome back! Your previous project state has been successfully recovered from SQL storage.",
+                icon="🚀",
+            )
+        else:
+            # Fall back to default configurations if no records are found
+            st.session_state.sandbox_assets = load_ammanford_alloys_dataset()
 
     if "selected_nodes" not in st.session_state:
         st.session_state.selected_nodes = []
@@ -600,7 +620,6 @@ def render_data_entry_view():
                 )
             with p_col2:
                 if st.button("💾 Save Project State", use_container_width=True):
-                    target_site_uid = "00000000-0000-0000-0000-000000000002"
                     repo_writer = ProjectPersistenceRepository(db_engine=engine)
                     save_report = repo_writer.save_site_inventory_state(
                         target_site_uid, st.session_state.sandbox_assets
@@ -662,7 +681,7 @@ def render_data_entry_view():
             st.session_state.sandbox_assets = edited_df
 
         with tab_amr:
-            st.markdown("### ⚡ Half-Hourly AMR Utility Log Ingestion Engine")
+            st.markdown("### ### ⚡ Half-Hourly AMR Utility Log Ingestion Engine")
             st.markdown(
                 "Upload an interval log file stream to cross-reference your surveyor checklist totals "
                 "against actual peak utility demands."

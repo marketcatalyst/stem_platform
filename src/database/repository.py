@@ -8,11 +8,81 @@ class ProjectPersistenceRepository:
     """
     Handles the transactional persistence loop between front-end UI dataframes
     and the production PostgreSQL relational database. Features a defensive
-    parent-checking architecture to eliminate foreign key integrity errors.
+    parent-checking architecture and automated session retrieval capabilities.
     """
 
     def __init__(self, db_engine):
         self.engine = db_engine
+
+    def load_site_inventory_state(self, site_uuid_str: str) -> pd.DataFrame:
+        """
+        Queries persistent SQL storage lines for an active facility node.
+        Maps snake_case database rows back into a formatted layout grid asset fleet.
+        """
+        site_uuid = uuid.UUID(site_uuid_str)
+
+        with Session(self.engine) as session:
+            try:
+                # Execute a relational join to capture classification mappings
+                result = session.execute(
+                    text("""
+                        SELECT t.asset_class, i.average_kw_rating, i.duty_cycle_hours_per_week
+                        FROM site_inventories i
+                        JOIN asset_taxonomy t ON i.asset_type_id = t.asset_type_id
+                        WHERE i.site_id = :site_id;
+                    """),
+                    {"site_id": site_uuid},
+                ).fetchall()
+
+                if not result:
+                    return (
+                        pd.DataFrame()
+                    )  # Return empty if no state has been committed yet
+
+                rows = []
+                for idx, res in enumerate(result):
+                    asset_class = str(res[0])
+                    rating = float(res[1])
+                    hours = float(res[2])
+
+                    # Deduce smart layout metrics based on classification footprints
+                    if "Transformer" in asset_class:
+                        tag = f"TX-NODE-{idx+1:03d}"
+                        loc = "Primary Intake Switchboard"
+                        thd = 1.2
+                    elif "Furnace" in asset_class or "Melt" in asset_class:
+                        tag = f"FRN-CORE-{idx+1:03d}"
+                        loc = "Heavy Industrial Process Board (Panel B1)"
+                        thd = 22.1
+                    elif (
+                        "Drive" in asset_class
+                        or "VSD" in asset_class
+                        or "Pump" in asset_class
+                    ):
+                        tag = f"DRV-FEEDER-{idx+1:03d}"
+                        loc = "Motor Control Centre (MCC Panel B2)"
+                        thd = 38.0
+                    else:
+                        tag = f"LOAD-NODE-{idx+1:03d}"
+                        loc = "Auxiliary & Building Services (Panel B3)"
+                        thd = 4.5
+
+                    rows.append(
+                        {
+                            "Asset Tag": tag,
+                            "Plant Location": loc,
+                            "Classification": asset_class,
+                            "Rating (kW)": rating,
+                            "Weekly Hrs": hours,
+                            "Distortion (THD_i)": thd,
+                        }
+                    )
+
+                return pd.DataFrame(rows)
+
+            except Exception as err:
+                print(f"[ERROR] Session state hydration failed: {str(err)}")
+                return pd.DataFrame()
 
     def save_site_inventory_state(
         self, site_uuid_str: str, df_sandbox_assets: pd.DataFrame
@@ -31,10 +101,9 @@ class ProjectPersistenceRepository:
 
         with Session(self.engine) as session:
             try:
-                # 1. Establish an atomic transaction boundary
                 session.begin()
 
-                # 2. DEFENSIVE GUARD: Ensure parent context row exists to block FK IntegrityErrors
+                # Ensure parent context row exists to block Foreign Key IntegrityErrors
                 session.execute(
                     text("""
                         INSERT INTO sites (site_id, site_name, client_id)
@@ -44,22 +113,18 @@ class ProjectPersistenceRepository:
                     {"site_id": site_uuid},
                 )
 
-                # 3. Clear out any legacy transient data configurations for this site node
+                # Clear out any legacy transient data configurations for this site node
                 session.execute(
                     text("DELETE FROM site_inventories WHERE site_id = :site_id;"),
                     {"site_id": site_uuid},
                 )
 
-                # 4. Iterate and safely insert individual fleet asset structures
                 inserted_count = 0
                 for _, row in df_sandbox_assets.iterrows():
                     tag = str(row.get("Asset Tag", "")).strip()
                     if not tag:
                         continue
 
-                    location = str(
-                        row.get("Plant Location", "Main Distribution Busbar")
-                    ).strip()
                     asset_class = str(row.get("Classification", "General Load")).strip()
 
                     try:
@@ -71,7 +136,6 @@ class ProjectPersistenceRepository:
                         rating = 45.0
                         hours = 40.0
 
-                    # Lookup corresponding classification map asset_type_id
                     taxonomy_res = session.execute(
                         text(
                             "SELECT asset_type_id FROM asset_taxonomy WHERE asset_class = :ac LIMIT 1;"
@@ -82,7 +146,6 @@ class ProjectPersistenceRepository:
                     if taxonomy_res:
                         type_id = taxonomy_res[0]
                     else:
-                        # Defensive fallback category allocation
                         fallback_res = session.execute(
                             text(
                                 "SELECT asset_type_id FROM asset_taxonomy WHERE asset_class = 'General Load' LIMIT 1;"
@@ -90,7 +153,6 @@ class ProjectPersistenceRepository:
                         ).fetchone()
                         type_id = fallback_res[0] if fallback_res else uuid.uuid4()
 
-                    # 5. Inject full relational parameters safely
                     session.execute(
                         text("""
                             INSERT INTO site_inventories (
@@ -109,7 +171,6 @@ class ProjectPersistenceRepository:
                     )
                     inserted_count += 1
 
-                # Commit all relational updates atomically
                 session.commit()
                 return {
                     "status": "SUCCESS",
