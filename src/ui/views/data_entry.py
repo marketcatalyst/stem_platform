@@ -219,7 +219,6 @@ def render_data_entry_view():
     current_tenant = "00000000-0000-0000-0000-000000000001"
     repo_engine = ProjectPersistenceRepository(db_engine=engine)
 
-    # 🛡️ FIXED: Line 234 matches the explicit name signature from the error logs
     existing_records = repo_engine.fetch_all_registered_workspaces()
 
     if "selected_project_name" not in st.session_state:

@@ -55,7 +55,7 @@ class ProjectPersistenceRepository:
         clean_name = client_name_str.strip()
         with Session(self.engine) as session:
             try:
-                # 🚀 Enforcing explicit CAST boundaries to eliminate driver ambiguity
+                # 🛡️ Locked to strict standard ANSI CAST operators. Zero double colons (::) allowed.
                 res = session.execute(
                     text(
                         "SELECT site_id FROM client_sites WHERE tenant_id = CAST(:tid AS UUID) AND client_name = :name LIMIT 1;"
@@ -101,13 +101,12 @@ class ProjectPersistenceRepository:
                 t.default_thd_i as "Distortion (THD_i)"
             FROM site_inventories si
             JOIN asset_taxonomy t ON si.asset_type_id = t.asset_type_id
-            WHERE si.site_id = CAST(:site_id AS UUID);
+            WHERE si.site_id = :site_id;
         """
+
         with Session(self.engine) as session:
             try:
-                result = session.execute(
-                    text(query), {"site_id": str(site_uuid_str)}
-                ).fetchall()
+                result = session.execute(text(query), {"site_id": site_uuid}).fetchall()
                 if not result:
                     return pd.DataFrame()
 
@@ -150,15 +149,15 @@ class ProjectPersistenceRepository:
                 "message": "Asset register is empty. Save bypassed.",
             }
 
+        site_uuid = uuid.UUID(site_uuid_str)
+
         with Session(self.engine) as session:
             try:
                 session.begin()
 
                 session.execute(
-                    text(
-                        "DELETE FROM site_inventories WHERE site_id = CAST(:site_id AS UUID);"
-                    ),
-                    {"site_id": str(site_uuid_str)},
+                    text("DELETE FROM site_inventories WHERE site_id = :site_id;"),
+                    {"site_id": site_uuid},
                 )
 
                 inserted_count = 0
