@@ -16,7 +16,6 @@ class ProjectPersistenceRepository:
     def fetch_all_registered_workspaces(self) -> list:
         """
         Queries the database catalog for all existing project profiles.
-        Aligns explicitly with front-end viewport drop-down menus.
         """
         query = "SELECT client_name FROM client_sites ORDER BY client_name;"
         with Session(self.engine) as session:
@@ -50,11 +49,11 @@ class ProjectPersistenceRepository:
     ) -> str:
         """
         Resolves a project string name to its underlying unique relational database site key.
-        If no profile exists matching the text, a new site row is dynamically provisioned.
         """
         clean_name = client_name_str.strip()
         with Session(self.engine) as session:
             try:
+                # 🛡️ Hardened: Strict ANSI CAST avoids colon operator collisions
                 res = session.execute(
                     text(
                         "SELECT site_id FROM client_sites WHERE tenant_id = CAST(:tid AS UUID) AND client_name = :name LIMIT 1;"
@@ -105,7 +104,6 @@ class ProjectPersistenceRepository:
 
         with Session(self.engine) as session:
             try:
-                # 🚀 FIXED: Swapped out unassigned 'site_uuid' token for the valid 'str(site_uuid_str)' argument parameter
                 result = session.execute(
                     text(query), {"site_id": str(site_uuid_str)}
                 ).fetchall()
@@ -143,7 +141,6 @@ class ProjectPersistenceRepository:
     ) -> dict:
         """
         Translates human-readable datagrid fields into snake_case relational tables.
-        Executes an atomic transactional block to wipe and overwrite the site checklist.
         """
         if df_sandbox_assets.empty:
             return {
@@ -216,7 +213,6 @@ class ProjectPersistenceRepository:
                     "status": "SUCCESS",
                     "message": f"Successfully saved {inserted_count} rows down to Neon SQL database persistence tables.",
                 }
-
             except Exception as e:
                 session.rollback()
                 raise e
