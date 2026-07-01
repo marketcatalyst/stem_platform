@@ -127,12 +127,23 @@ if check_password():
     st.sidebar.caption("Compute Context: `LOCAL_LAPTOP_STREAM`")
     st.sidebar.caption("System Version: `2026.1.MVP`")
 
-    # ==========================================================================
-    # 🎛️ CENTRAL VIEW ROUTER NODE
-    # ==========================================================================
-    if workspace_selection == "Executive Command":
-        render_executive_view()
-    elif workspace_selection == "Operations Management":
-        render_operations_view()
-    elif workspace_selection == "Ingest Site Data":
-        render_data_entry_view()
+    # ==========================================================================\r\n
+    # 🎛️ CENTRAL VIEW ROUTER NODE (PROTECTED)\r\n
+    # ==========================================================================\r\n
+
+    # We wrap the rendering in a try-except block to prevent a database error
+    # from crashing the entire portal on load.
+    try:
+        if workspace_selection == "Executive Command":
+            render_executive_view()
+        elif workspace_selection == "Operations Management":
+            render_operations_view()
+        elif workspace_selection == "Ingest Site Data":
+            render_data_entry_view()
+    except Exception as e:
+        st.error("### ⚠️ Portal View Initialization Error")
+        st.write(
+            "The requested workspace node failed to load. This is usually due to a database connection timeout or a schema mismatch."
+        )
+        st.code(str(e))
+        st.button("🔄 Attempt View Refresh")
