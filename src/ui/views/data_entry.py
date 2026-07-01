@@ -822,13 +822,14 @@ def render_data_entry_view():
                     serialized_sld_matrix = "No equipment nodes currently registered."
                     peak_anomaly_context = "None"
 
+                # 🚀 DEEP SCAN LOGIC EMBEDDED DIRECTLY INTO SYSTEM FRAMEWORK
                 system_context = f"""
                 You are the master STEM Power Quality AI Agent. You blend technical electrical physics with corporate financial risk modelling.
                 
                 LIVE FACILITY DATA OVERVIEW:
                 - Deployed Active Shunt Nodes: {st.session_state.selected_nodes}
                 - Hourly Plant Production Value: £{st.session_state.prod_val:,.0f} / hr
-                - Process Reset Loop Downtime: {st.session_state.restart_hrs} hours
+                - Process Reset Loop Duration: {st.session_state.restart_hrs} hours
                 - Single Interruption Interruption Cost: £{single_event_loss:,.0f}
                 - Annualised Risk Exposure: £{total_residual_leak:,.0f} / yr
                 - Expected Annual Insurance Premium Reduction: {insurance_credit}
@@ -864,11 +865,25 @@ def render_data_entry_view():
                         types.Part.from_bytes(data=att_bytes, mime_type=att_mime)
                     )
                     contents_payload.append(
-                        "Analyse this attached drawing file directly as part of the conversation context. "
-                        "Cross-reference its contents with the user's natural prompt query below."
+                        "An attached drawing file is present. You are commanded to execute an engineering-grade deep-dive "
+                        "hierarchical audit on its canvas geometry. Zoom your attention vectors directly into the "
+                        "dense low-voltage sub-breaker networks, interlocking ties, metering configurations, and switchboard line items "
+                        "on the lower sections. Map specific load discoveries straight back to the user query parameters."
                     )
 
                 contents_payload.append(user_prompt)
+
+                # Extended engineering system instruction layer to force hierarchical processing by default
+                engineering_instruction_layer = """
+                You are a senior power systems auditing engineer and cost consultant. Speak with professional, boardroom-ready authority. 
+                
+                Whenever analyzing or conversing about an uploaded drawing canvas, you must reject shallow, macro-level observations. You are instructed to systematically execute a multi-pass hierarchical audit:
+                - Pass 1: Isolate primary incoming transformers, voltage parameters, and protection modules (e.g., SEPAM relays).
+                - Pass 2: Delve into dense low-voltage cluster divisions. Map the circuit breaker switchgears (ACBs/MCCBs), interlocking safety links, and instrumentation lines line-by-line.
+                - Pass 3: Link individual equipment load branches directly to their downstream corporate risk profiles and accelerated straight-line depreciation penalties.
+                
+                Never provide generic placeholders or robotic disclaimers. Use proper UK English spelling standards exclusively.
+                """
 
                 response = client.models.generate_content(
                     model="gemini-2.5-flash",
@@ -876,7 +891,7 @@ def render_data_entry_view():
                     config=types.GenerateContentConfig(
                         tools=[update_electrical_mitigation_nodes],
                         temperature=0.15,
-                        system_instruction="You are a brilliant cost consultant and systems-thinking power engineer. Speak with professional, boardroom-ready authority. Address specific asset tags dynamically. Never give canned robotic disclaimers.",
+                        system_instruction=engineering_instruction_layer,
                     ),
                 )
 
@@ -905,7 +920,6 @@ def render_data_entry_view():
 
             except Exception as e:
                 error_str = str(e)
-                # 🚀 Programmatic Quota Exception interception shield to maintain runtime resilience
                 if "429" in error_str or "RESOURCE_EXHAUSTED" in error_str:
                     st.session_state.copilot_history.append(
                         {
