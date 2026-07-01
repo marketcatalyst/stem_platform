@@ -88,7 +88,6 @@ def generate_dynamic_sld_graph(df: pd.DataFrame, selected_mitigations: list) -> 
         if not clean_id or clean_id == "____":
             continue
 
-        # Apply a visual signifier to node labels if their local host panel branch is mitigated
         is_mitigated = loc in selected_mitigations
         mit_label = " [MITIGATED]" if is_mitigated else ""
 
@@ -196,48 +195,40 @@ def render_data_entry_view():
     executive ribbons, and a fully parameter-aware conversational Gemini co-pilot engine.
     """
     repo_engine = ProjectPersistenceRepository(db_engine=engine)
+    active_user_handle = (
+        st.sidebar.text_input(
+            "User Identity Initials / Handle:",
+            value="MD",
+            help="Type your unique initials or corporate role string to partition your project profiles.",
+        )
+        .strip()
+        .lower()
+    )
 
     # ==========================================================================
-    # 📁 ADAPTIVE SIDEBAR WORKSPACE EXPANDED CONTROLLER (ACCESS-KEY ALIGNED)
+    # 📁 PROJECT WORKSPACE MANAGER SELECTOR
     # ==========================================================================
-    with st.sidebar.expander("📁 Project Workspace Manager", expanded=True):
-        # 🚀 RE-DESIGN ADAPTATION: Allow user to self-identify via an agile text input field
-        active_user_handle = (
-            st.text_input(
-                "User Identity Initials / Handle:",
-                value="MD",
-                help="Type your unique initials or corporate role string to partition your project profiles.",
-            )
-            .strip()
-            .lower()
+    existing_records = repo_engine.fetch_all_registered_workspaces()
+    workspace_names = [record["site_name"] for record in existing_records]
+
+    menu_choices = ["➕ Create New Project Workspace..."] + workspace_names
+    selected_menu_item = st.sidebar.selectbox(
+        "Select Active Project Workspace:", options=menu_choices
+    )
+
+    if selected_menu_item == "➕ Create New Project Workspace...":
+        target_project_name = st.sidebar.text_input(
+            "Enter New Project Identity Name:", value="Ammanford Alloys Phase 1"
         )
+    else:
+        target_project_name = selected_menu_item
 
-        existing_records = repo_engine.fetch_all_registered_workspaces()
-        workspace_names = [record["site_name"] for record in existing_records]
+    derived_namespace_salt = (
+        f"{active_user_handle}_{target_project_name.strip().lower()}"
+    )
+    active_site_uid_str = str(uuid.uuid5(uuid.NAMESPACE_DNS, derived_namespace_salt))
+    st.sidebar.caption(f"**Deterministic Workspace UUID:**\n`{active_site_uid_str}`")
 
-        menu_choices = ["➕ Create New Project Workspace..."] + workspace_names
-        selected_menu_item = st.selectbox(
-            "Select Active Project Workspace:", options=menu_choices
-        )
-
-        if selected_menu_item == "➕ Create New Project Workspace...":
-            target_project_name = st.text_input(
-                "Enter New Project Identity Name:", value="Ammanford Alloys Phase 1"
-            )
-        else:
-            target_project_name = selected_menu_item
-
-        # Compute deterministic UUID based on custom User Handle + Project Name combined
-        derived_namespace_salt = (
-            f"{active_user_handle}_{target_project_name.strip().lower()}"
-        )
-        active_site_uid_str = str(
-            uuid.uuid5(uuid.NAMESPACE_DNS, derived_namespace_salt)
-        )
-
-        st.caption(f"**Deterministic Workspace UUID:**\n`{active_site_uid_str}`")
-
-    # Force view hydration if layout state changes or switches boundaries
     if (
         "current_loaded_project" not in st.session_state
         or st.session_state.current_loaded_project != target_project_name
@@ -386,7 +377,8 @@ def render_data_entry_view():
 
             mitigated_technical_bleed += row_mit_total_bleed
         else:
-            mitigated_technical_bleed += row_base_bleed
+            # 🛠️ FIXED: Replaced "row_base_bleed" naming footprint with explicit matching token variable identifier
+            mitigated_technical_bleed += row_base_total_bleed
 
     single_event_loss = st.session_state.prod_val * st.session_state.restart_hrs
     total_unmitigated_opportunity_cost = (
@@ -514,7 +506,6 @@ def render_data_entry_view():
 
         with tab_upload:
             st.markdown("### 📋 Excel-Style Batch Asset Clipboard & File Ingestion")
-
             uploaded_register = st.file_uploader(
                 "Bulk Ingest Fleet Asset Register spreadsheet or Blueprints (.csv, .pdf, .jpg, .jpeg, .png)",
                 type=["csv", "pdf", "jpg", "jpeg", "png"],
