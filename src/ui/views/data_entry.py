@@ -46,7 +46,6 @@ def generate_dynamic_sld_graph(df: pd.DataFrame, selected_mitigations: list) -> 
         "",
     ]
 
-    # Render centralized active filter block if chosen by committee
     if any("Primary Intake" in str(node) for node in selected_mitigations):
         dot_nodes.append(
             '  SUB_STEM_CENTRAL [label="🛡️ STEM OPTIMISATION BAY\\nCentralised Filtering Matrix", fillcolor="#D4EDDA", color="#28A745", style="filled,bold", penwidth=2.5];'
@@ -111,7 +110,6 @@ def generate_dynamic_sld_graph(df: pd.DataFrame, selected_mitigations: list) -> 
         else:
             aux_assets.append(asset_tuple)
 
-    # 1. Heavy Process Board Subgraph
     dot_nodes.append("  subgraph cluster_heavy {")
     dot_nodes.append('    label="⚡ Heavy Industrial Process Board";')
     dot_nodes.append(
@@ -130,7 +128,6 @@ def generate_dynamic_sld_graph(df: pd.DataFrame, selected_mitigations: list) -> 
         last_id = cid
     dot_nodes.append("  }")
 
-    # 2. Automated Drives MCC Subgraph
     dot_nodes.append("  subgraph cluster_drives {")
     dot_nodes.append('    label="⚙️ Motor Control Centre (MCC)";')
     dot_nodes.append(
@@ -157,7 +154,6 @@ def generate_dynamic_sld_graph(df: pd.DataFrame, selected_mitigations: list) -> 
         last_id = cid
     dot_nodes.append("  }")
 
-    # 3. Auxiliary Infrastructure Subgraph
     dot_nodes.append("  subgraph cluster_aux {")
     dot_nodes.append('    label="🏢 Auxiliary & Building Services";')
     dot_nodes.append(
@@ -196,9 +192,6 @@ def render_data_entry_view():
     """
     repo_engine = ProjectPersistenceRepository(db_engine=engine)
 
-    # ==========================================================================
-    # 🛡️ APEX STATE HYDRATION MATRIX (ELIMINATES STREAMLIT RACE CONDITIONS)
-    # ==========================================================================
     if "copilot_history" not in st.session_state:
         st.session_state["copilot_history"] = [
             {
@@ -292,7 +285,7 @@ def render_data_entry_view():
         )
 
     # ==========================================================================
-    # 🧮 DEEP-DIVE SYSTEMIC INEFFICIENCY EVALUATION LOOPS
+    # 🧮 SYSTEMIC INEFFICIENCY EVALUATION LOOPS
     # ==========================================================================
     unmitigated_technical_bleed = 0.0
     mitigated_technical_bleed = 0.0

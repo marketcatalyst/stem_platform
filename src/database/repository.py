@@ -8,7 +8,7 @@ class ProjectPersistenceRepository:
     """
     Handles the transactional persistence loop between front-end UI dataframes
     and the production PostgreSQL relational database. Target mappings are aligned
-    explicitly with production 'client_sites' reference boundaries.
+    explicitly with production 'client_sites' column boundaries (using 'name').
     """
 
     def __init__(self, db_engine):
@@ -21,17 +21,16 @@ class ProjectPersistenceRepository:
         """
         with Session(self.engine) as session:
             try:
-                # Aligned target to match 'client_sites' infrastructure
+                # 🛠️ FIXED: Swapped 'site_name' for 'name' to align with client_sites schema
                 result = session.execute(
-                    text(
-                        "SELECT site_id, site_name FROM client_sites ORDER BY site_name ASC;"
-                    )
+                    text("SELECT site_id, name FROM client_sites ORDER BY name ASC;")
                 ).fetchall()
+                # Keep 'site_name' as the dictionary key so front-end views inherit seamlessly
                 return [
                     {"site_id": str(res[0]), "site_name": str(res[1])} for res in result
                 ]
             except Exception as err:
-                print(f"[WARNING] Could not clear workspace directories: {str(err)}")
+                print(f"[WARNING] Could not fetch workspace directories: {str(err)}")
                 return []
 
     def load_site_inventory_state(self, site_uuid_str: str) -> pd.DataFrame:
@@ -119,12 +118,12 @@ class ProjectPersistenceRepository:
             try:
                 session.begin()
 
-                # 🛠️ FIXED: Redirect upsert target to 'client_sites' to resolve foreign key constraints
+                # 🛠️ FIXED: Corrected column assignment from 'site_name' to 'name'
                 session.execute(
                     text("""
-                        INSERT INTO client_sites (site_id, site_name, client_id)
+                        INSERT INTO client_sites (site_id, name, client_id)
                         VALUES (:site_id, :site_name, NULL)
-                        ON CONFLICT (site_id) DO UPDATE SET site_name = :site_name;
+                        ON CONFLICT (site_id) DO UPDATE SET name = :site_name;
                     """),
                     {"site_id": site_uuid, "site_name": project_name.strip()},
                 )
