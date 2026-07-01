@@ -25,13 +25,13 @@ class ProjectPersistenceRepository:
     def get_or_create_site_by_name(
         self, tenant_id_str: str, client_name_str: str
     ) -> str:
-        # Keep everything as pure strings to align with VARCHAR database columns
+        # 🛡️ THE CRITICAL FIX: Keep this as a pure string to align with VARCHAR database columns
         tid_str = str(tenant_id_str)
         clean_name = client_name_str.strip()
 
         with Session(self.engine) as session:
             try:
-                # 🛡️ FIX: No UUID casting. Text column = Text parameter. Pure alignment.
+                # String column (tenant_id) = String parameter (:tid)
                 stmt = text("""
                     SELECT site_id FROM client_sites 
                     WHERE tenant_id = :tid AND client_name = :name LIMIT 1;
@@ -49,7 +49,8 @@ class ProjectPersistenceRepository:
                     VALUES (CAST(:id AS UUID), :tid, :name);
                 """)
                 session.execute(
-                    insert_stmt, {"id": new_site_id, "tid": tid_str, "name": clean_name}
+                    insert_stmt,
+                    {"id": new_site_id, "tid": tid_str, "name": clean_name},
                 )
                 session.commit()
                 return new_site_id
@@ -65,11 +66,13 @@ class ProjectPersistenceRepository:
             JOIN asset_taxonomy t ON si.asset_type_id = t.asset_type_id
             WHERE si.site_id = CAST(:id AS UUID);
         """)
+
         with Session(self.engine) as session:
             try:
                 result = session.execute(query, {"id": sid_str}).fetchall()
                 if not result:
                     return pd.DataFrame()
+
                 records = []
                 for row in result:
                     records.append(
@@ -97,6 +100,7 @@ class ProjectPersistenceRepository:
                     ),
                     {"id": sid_str},
                 )
+
                 for _, row in df.iterrows():
                     session.execute(
                         text(
