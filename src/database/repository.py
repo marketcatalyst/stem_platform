@@ -7,8 +7,8 @@ import pandas as pd
 class ProjectPersistenceRepository:
     """
     Handles the transactional persistence loop between front-end UI dataframes
-    and the production PostgreSQL relational database. Features deterministic
-    workspace routing to support multiple projects per user account.
+    and the production PostgreSQL relational database. Target mappings are aligned
+    explicitly with production 'client_sites' reference boundaries.
     """
 
     def __init__(self, db_engine):
@@ -21,8 +21,11 @@ class ProjectPersistenceRepository:
         """
         with Session(self.engine) as session:
             try:
+                # Aligned target to match 'client_sites' infrastructure
                 result = session.execute(
-                    text("SELECT site_id, site_name FROM sites ORDER BY site_name ASC;")
+                    text(
+                        "SELECT site_id, site_name FROM client_sites ORDER BY site_name ASC;"
+                    )
                 ).fetchall()
                 return [
                     {"site_id": str(res[0]), "site_name": str(res[1])} for res in result
@@ -116,10 +119,10 @@ class ProjectPersistenceRepository:
             try:
                 session.begin()
 
-                # Dynamic workspace alignment based on user input parameters
+                # 🛠️ FIXED: Redirect upsert target to 'client_sites' to resolve foreign key constraints
                 session.execute(
                     text("""
-                        INSERT INTO sites (site_id, site_name, client_id)
+                        INSERT INTO client_sites (site_id, site_name, client_id)
                         VALUES (:site_id, :site_name, NULL)
                         ON CONFLICT (site_id) DO UPDATE SET site_name = :site_name;
                     """),

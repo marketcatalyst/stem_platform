@@ -253,7 +253,6 @@ def render_data_entry_view():
     active_site_uid_str = str(uuid.uuid5(uuid.NAMESPACE_DNS, derived_namespace_salt))
     st.sidebar.caption(f"**Deterministic Workspace UUID:**\n`{active_site_uid_str}`")
 
-    # Handle selective dynamic dataset hydration safely
     if (
         "current_loaded_project" not in st.session_state
         or st.session_state.current_loaded_project != target_project_name
@@ -293,7 +292,7 @@ def render_data_entry_view():
         )
 
     # ==========================================================================
-    # 🧮 SYSTEMIC INEFFICIENCY EVALUATION LOOPS
+    # 🧮 DEEP-DIVE SYSTEMIC INEFFICIENCY EVALUATION LOOPS
     # ==========================================================================
     unmitigated_technical_bleed = 0.0
     mitigated_technical_bleed = 0.0
@@ -713,7 +712,6 @@ def render_data_entry_view():
         st.markdown("### 🧠 STEM AI Co-Pilot Console")
         chat_container = st.container(height=450)
         with chat_container:
-            # 🛡️ BULLETPROOF WORKSPACE PROTECTION: Use dynamic safety dictionary reads
             active_chat_stream = st.session_state.get("copilot_history", [])
             for message in active_chat_stream:
                 with st.chat_message(message["role"]):
