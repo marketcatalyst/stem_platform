@@ -6,8 +6,8 @@ import pandas as pd
 
 class ProjectPersistenceRepository:
     """
-    Finalized persistence layer using ANSI-standard CAST() functions
-    to guarantee PostgreSQL schema compatibility.
+    Finalized persistence layer using explicit text-coercion
+    to guarantee absolute PostgreSQL parameter compatibility.
     """
 
     def __init__(self, db_engine):
@@ -30,10 +30,10 @@ class ProjectPersistenceRepository:
 
         with Session(self.engine) as session:
             try:
-                # Use CAST() for absolute syntax compatibility
+                # 🛡️ Hardened: Cast both column and parameter to text to bypass driver type-guessing entirely
                 stmt = text("""
                     SELECT site_id FROM client_sites 
-                    WHERE tenant_id = CAST(:tid AS UUID) AND client_name = :name LIMIT 1;
+                    WHERE tenant_id::text = :tid::text AND client_name = :name LIMIT 1;
                 """)
                 res = session.execute(
                     stmt, {"tid": tid_str, "name": clean_name}
@@ -45,7 +45,7 @@ class ProjectPersistenceRepository:
                 new_site_id = str(uuid.uuid4())
                 insert_stmt = text("""
                     INSERT INTO client_sites (site_id, tenant_id, client_name) 
-                    VALUES (CAST(:id AS UUID), CAST(:tid AS UUID), :name);
+                    VALUES (CAST(:id AS UUID), :tid, :name);
                 """)
                 session.execute(
                     insert_stmt, {"id": new_site_id, "tid": tid_str, "name": clean_name}
@@ -62,7 +62,7 @@ class ProjectPersistenceRepository:
             SELECT si.quantity, si.average_kw_rating, si.duty_cycle_hours_per_week, t.asset_class, t.default_thd_i 
             FROM site_inventories si
             JOIN asset_taxonomy t ON si.asset_type_id = t.asset_type_id
-            WHERE si.site_id = CAST(:id AS UUID);
+            WHERE si.site_id::text = :id::text;
         """)
         with Session(self.engine) as session:
             try:
@@ -92,7 +92,7 @@ class ProjectPersistenceRepository:
                 session.begin()
                 session.execute(
                     text(
-                        "DELETE FROM site_inventories WHERE site_id = CAST(:id AS UUID);"
+                        "DELETE FROM site_inventories WHERE site_id::text = :id::text;"
                     ),
                     {"id": sid_str},
                 )
