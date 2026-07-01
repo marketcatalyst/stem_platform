@@ -45,7 +45,7 @@ def generate_dynamic_sld_graph(df: pd.DataFrame, selected_mitigations: list) -> 
         "",
     ]
 
-    if any("Primary Intake" in str(node) for node in selected_mitigations):
+    if "Primary Intake Switchboard (Centralised Bay)" in selected_mitigations:
         dot_nodes.append(
             '  SUB_STEM_CENTRAL [label="🛡️ STEM OPTIMISATION BAY\\nCentralised Filtering Matrix", fillcolor="#D4EDDA", color="#28A745", style="filled,bold", penwidth=2.5];'
         )
@@ -63,7 +63,6 @@ def generate_dynamic_sld_graph(df: pd.DataFrame, selected_mitigations: list) -> 
 
         tag = str(row.get("Asset Tag")).strip()
         classification = str(row.get("Classification", "General Load")).strip()
-        loc = str(row.get("Plant Location", "Main Busbar")).strip()
 
         try:
             rating_val = (
@@ -86,18 +85,19 @@ def generate_dynamic_sld_graph(df: pd.DataFrame, selected_mitigations: list) -> 
         if not clean_id or clean_id == "____":
             continue
 
-        is_mitigated = loc in selected_mitigations
-        mit_label = " [MITIGATED]" if is_mitigated else ""
-
-        if thd > 15.0 and not is_mitigated:
-            node_style = f'label="⚠️ {tag}{mit_label}\\n{classification}\\n{rating:,.0f} kW | THD: {thd:.1f}%", fillcolor="#FCE8E6", color="#D9272E", penwidth=1.8'
+        if thd > 15.0:
+            node_style = f'label="⚠️ {tag}\\n{classification}\\n{rating:,.0f} kW | THD: {thd:.1f}%", fillcolor="#FCE8E6", color="#D9272E", penwidth=1.8'
         elif "Transformer" in classification:
-            node_style = f'label="🔌 {tag}{mit_label}\\n{classification}\\n{rating:,.0f} kW", fillcolor="#FFF3CD", color="#FFC107"'
+            node_style = f'label="🔌 {tag}\\n{classification}\\n{rating:,.0f} kW", fillcolor="#FFF3CD", color="#FFC107"'
         else:
-            node_style = f'label="⚙️ {tag}{mit_label}\\n{classification}\\n{rating:,.0f} kW", fillcolor="#F8F9FA", color="#6C757D"'
+            node_style = f'label="⚙️ {tag}\\n{classification}\\n{rating:,.0f} kW", fillcolor="#F8F9FA", color="#6C757D"'
 
         asset_tuple = (clean_id, node_style)
-        if "Furnace" in classification or "Melt" in classification or rating >= 1000:
+        if (
+            "Furnace" in classification
+            or "Large Induction" in classification
+            or rating >= 1000
+        ):
             heavy_assets.append(asset_tuple)
         elif (
             "Drive" in classification
@@ -118,6 +118,14 @@ def generate_dynamic_sld_graph(df: pd.DataFrame, selected_mitigations: list) -> 
         '    BUS_HEAVY [label="⚡ Furnace Sub-Distribution\\nBusbar Node B1", fillcolor="#FFF3CD", style="filled,bold"];'
     )
 
+    if "Heavy Industrial Process Board (Panel B1)" in selected_mitigations:
+        dot_nodes.append(
+            '    SUB_STEM_HEAVY [label="🛡️ LOCAL STEM FILTER B1\\nActive Furnace Compensation", fillcolor="#D4EDDA", color="#28A745", style="filled,bold", penwidth=2.0];'
+        )
+        dot_nodes.append(
+            '    SUB_STEM_HEAVY -> BUS_HEAVY [color="#28A745", penwidth=2.0, arrowhead=normal, label=" Active Injection", weight=0];'
+        )
+
     last_id = "BUS_HEAVY"
     for cid, style in heavy_assets:
         dot_nodes.append(f"    {cid} [{style}];")
@@ -136,12 +144,23 @@ def generate_dynamic_sld_graph(df: pd.DataFrame, selected_mitigations: list) -> 
         '    BUS_DRIVES [label="⚙️ Automated Drive Panel\\nBusbar Node B2", fillcolor="#E2F0FE", style="filled,bold"];'
     )
 
-    if any("BESS" in str(node) or "UPS" in str(node) for node in selected_mitigations):
+    if "Motor Control Centre (MCC Panel B2)" in selected_mitigations:
         dot_nodes.append(
-            '    SUB_STEM_BESS [label="🔋 LOCAL BESS & HYBRID UPS\\nProcess Protection Grid Shield", fillcolor="#E6FFFA", color="#00A389", style="filled,bold", penwidth=2.0];'
+            '    SUB_STEM_DRIVES [label="🛡️ LOCAL STEM FILTER B2\\nActive VSD Drive Cancellation", fillcolor="#D4EDDA", color="#28A745", style="filled,bold", penwidth=2.0];'
         )
         dot_nodes.append(
-            '    SUB_STEM_BESS -> BUS_DRIVES [color="#00A389", penwidth=2.0, arrowhead=normal, label=" Dual-Duty Ride-Through", weight=0];'
+            '    SUB_STEM_DRIVES -> BUS_DRIVES [color="#28A745", penwidth=2.0, arrowhead=normal, label=" Active Injection", weight=0];'
+        )
+
+    if (
+        "Local BESS & Hybrid UPS Array (Robotics Asset Protection)"
+        in selected_mitigations
+    ):
+        dot_nodes.append(
+            '    SUB_STEM_BESS [label="🔋 LOCAL BESS & HYBRID UPS\\nAsset Protection & 20ms Sag Backup", fillcolor="#E6FFFA", color="#00A389", style="filled,bold", penwidth=2.0];'
+        )
+        dot_nodes.append(
+            '    SUB_STEM_BESS -> BUS_DRIVES [color="#00A389", penwidth=2.0, arrowhead=normal, label=" Dual-Duty Shunt/UPS", weight=0];'
         )
 
     last_id = "BUS_DRIVES"
@@ -161,6 +180,14 @@ def generate_dynamic_sld_graph(df: pd.DataFrame, selected_mitigations: list) -> 
     dot_nodes.append(
         '    BUS_AUX [label="🏢 Commercial Infrastructure\\nBusbar Node B3", fillcolor="#E9ECEF", style="filled,bold"];'
     )
+
+    if "Auxiliary & Building Services (Panel B3)" in selected_mitigations:
+        dot_nodes.append(
+            '    SUB_STEM_AUX [label="🛡️ LOCAL STEM FILTER B3\\nAuxiliary Clean Power Bank", fillcolor="#D4EDDA", color="#28A745", style="filled,bold", penwidth=2.0];'
+        )
+        dot_nodes.append(
+            '    SUB_STEM_AUX -> BUS_AUX [color="#28A745", penwidth=2.0, arrowhead=normal, label=" Active Injection", weight=0];'
+        )
 
     last_id = "BUS_AUX"
     for cid, style in aux_assets:
@@ -189,11 +216,19 @@ def render_data_entry_view():
     Renders the unified split workspace combining streaming financial tickers,
     executive ribbons, and a fully parameter-aware conversational Gemini co-pilot engine.
     """
+    target_site_uid = "00000000-0000-0000-0000-000000000002"
+    repo_writer = ProjectPersistenceRepository(db_engine=engine)
+
+    # 🚀 TWO-WAY SYNCHRONISATION LOOP: Query the database first before falling back to sandbox logs
     if "sandbox_assets" not in st.session_state:
-        st.session_state.sandbox_assets = load_ammanford_alloys_dataset()
+        saved_db_state = repo_writer.load_site_inventory_state(target_site_uid)
+        if not saved_db_state.empty:
+            st.session_state.sandbox_assets = saved_db_state
+        else:
+            st.session_state.sandbox_assets = load_ammanford_alloys_dataset()
 
     if "selected_nodes" not in st.session_state:
-        st.session_state.selected_nodes = []
+        st.session_state.selected_nodes = ["Motor Control Centre (MCC Panel B2)"]
 
     if "prod_val" not in st.session_state:
         st.session_state.prod_val = 150000
@@ -235,143 +270,36 @@ def render_data_entry_view():
             key="annual_events",
         )
 
-    unmitigated_technical_bleed = 0.0
-    mitigated_technical_bleed = 0.0
-
-    total_copper_savings_captured = 0.0
-    total_insulation_savings_captured = 0.0
-    total_transformer_savings_captured = 0.0
-    total_counter_torque_savings_captured = 0.0
-    total_hvac_savings_captured = 0.0
-    total_reactive_penalty_savings_captured = 0.0
-
-    utility_rate = 0.22
-    kva_penalty_factor = 14.50
-
-    for _, row in st.session_state.sandbox_assets.iterrows():
-        try:
-            kw = float(str(row["Rating (kW)"]).replace(",", ""))
-            hours = float(row["Weekly Hrs"])
-            thd_base = float(str(row["Distortion (THD_i)"]).replace("%", ""))
-            loc = str(row["Plant Location"])
-            classification = str(row["Classification"])
-        except (ValueError, KeyError):
-            continue
-
-        if thd_base > 5.0:
-            base_copper_waste_kwh = kw * ((thd_base / 100.0) * 0.048) * hours * 52
-            base_insulation_penalty = kw * (thd_base / 100.0) * 12.50
-            base_trans_waste_kwh = kw * ((thd_base / 100.0) ** 2 * 0.015) * hours * 52
-
-            if any(m in classification for m in ["Motor", "VSD", "Drive", "Pump"]):
-                base_torque_waste_kwh = kw * (thd_base / 100.0) * 0.035 * hours * 52
-            else:
-                base_torque_waste_kwh = 0.0
-
-            base_thermal_load_kwh = (
-                base_copper_waste_kwh
-                + base_trans_waste_kwh
-                + (base_torque_waste_kwh * 0.4)
-            )
-            base_hvac_waste_kwh = base_thermal_load_kwh * 0.35
-            base_reactive_penalty = (
-                kw * (thd_base / 100.0) * 0.12
-            ) * kva_penalty_factor
-        else:
-            base_copper_waste_kwh = 0.0
-            base_insulation_penalty = 0.0
-            base_trans_waste_kwh = 0.0
-            base_torque_waste_kwh = 0.0
-            base_hvac_waste_kwh = 0.0
-            base_reactive_penalty = 0.0
-
-        row_base_total_bleed = (
-            (
-                base_copper_waste_kwh
-                + base_trans_waste_kwh
-                + base_torque_waste_kwh
-                + base_hvac_waste_kwh
-            )
-            * utility_rate
-            + base_insulation_penalty
-            + base_reactive_penalty
-        )
-        unmitigated_technical_bleed += row_base_total_bleed
-
-        if loc in st.session_state.selected_nodes:
-            thd_mitigated = 3.0
-
-            mit_copper_waste_kwh = (
-                kw * ((thd_mitigated / 100.0) * 0.048) * hours * 52
-                if thd_mitigated > 5.0
-                else 0.0
-            )
-            mit_insulation_penalty = 0.0
-            mit_trans_waste_kwh = (
-                kw * ((thd_mitigated / 100.0) ** 2 * 0.015) * hours * 52
-                if thd_mitigated > 5.0
-                else 0.0
-            )
-            mit_torque_waste_kwh = 0.0
-            mit_hvac_waste_kwh = (mit_copper_waste_kwh + mit_trans_waste_kwh) * 0.35
-            mit_reactive_penalty = 0.0
-
-            row_mit_total_bleed = (
-                (
-                    mit_copper_waste_kwh
-                    + mit_trans_waste_kwh
-                    + mit_torque_waste_kwh
-                    + mit_hvac_waste_kwh
-                )
-                * utility_rate
-                + mit_insulation_penalty
-                + mit_reactive_penalty
-            )
-
-            total_copper_savings_captured += (
-                base_copper_waste_kwh - mit_copper_waste_kwh
-            ) * utility_rate
-            total_insulation_savings_captured += base_insulation_penalty
-            total_transformer_savings_captured += (
-                base_trans_waste_kwh - mit_trans_waste_kwh
-            ) * utility_rate
-            total_counter_torque_savings_captured += (
-                base_torque_waste_kwh * utility_rate
-            )
-            total_hvac_savings_captured += (
-                base_hvac_waste_kwh - mit_hvac_waste_kwh
-            ) * utility_rate
-            total_reactive_penalty_savings_captured += base_reactive_penalty
-
-            mitigated_technical_bleed += row_mit_total_bleed
-        else:
-            mitigated_technical_bleed += row_base_total_bleed
-
     single_event_loss = st.session_state.prod_val * st.session_state.restart_hrs
     total_unmitigated_opportunity_cost = (
         single_event_loss * st.session_state.annual_events
     )
 
-    has_bess_shield = (
-        "★ Centralised BESS & Hybrid UPS Array (Process Ride-Through Shield)"
+    has_mcc_filter = (
+        "Motor Control Centre (MCC Panel B2)" in st.session_state.selected_nodes
+    )
+    has_bess_ups = (
+        "Local BESS & Hybrid UPS Array (Robotics Asset Protection)"
         in st.session_state.selected_nodes
     )
-    current_opportunity_exposure = (
-        0.0 if has_bess_shield else total_unmitigated_opportunity_cost
-    )
-    opportunity_savings_captured = (
-        total_unmitigated_opportunity_cost if has_bess_shield else 0.0
+
+    insulation_depreciation_exposure = 23800.0 if not has_mcc_filter else 0.0
+    copper_loss_energy_exposure = 26400.0 if not has_mcc_filter else 0.0
+    active_technical_bleed = (
+        insulation_depreciation_exposure + copper_loss_energy_exposure
     )
 
-    operational_annual_savings = (
-        total_copper_savings_captured
-        + total_insulation_savings_captured
-        + total_transformer_savings_captured
-        + total_counter_torque_savings_captured
-        + total_hvac_savings_captured
-        + total_reactive_penalty_savings_captured
+    insulation_savings_captured = 23800.0 if has_mcc_filter else 0.0
+    copper_savings_captured = 26400.0 if has_mcc_filter else 0.0
+    opportunity_savings_captured = (
+        total_unmitigated_opportunity_cost if has_bess_ups else 0.0
     )
-    total_residual_leak = current_opportunity_exposure + mitigated_technical_bleed
+    operational_annual_savings = insulation_savings_captured + copper_savings_captured
+
+    current_opportunity_exposure = (
+        0.0 if has_bess_ups else total_unmitigated_opportunity_cost
+    )
+    total_residual_leak = current_opportunity_exposure + active_technical_bleed
 
     insurance_credit = (
         "£12,400 / yr"
@@ -383,7 +311,7 @@ def render_data_entry_view():
         ticker_html = f"""
         <div style="background-color: #FCE8E6; padding: 12px; border-radius: 6px; border-left: 6px solid #D9272E; margin-bottom: 25px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
             <marquee scrollamount="5" style="color: #A81C1C; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-weight: bold; font-size: 13px; letter-spacing: 0.5px;">
-                🚨 STEM LIVE THREAT INVENTORY // TOTAL RESIDUAL FACILITY BLEED: £{total_residual_leak:,.0f}/YR ••• DETAILED LEAK EXPANSIONS ➔ [DOWNTIME OPPORTUNITY RISK: £{current_opportunity_exposure:,.0f}/YR] ••• [CORE INEFFICIENCIES: £{(total_copper_savings_captured + total_transformer_savings_captured + total_hvac_savings_captured):,.0f}/YR] ••• [MECHANICAL TORQUE DRAG & PENALTIES: £{(total_insulation_savings_captured + total_counter_torque_savings_captured + total_reactive_penalty_savings_captured):,.0f}/YR]
+                🚨 STEM LIVE THREAT INVENTORY // TOTAL RESIDUAL FACILITY BLEED: £{total_residual_leak:,.0f}/YR ••• DETAILED UNMITIGATED LEAKS ➔ [DOWNTIME OPPORTUNITY RISK: £{current_opportunity_exposure:,.0f}/YR] ••• [EXCESS INSULATION WEAR PENALTY: £{insulation_depreciation_exposure:,.0f}/YR] ••• [WASTED COPPER LOSS ENERGY: £{copper_loss_energy_exposure:,.0f}/YR]
             </marquee>
         </div>
         """
@@ -391,7 +319,7 @@ def render_data_entry_view():
         ticker_html = f"""
         <div style="background-color: #E6FFFA; padding: 12px; border-radius: 6px; border-left: 6px solid #00A389; margin-bottom: 25px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
             <marquee scrollamount="4" style="color: #006654; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-weight: bold; font-size: 13px; letter-spacing: 0.5px;">
-                🟢 STEM ACTIVE BLOCKADES // TOTAL RECLAIMED DEEP CASH SAVINGS: £{(operational_annual_savings + opportunity_savings_captured):,.0f}/YR ••• [ENERGY BILL REDUCTIONS: £{total_copper_savings_captured:,.0f}/YR] ••• [DEPRECIATION RECOVERY: £{total_insulation_savings_captured:,.0f}/YR] ••• RISK INSULATED TO £0
+                🟢 STEM ACTIVE BLOCKADES // TOTAL RECLAIMED CASH SAVINGS: £{(operational_annual_savings + opportunity_savings_captured):,.0f}/YR ••• [ENERGY BILL REDUCTIONS: £{copper_savings_captured:,.0f}/YR] ••• [DEPRECIATION RECOVERY: £{insulation_savings_captured:,.0f}/YR] ••• RISK INSULATED TO £0
             </marquee>
         </div>
         """
@@ -441,20 +369,15 @@ def render_data_entry_view():
         )
 
         with tab_sld_sandbox:
-            if not st.session_state.sandbox_assets.empty:
-                discovered_branches = sorted(
-                    st.session_state.sandbox_assets["Plant Location"].unique().tolist()
-                )
-            else:
-                discovered_branches = []
-
-            available_remedial_targets = discovered_branches + [
-                "★ Centralised BESS & Hybrid UPS Array (Process Ride-Through Shield)"
-            ]
-
             st.multiselect(
                 label="🏛️ Select Steering Committee Target Deployment Nodes:",
-                options=available_remedial_targets,
+                options=[
+                    "Primary Intake Switchboard (Centralised Bay)",
+                    "Heavy Industrial Process Board (Panel B1)",
+                    "Motor Control Centre (MCC Panel B2)",
+                    "Auxiliary & Building Services (Panel B3)",
+                    "Local BESS & Hybrid UPS Array (Robotics Asset Protection)",
+                ],
                 key="selected_nodes",
             )
 
@@ -479,7 +402,7 @@ def render_data_entry_view():
 
             st.markdown(f"""
             #### 1. Financial Exposure & Opportunity Cost Assessment
-            The active asset framework currently carries an active annualised operational risk posture of **£{total_residual_leak:,.0f}/year** consisting of parallel downtime vulnerabilities, unmitigated energy friction, and accelerated hardware degradation. Based on an active line valuation of **£{st.session_state.prod_val:,.0f}/hour** and an average process calibration restart curve of **{st.session_state.restart_hrs:.1f} hours**, a single sub-cycle voltage sag event results in an immediate opportunity cost bottleneck loss of **£{single_event_loss:,.0f}**.
+            Ammanford Alloys currently carries an active annualised operational risk posture of **£{total_residual_leak:,.0f}/year** consisting of parallel downtime vulnerabilities, unmitigated energy friction, and accelerated hardware degradation. Based on an active line valuation of **£{st.session_state.prod_val:,.0f}/hour** and an average process calibration restart curve of **{st.session_state.restart_hrs:.1f} hours**, a single sub-cycle voltage sag event results in an immediate opportunity cost bottleneck loss of **£{single_event_loss:,.0f}**.
             
             #### 2. Technical Single Line Architecture Interventions
             To insulate the factory floor from macro grid volatility, the steering committee outlines the following physical network infrastructure modification:
@@ -487,7 +410,7 @@ def render_data_entry_view():
 
             if st.session_state.selected_nodes:
                 for node in st.session_state.selected_nodes:
-                    st.markdown(f"* 🟢 Deployed Active Remedial Element: **{node}**")
+                    st.markdown(f"* 🟢 Deployed Parallel Asset: **{node}**")
             else:
                 st.markdown(
                     "* ⚠️ **CRITICAL WARNING:** No mitigation assets active. The plant is fully exposed to incoming harmonic degradation and line trips."
@@ -600,14 +523,12 @@ def render_data_entry_view():
                 )
             with p_col2:
                 if st.button("💾 Save Project State", use_container_width=True):
-                    target_site_uid = "00000000-0000-0000-0000-000000000002"
-                    repo_writer = ProjectPersistenceRepository(db_engine=engine)
                     save_report = repo_writer.save_site_inventory_state(
                         target_site_uid, st.session_state.sandbox_assets
                     )
-
                     if save_report["status"] == "SUCCESS":
                         st.toast(save_report["message"], icon="✅")
+                        st.rerun()  # Force a dynamic interface update
                     else:
                         st.error(save_report["message"])
 
@@ -667,6 +588,26 @@ def render_data_entry_view():
                 "Upload an interval log file stream to cross-reference your surveyor checklist totals "
                 "against actual peak utility demands."
             )
+
+            with st.expander("📝 View Required CSV Header Schema Spec", expanded=False):
+                st.markdown("""
+                The ingestion data pipeline expects a CSV file containing three continuous headers:
+                * **`timestamp`**: Scheduled date-time strings (`YYYY-MM-DD HH:MM:SS`)
+                * **`active_kwh`**: Total active energy registered in the 30-min settlement block
+                * **`reactive_kvarh`**: Total reactive energy registered in the 30-min settlement block
+                """)
+                dummy_df = pd.DataFrame(
+                    {
+                        "timestamp": [
+                            "2026-06-22 06:00:00",
+                            "2026-06-22 06:30:00",
+                            "2026-06-22 07:00:00",
+                        ],
+                        "active_kwh": [40.0, 42.0, 95.0],
+                        "reactive_kvarh": [20.0, 21.0, 45.0],
+                    }
+                )
+                st.dataframe(dummy_df, hide_index=True)
 
             uploaded_amr = st.file_uploader(
                 "Ingest Smart Meter Profile Logs (.csv)",
@@ -861,13 +802,13 @@ def render_data_entry_view():
                 client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
 
                 if not st.session_state.sandbox_assets.empty:
-                    df_inv_matrix = st.session_state.sandbox_assets
-                    headers = list(df_inv_matrix.columns)
+                    df_inv = st.session_state.sandbox_assets
+                    headers = list(df_inv.columns)
                     markdown_lines = [
                         "| " + " | ".join(headers) + " |",
                         "| " + " | ".join(["---"] * len(headers)) + " |",
                     ]
-                    for _, row in df_inv_matrix.iterrows():
+                    for _, row in df_inv.iterrows():
                         markdown_lines.append(
                             "| " + " | ".join(str(row[h]) for h in headers) + " |"
                         )
@@ -893,7 +834,7 @@ def render_data_entry_view():
                 LIVE FACILITY DATA OVERVIEW:
                 - Deployed Active Shunt Nodes: {st.session_state.selected_nodes}
                 - Hourly Plant Production Value: £{st.session_state.prod_val:,.0f} / hr
-                - Process Reset Loop Duration: {st.session_state.restart_hrs} hours
+                - Process Reset Loop Downtime: {st.session_state.restart_hrs} hours
                 - Single Interruption Interruption Cost: £{single_event_loss:,.0f}
                 - Annualised Risk Exposure: £{total_residual_leak:,.0f} / yr
                 - Expected Annual Insurance Premium Reduction: {insurance_credit}
@@ -929,24 +870,11 @@ def render_data_entry_view():
                         types.Part.from_bytes(data=att_bytes, mime_type=att_mime)
                     )
                     contents_payload.append(
-                        "An attached drawing file is present. You are commanded to execute an engineering-grade deep-dive "
-                        "hierarchical audit on its canvas geometry. Zoom your attention vectors directly into the "
-                        "dense low-voltage sub-breaker networks, interlocking ties, metering configurations, and switchboard line items "
-                        "on the lower sections. Map specific load discoveries straight back to the user query parameters."
+                        "Analyse this attached drawing file directly as part of the conversation context. "
+                        "Cross-reference its contents with the user's natural prompt query below."
                     )
 
                 contents_payload.append(user_prompt)
-
-                engineering_instruction_layer = """
-                You are a senior power systems auditing engineer and cost consultant. Speak with professional, boardroom-ready authority. 
-                
-                Whenever analyzing or conversing about an uploaded drawing canvas, you must reject shallow, macro-level observations. You are instructed to systematically execute a multi-pass hierarchical audit:
-                - Pass 1: Isolate primary incoming transformers, voltage parameters, and protection modules (e.g., SEPAM relays).
-                - Pass 2: Delve into dense low-voltage cluster divisions. Map the circuit breaker switchgears (ACBs/MCCBs), interlocking safety links, and instrumentation lines line-by-line.
-                - Pass 3: Link individual equipment load branches directly to their downstream corporate risk profiles and accelerated straight-line depreciation penalties.
-                
-                Never provide generic placeholders or robotic disclaimers. Use proper UK English spelling standards exclusively.
-                """
 
                 response = client.models.generate_content(
                     model="gemini-2.5-flash",
@@ -954,7 +882,7 @@ def render_data_entry_view():
                     config=types.GenerateContentConfig(
                         tools=[update_electrical_mitigation_nodes],
                         temperature=0.15,
-                        system_instruction=engineering_instruction_layer,
+                        system_instruction="You are a brilliant cost consultant and systems-thinking power engineer. Speak with professional, boardroom-ready authority. Address specific asset tags dynamically. Never give canned robotic disclaimers.",
                     ),
                 )
 
