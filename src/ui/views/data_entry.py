@@ -46,6 +46,7 @@ def generate_dynamic_sld_graph(df: pd.DataFrame, selected_mitigations: list) -> 
         "",
     ]
 
+    # Render centralized active filter block if chosen by committee
     if any("Primary Intake" in str(node) for node in selected_mitigations):
         dot_nodes.append(
             '  SUB_STEM_CENTRAL [label="🛡️ STEM OPTIMISATION BAY\\nCentralised Filtering Matrix", fillcolor="#D4EDDA", color="#28A745", style="filled,bold", penwidth=2.5];'
@@ -87,6 +88,7 @@ def generate_dynamic_sld_graph(df: pd.DataFrame, selected_mitigations: list) -> 
         if not clean_id or clean_id == "____":
             continue
 
+        # Apply a visual signifier to node labels if their local host panel branch is mitigated
         is_mitigated = loc in selected_mitigations
         mit_label = " [MITIGATED]" if is_mitigated else ""
 
@@ -110,6 +112,7 @@ def generate_dynamic_sld_graph(df: pd.DataFrame, selected_mitigations: list) -> 
         else:
             aux_assets.append(asset_tuple)
 
+    # 1. Heavy Process Board Subgraph
     dot_nodes.append("  subgraph cluster_heavy {")
     dot_nodes.append('    label="⚡ Heavy Industrial Process Board";')
     dot_nodes.append(
@@ -128,6 +131,7 @@ def generate_dynamic_sld_graph(df: pd.DataFrame, selected_mitigations: list) -> 
         last_id = cid
     dot_nodes.append("  }")
 
+    # 2. Automated Drives MCC Subgraph
     dot_nodes.append("  subgraph cluster_drives {")
     dot_nodes.append('    label="⚙️ Motor Control Centre (MCC)";')
     dot_nodes.append(
@@ -154,6 +158,7 @@ def generate_dynamic_sld_graph(df: pd.DataFrame, selected_mitigations: list) -> 
         last_id = cid
     dot_nodes.append("  }")
 
+    # 3. Auxiliary Infrastructure Subgraph
     dot_nodes.append("  subgraph cluster_aux {")
     dot_nodes.append('    label="🏢 Auxiliary & Building Services";')
     dot_nodes.append(
@@ -192,16 +197,21 @@ def render_data_entry_view():
     """
     repo_engine = ProjectPersistenceRepository(db_engine=engine)
 
-    # Extract identity signature parameters directly from session authentication matrices
-    active_user = st.session_state.get("username", "accountant_md").strip()
-
     # ==========================================================================
-    # 📁 SIDEBAR WORKSPACE EXPIDER CONTROLLER (MULTI-PROJECT SAVING LAYER)
+    # 📁 ADAPTIVE SIDEBAR WORKSPACE EXPANDED CONTROLLER (ACCESS-KEY ALIGNED)
     # ==========================================================================
     with st.sidebar.expander("📁 Project Workspace Manager", expanded=True):
-        st.markdown(f"**Logged in as:** `{active_user}`")
+        # 🚀 RE-DESIGN ADAPTATION: Allow user to self-identify via an agile text input field
+        active_user_handle = (
+            st.text_input(
+                "User Identity Initials / Handle:",
+                value="MD",
+                help="Type your unique initials or corporate role string to partition your project profiles.",
+            )
+            .strip()
+            .lower()
+        )
 
-        # Pull active database records to populate choice list arrays dynamically
         existing_records = repo_engine.fetch_all_registered_workspaces()
         workspace_names = [record["site_name"] for record in existing_records]
 
@@ -217,16 +227,17 @@ def render_data_entry_view():
         else:
             target_project_name = selected_menu_item
 
-        # 🧠 CRITICAL STEP: Compute a deterministic UUID based on username + project name combined
-        # This completely ensures project separation without requiring manual table schema edits!
-        derived_namespace_salt = f"{active_user}_{target_project_name.strip().lower()}"
+        # Compute deterministic UUID based on custom User Handle + Project Name combined
+        derived_namespace_salt = (
+            f"{active_user_handle}_{target_project_name.strip().lower()}"
+        )
         active_site_uid_str = str(
             uuid.uuid5(uuid.NAMESPACE_DNS, derived_namespace_salt)
         )
 
-        st.caption(f"**Deterministic Workspace Router UUID:**\n`{active_site_uid_str}`")
+        st.caption(f"**Deterministic Workspace UUID:**\n`{active_site_uid_str}`")
 
-    # Force a state refresh if the user toggles to a completely separate workspace profile
+    # Force view hydration if layout state changes or switches boundaries
     if (
         "current_loaded_project" not in st.session_state
         or st.session_state.current_loaded_project != target_project_name
@@ -263,7 +274,7 @@ def render_data_entry_view():
         )
 
     # ==========================================================================
-    # 🧮 SYSTEMIC INEFFICIENCY EVALUATION LOOPS
+    # 🧮 DEEP-DIVE SYSTEMIC INEFFICIENCY EVALUATION LOOPS
     # ==========================================================================
     unmitigated_technical_bleed = 0.0
     mitigated_technical_bleed = 0.0
@@ -375,7 +386,7 @@ def render_data_entry_view():
 
             mitigated_technical_bleed += row_mit_total_bleed
         else:
-            mitigated_technical_bleed += row_base_total_bleed
+            mitigated_technical_bleed += row_base_bleed
 
     single_event_loss = st.session_state.prod_val * st.session_state.restart_hrs
     total_unmitigated_opportunity_cost = (
@@ -413,7 +424,7 @@ def render_data_entry_view():
         ticker_html = f"""
         <div style="background-color: #FCE8E6; padding: 12px; border-radius: 6px; border-left: 6px solid #D9272E; margin-bottom: 25px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
             <marquee scrollamount="5" style="color: #A81C1C; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-weight: bold; font-size: 13px; letter-spacing: 0.5px;">
-                🚨 STEM LIVE THREAT INVENTORY // ACTIVE WORKSPACE: [{target_project_name.upper()}] // TOTAL RESIDUAL FACILITY BLEED: £{total_residual_leak:,.0f}/YR ••• [CORE INEFFICIENCIES: £{(total_copper_savings_captured + total_transformer_savings_captured + total_hvac_savings_captured):,.0f}/YR] ••• [MECHANICAL TORQUE DRAG & PENALTIES: £{(total_insulation_savings_captured + total_counter_torque_savings_captured + total_reactive_penalty_savings_captured):,.0f}/YR]
+                🚨 STEM LIVE THREAT INVENTORY // ACTIVE WORKSPACE: [{target_project_name.upper()}] // USER DELEGATE: [{active_user_handle.upper()}] // TOTAL RESIDUAL FACILITY BLEED: £{total_residual_leak:,.0f}/YR ••• [CORE INEFFICIENCIES: £{(total_copper_savings_captured + total_transformer_savings_captured + total_hvac_savings_captured):,.0f}/YR] ••• [MECHANICAL TORQUE DRAG & PENALTIES: £{(total_insulation_savings_captured + total_counter_torque_savings_captured + total_reactive_penalty_savings_captured):,.0f}/YR]
             </marquee>
         </div>
         """
@@ -421,7 +432,7 @@ def render_data_entry_view():
         ticker_html = f"""
         <div style="background-color: #E6FFFA; padding: 12px; border-radius: 6px; border-left: 6px solid #00A389; margin-bottom: 25px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
             <marquee scrollamount="4" style="color: #006654; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-weight: bold; font-size: 13px; letter-spacing: 0.5px;">
-                🟢 STEM ACTIVE BLOCKADES // WORKSPACE '{target_project_name}' SECURED // TOTAL RECLAIMED DEEP CASH SAVINGS: £{(operational_annual_savings + opportunity_savings_captured):,.0f}/YR ••• RISK INSULATED TO £0
+                🟢 STEM ACTIVE BLOCKADES // WORKSPACE '{target_project_name}' SECURED BY USER '{active_user_handle.upper()}' // TOTAL RECLAIMED DEEP CASH SAVINGS: £{(operational_annual_savings + opportunity_savings_captured):,.0f}/YR ••• RISK INSULATED TO £0
             </marquee>
         </div>
         """
@@ -582,8 +593,8 @@ def render_data_entry_view():
             p_col1, p_col2 = st.columns([3, 1])
             with p_col1:
                 st.caption(
-                    f"Commit the current transient memory grid configuration down to the secure Neon SQL database under your unique account "
-                    f"profile layer. This state will be locked persistently under workspace UUID node code configuration row map index details."
+                    f"Commit the current transient memory grid configuration down to the secure Neon SQL database under your user account "
+                    f"profile. This project configuration state remains partitioned cleanly under UUID namespace structures."
                 )
             with p_col2:
                 if st.button("💾 Save Project State", use_container_width=True):
@@ -715,7 +726,7 @@ def render_data_entry_view():
                     serialized_sld_matrix = "No nodes."
 
                 system_context = f"""
-                You are the master STEM Power Quality AI Agent. Active project workspace name context: '{target_project_name}' assigned to owner username root node: '{active_user}'.
+                You are the master STEM Power Quality AI Agent. Active project workspace name context: '{target_project_name}' assigned to user handle: '{active_user_handle}'.
                 - Deployed Active Shunt Nodes: {st.session_state.selected_nodes}
                 - Total Active Workspace Risk Leak: £{total_residual_leak:,.0f} / yr
                 
