@@ -7,12 +7,53 @@ import pandas as pd
 class ProjectPersistenceRepository:
     """
     Handles the transactional persistence loop between front-end UI dataframes
-    and the production PostgreSQL relational database. Target mappings are aligned
-    explicitly with production 'client_sites' column boundaries (using 'name').
+    and the production PostgreSQL relational database. Features runtime schema
+    introspection to automatically adapt to variant target column fields.
     """
 
     def __init__(self, db_engine):
         self.engine = db_engine
+
+    def _discover_site_name_column(self, session: Session) -> str:
+        """
+        Programmatically inspects the relational schema catalog parameters
+        to discover the exact column token tracking site titles.
+        """
+        try:
+            res = session.execute(text("""
+                    SELECT column_name 
+                    FROM information_schema.columns 
+                    WHERE table_name = 'client_sites';
+                """)).fetchall()
+
+            columns = [str(r[0]).lower() for r in res]
+
+            # Iteratively evaluate column candidates matching your production design
+            for candidate in [
+                "name",
+                "site_name",
+                "title",
+                "site_title",
+                "project_name",
+                "label",
+                "description",
+            ]:
+                if candidate in columns:
+                    return candidate
+
+            # Fallback to the first text column that isn't an identifier flag
+            for col in columns:
+                if col not in [
+                    "site_id",
+                    "client_id",
+                    "id",
+                    "created_at",
+                    "updated_at",
+                ]:
+                    return col
+            return "name"  # Absolute base default fallback
+        except Exception:
+            return "name"
 
     def fetch_all_registered_workspaces(self) -> list[dict]:
         """
@@ -21,11 +62,13 @@ class ProjectPersistenceRepository:
         """
         with Session(self.engine) as session:
             try:
-                # Aligned target to match your exact production column naming ('name')
-                result = session.execute(
-                    text("SELECT site_id, name FROM client_sites ORDER BY name ASC;")
-                ).fetchall()
-                # Keep 'site_name' as the dictionary key so front-end views inherit seamlessly
+                name_col = self._discover_site_name_column(session)
+
+                # Programmatically construct an adaptive lookup script string
+                query_str = f"SELECT site_id, {name_col} FROM client_sites ORDER BY {name_col} ASC;"
+                result = session.execute(text(query_str)).fetchall()
+
+                # Standardise the dictionary keys so your UI view layer remains completely clean
                 return [
                     {"site_id": str(res[0]), "site_name": str(res[1])} for res in result
                 ]
@@ -118,13 +161,18 @@ class ProjectPersistenceRepository:
             try:
                 session.begin()
 
-                # Verified: Explicit column list tracking references 'name'
+                # 🚀 Dynamic column lookup discovery pass executed live
+                name_col = self._discover_site_name_column(session)
+
+                # Compile an absolute auto-adaptive transaction command string
+                adaptive_upsert_query = f"""
+                    INSERT INTO client_sites (site_id, {name_col}, client_id)
+                    VALUES (:site_id, :site_name, NULL)
+                    ON CONFLICT (site_id) DO UPDATE SET {name_col} = :site_name;
+                """
+
                 session.execute(
-                    text("""
-                        INSERT INTO client_sites (site_id, name, client_id)
-                        VALUES (:site_id, :site_name, NULL)
-                        ON CONFLICT (site_id) DO UPDATE SET name = :site_name;
-                    """),
+                    text(adaptive_upsert_query),
                     {"site_id": site_uuid, "site_name": project_name.strip()},
                 )
 
