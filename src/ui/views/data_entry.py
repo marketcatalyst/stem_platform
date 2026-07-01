@@ -195,6 +195,33 @@ def render_data_entry_view():
     executive ribbons, and a fully parameter-aware conversational Gemini co-pilot engine.
     """
     repo_engine = ProjectPersistenceRepository(db_engine=engine)
+
+    # ==========================================================================
+    # 🛡️ APEX STATE HYDRATION MATRIX (ELIMINATES STREAMLIT RACE CONDITIONS)
+    # ==========================================================================
+    if "copilot_history" not in st.session_state:
+        st.session_state["copilot_history"] = [
+            {
+                "role": "assistant",
+                "text": "👋 Welcome to the upgraded STEM Executive Portal. I am synced with your plant parameters, macro opportunity-cost models, and insurance premium risk curves. Let's optimise the network's financial engineering.",
+            }
+        ]
+
+    if "selected_nodes" not in st.session_state:
+        st.session_state.selected_nodes = []
+
+    if "prod_val" not in st.session_state:
+        st.session_state.prod_val = 150000
+
+    if "restart_hrs" not in st.session_state:
+        st.session_state.restart_hrs = 4.0
+
+    if "annual_events" not in st.session_state:
+        st.session_state.annual_events = 3
+
+    # ==========================================================================
+    # 📁 PROJECT WORKSPACE MANAGER CONTROLLER
+    # ==========================================================================
     active_user_handle = (
         st.sidebar.text_input(
             "User Identity Initials / Handle:",
@@ -205,9 +232,6 @@ def render_data_entry_view():
         .lower()
     )
 
-    # ==========================================================================
-    # 📁 PROJECT WORKSPACE MANAGER SELECTOR
-    # ==========================================================================
     existing_records = repo_engine.fetch_all_registered_workspaces()
     workspace_names = [record["site_name"] for record in existing_records]
 
@@ -229,6 +253,7 @@ def render_data_entry_view():
     active_site_uid_str = str(uuid.uuid5(uuid.NAMESPACE_DNS, derived_namespace_salt))
     st.sidebar.caption(f"**Deterministic Workspace UUID:**\n`{active_site_uid_str}`")
 
+    # Handle selective dynamic dataset hydration safely
     if (
         "current_loaded_project" not in st.session_state
         or st.session_state.current_loaded_project != target_project_name
@@ -240,6 +265,9 @@ def render_data_entry_view():
             st.session_state.sandbox_assets = df_hydrated_session
         else:
             st.session_state.sandbox_assets = load_ammanford_alloys_dataset()
+
+    if "sandbox_assets" not in st.session_state:
+        st.session_state.sandbox_assets = load_ammanford_alloys_dataset()
 
     with st.sidebar.expander("💼 Macro Facility Variables", expanded=False):
         st.number_input(
@@ -265,7 +293,7 @@ def render_data_entry_view():
         )
 
     # ==========================================================================
-    # 🧮 DEEP-DIVE SYSTEMIC INEFFICIENCY EVALUATION LOOPS
+    # 🧮 SYSTEMIC INEFFICIENCY EVALUATION LOOPS
     # ==========================================================================
     unmitigated_technical_bleed = 0.0
     mitigated_technical_bleed = 0.0
@@ -377,7 +405,6 @@ def render_data_entry_view():
 
             mitigated_technical_bleed += row_mit_total_bleed
         else:
-            # 🛠️ FIXED: Replaced "row_base_bleed" naming footprint with explicit matching token variable identifier
             mitigated_technical_bleed += row_base_total_bleed
 
     single_event_loss = st.session_state.prod_val * st.session_state.restart_hrs
@@ -686,7 +713,9 @@ def render_data_entry_view():
         st.markdown("### 🧠 STEM AI Co-Pilot Console")
         chat_container = st.container(height=450)
         with chat_container:
-            for message in st.session_state.copilot_history:
+            # 🛡️ BULLETPROOF WORKSPACE PROTECTION: Use dynamic safety dictionary reads
+            active_chat_stream = st.session_state.get("copilot_history", [])
+            for message in active_chat_stream:
                 with st.chat_message(message["role"]):
                     st.markdown(message["text"])
 
@@ -749,7 +778,7 @@ def render_data_entry_view():
                             st.session_state.copilot_history.append(
                                 {
                                     "role": "assistant",
-                                    "text": f"🤖 **AI Action Executed:**\n`{execution_result}`",
+                                    "text": f"🤖 **AI Action Executed:**\n``{execution_result}``",
                                 }
                             )
                 else:
@@ -763,8 +792,21 @@ def render_data_entry_view():
                     )
 
             except Exception as e:
-                st.session_state.copilot_history.append(
-                    {"role": "assistant", "text": f"❌ **Co-Pilot Error:** `{str(e)}`"}
-                )
+                error_str = str(e)
+                if "429" in error_str or "RESOURCE_EXHAUSTED" in error_str:
+                    st.session_state.copilot_history.append(
+                        {
+                            "role": "assistant",
+                            "text": "⚠️ **Gemini API Free Tier Quota Exhausted (Error 429):**\n\nThe local session has exceeded the standard free request volume allowed for the `gemini-2.5-flash` endpoint. Please retry in 16 seconds.",
+                        }
+                    )
+                else:
+                    st.session_state.copilot_history.append(
+                        {
+                            "role": "assistant",
+                            "text": f"❌ **Co-Pilot Error:** `{str(e)}`",
+                        }
+                    )
 
+            st.sidebar.caption("State updated.")
             st.rerun()
