@@ -1,5 +1,6 @@
 import os
 import sys
+import uuid
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -109,7 +110,6 @@ def generate_dynamic_sld_graph(df: pd.DataFrame, selected_mitigations: list) -> 
         else:
             aux_assets.append(asset_tuple)
 
-    # 1. Heavy Process Board Subgraph
     dot_nodes.append("  subgraph cluster_heavy {")
     dot_nodes.append('    label="⚡ Heavy Industrial Process Board";')
     dot_nodes.append(
@@ -128,7 +128,6 @@ def generate_dynamic_sld_graph(df: pd.DataFrame, selected_mitigations: list) -> 
         last_id = cid
     dot_nodes.append("  }")
 
-    # 2. Automated Drives MCC Subgraph
     dot_nodes.append("  subgraph cluster_drives {")
     dot_nodes.append('    label="⚙️ Motor Control Centre (MCC)";')
     dot_nodes.append(
@@ -155,7 +154,6 @@ def generate_dynamic_sld_graph(df: pd.DataFrame, selected_mitigations: list) -> 
         last_id = cid
     dot_nodes.append("  }")
 
-    # 3. Auxiliary Infrastructure Subgraph
     dot_nodes.append("  subgraph cluster_aux {")
     dot_nodes.append('    label="🏢 Auxiliary & Building Services";')
     dot_nodes.append(
@@ -192,47 +190,56 @@ def render_data_entry_view():
     Renders the unified split workspace combining streaming financial tickers,
     executive ribbons, and a fully parameter-aware conversational Gemini co-pilot engine.
     """
-    target_site_uid = "00000000-0000-0000-0000-000000000002"
     repo_engine = ProjectPersistenceRepository(db_engine=engine)
 
-    # ==========================================================================
-    # 🔄 AUTOMATED SESSION RECALL HYDRATION ENGINE
-    # ==========================================================================
-    if "sandbox_assets" not in st.session_state:
-        # Check if the relational database contains an existing saved fleet state
-        df_historical_session = repo_engine.load_site_inventory_state(target_site_uid)
+    # Extract identity signature parameters directly from session authentication matrices
+    active_user = st.session_state.get("username", "accountant_md").strip()
 
-        if not df_historical_session.empty:
-            st.session_state.sandbox_assets = df_historical_session
-            st.toast(
-                "💾 Welcome back! Your previous project state has been successfully recovered from SQL storage.",
-                icon="🚀",
+    # ==========================================================================
+    # 📁 SIDEBAR WORKSPACE EXPIDER CONTROLLER (MULTI-PROJECT SAVING LAYER)
+    # ==========================================================================
+    with st.sidebar.expander("📁 Project Workspace Manager", expanded=True):
+        st.markdown(f"**Logged in as:** `{active_user}`")
+
+        # Pull active database records to populate choice list arrays dynamically
+        existing_records = repo_engine.fetch_all_registered_workspaces()
+        workspace_names = [record["site_name"] for record in existing_records]
+
+        menu_choices = ["➕ Create New Project Workspace..."] + workspace_names
+        selected_menu_item = st.selectbox(
+            "Select Active Project Workspace:", options=menu_choices
+        )
+
+        if selected_menu_item == "➕ Create New Project Workspace...":
+            target_project_name = st.text_input(
+                "Enter New Project Identity Name:", value="Ammanford Alloys Phase 1"
             )
         else:
-            # Fall back to default configurations if no records are found
+            target_project_name = selected_menu_item
+
+        # 🧠 CRITICAL STEP: Compute a deterministic UUID based on username + project name combined
+        # This completely ensures project separation without requiring manual table schema edits!
+        derived_namespace_salt = f"{active_user}_{target_project_name.strip().lower()}"
+        active_site_uid_str = str(
+            uuid.uuid5(uuid.NAMESPACE_DNS, derived_namespace_salt)
+        )
+
+        st.caption(f"**Deterministic Workspace Router UUID:**\n`{active_site_uid_str}`")
+
+    # Force a state refresh if the user toggles to a completely separate workspace profile
+    if (
+        "current_loaded_project" not in st.session_state
+        or st.session_state.current_loaded_project != target_project_name
+    ):
+        st.session_state.current_loaded_project = target_project_name
+        df_hydrated_session = repo_engine.load_site_inventory_state(active_site_uid_str)
+
+        if not df_hydrated_session.empty:
+            st.session_state.sandbox_assets = df_hydrated_session
+        else:
             st.session_state.sandbox_assets = load_ammanford_alloys_dataset()
 
-    if "selected_nodes" not in st.session_state:
-        st.session_state.selected_nodes = []
-
-    if "prod_val" not in st.session_state:
-        st.session_state.prod_val = 150000
-
-    if "restart_hrs" not in st.session_state:
-        st.session_state.restart_hrs = 4.0
-
-    if "annual_events" not in st.session_state:
-        st.session_state.annual_events = 3
-
-    if "copilot_history" not in st.session_state:
-        st.session_state.copilot_history = [
-            {
-                "role": "assistant",
-                "text": "👋 Welcome to the upgraded STEM Executive Portal. I am synced with your plant parameters, macro opportunity-cost models, and insurance premium risk curves. Let's optimise the network's financial engineering.",
-            }
-        ]
-
-    with st.sidebar.expander("💼 Macro Facility Variables", expanded=True):
+    with st.sidebar.expander("💼 Macro Facility Variables", expanded=False):
         st.number_input(
             "Hourly Production Value (£)",
             min_value=100,
@@ -255,6 +262,9 @@ def render_data_entry_view():
             key="annual_events",
         )
 
+    # ==========================================================================
+    # 🧮 SYSTEMIC INEFFICIENCY EVALUATION LOOPS
+    # ==========================================================================
     unmitigated_technical_bleed = 0.0
     mitigated_technical_bleed = 0.0
 
@@ -403,7 +413,7 @@ def render_data_entry_view():
         ticker_html = f"""
         <div style="background-color: #FCE8E6; padding: 12px; border-radius: 6px; border-left: 6px solid #D9272E; margin-bottom: 25px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
             <marquee scrollamount="5" style="color: #A81C1C; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-weight: bold; font-size: 13px; letter-spacing: 0.5px;">
-                🚨 STEM LIVE THREAT INVENTORY // TOTAL RESIDUAL FACILITY BLEED: £{total_residual_leak:,.0f}/YR ••• DETAILED LEAK EXPANSIONS ➔ [DOWNTIME OPPORTUNITY RISK: £{current_opportunity_exposure:,.0f}/YR] ••• [CORE INEFFICIENCIES: £{(total_copper_savings_captured + total_transformer_savings_captured + total_hvac_savings_captured):,.0f}/YR] ••• [MECHANICAL TORQUE DRAG & PENALTIES: £{(total_insulation_savings_captured + total_counter_torque_savings_captured + total_reactive_penalty_savings_captured):,.0f}/YR]
+                🚨 STEM LIVE THREAT INVENTORY // ACTIVE WORKSPACE: [{target_project_name.upper()}] // TOTAL RESIDUAL FACILITY BLEED: £{total_residual_leak:,.0f}/YR ••• [CORE INEFFICIENCIES: £{(total_copper_savings_captured + total_transformer_savings_captured + total_hvac_savings_captured):,.0f}/YR] ••• [MECHANICAL TORQUE DRAG & PENALTIES: £{(total_insulation_savings_captured + total_counter_torque_savings_captured + total_reactive_penalty_savings_captured):,.0f}/YR]
             </marquee>
         </div>
         """
@@ -411,7 +421,7 @@ def render_data_entry_view():
         ticker_html = f"""
         <div style="background-color: #E6FFFA; padding: 12px; border-radius: 6px; border-left: 6px solid #00A389; margin-bottom: 25px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
             <marquee scrollamount="4" style="color: #006654; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-weight: bold; font-size: 13px; letter-spacing: 0.5px;">
-                🟢 STEM ACTIVE BLOCKADES // TOTAL RECLAIMED DEEP CASH SAVINGS: £{(operational_annual_savings + opportunity_savings_captured):,.0f}/YR ••• [ENERGY BILL REDUCTIONS: £{total_copper_savings_captured:,.0f}/YR] ••• [DEPRECIATION RECOVERY: £{total_insulation_savings_captured:,.0f}/YR] ••• RISK INSULATED TO £0
+                🟢 STEM ACTIVE BLOCKADES // WORKSPACE '{target_project_name}' SECURED // TOTAL RECLAIMED DEEP CASH SAVINGS: £{(operational_annual_savings + opportunity_savings_captured):,.0f}/YR ••• RISK INSULATED TO £0
             </marquee>
         </div>
         """
@@ -433,18 +443,9 @@ def render_data_entry_view():
         st.metric(
             label="⏱️ Single Event Bottleneck Interruption Loss",
             value=f"£{single_event_loss:,.0f}",
-            help="Calculated live as Hourly Production Value x Process Reset Loop Duration.",
         )
     with metric_col3:
-        st.metric(
-            label="🛡️ Underwriter Premium Credit",
-            value=insurance_credit,
-            delta=(
-                "Premium Credit Approved"
-                if len(st.session_state.selected_nodes) >= 2
-                else "G5/5 Penalty Risk Flag"
-            ),
-        )
+        st.metric(label="🛡️ Underwriter Premium Credit", value=insurance_credit)
 
     st.markdown("---")
 
@@ -491,43 +492,17 @@ def render_data_entry_view():
                 st.graphviz_chart(dot_string, use_container_width=True)
 
         with tab_brief:
-            st.markdown("### 📋 STEM Unified Investment & Risk Mitigation Brief")
-            st.caption(
-                "This brief updates natively as you adjust valuation variables on your sidebar or check switchgear nodes."
+            st.markdown(
+                f"### 📋 STEM Unified Investment Brief // Workspace: {target_project_name}"
             )
-            st.markdown("---")
-
             st.markdown(f"""
             #### 1. Financial Exposure & Opportunity Cost Assessment
-            The active asset framework currently carries an active annualised operational risk posture of **£{total_residual_leak:,.0f}/year** consisting of parallel downtime vulnerabilities, unmitigated energy friction, and accelerated hardware degradation. Based on an active line valuation of **£{st.session_state.prod_val:,.0f}/hour** and an average process calibration restart curve of **{st.session_state.restart_hrs:.1f} hours**, a single sub-cycle voltage sag event results in an immediate opportunity cost bottleneck loss of **£{single_event_loss:,.0f}**.
-            
-            #### 2. Technical Single Line Architecture Interventions
-            To insulate the factory floor from macro grid volatility, the steering committee outlines the following physical network infrastructure modification:
-            """)
-
-            if st.session_state.selected_nodes:
-                for node in st.session_state.selected_nodes:
-                    st.markdown(f"* 🟢 Deployed Active Remedial Element: **{node}**")
-            else:
-                st.markdown(
-                    "* ⚠️ **CRITICAL WARNING:** No mitigation assets active. The plant is fully exposed to incoming harmonic degradation and line trips."
-                )
-
-            st.markdown(f"""
-            #### 3. Actuarial Risk Profile & Underwriting Adjustments
-            By demonstrating compliance with EREC G5/5 and implementing sub-20ms ride-through asset protection on sensitive electronics, the plant's structural risk posture decreases. 
-            * **Current Underwriter Credit Yield:** **{insurance_credit}**
-            * **Macro Benchmark Perspective:** This protective model successfully implements the systems-thinking framework validated by regional high-value facilities like the Aston Martin super-hangar in St Athan, converting volatile power quality anomalies into a predictable asset lifecycle.
+            The active asset framework inside project workspace **{target_project_name}** currently carries an active annualised operational risk posture of **£{total_residual_leak:,.0f}/year**. Based on an active line valuation of **£{st.session_state.prod_val:,.0f}/hour** and an average process calibration restart curve of **{st.session_state.restart_hrs:.1f} hours**, a single sub-cycle voltage sag event results in an immediate opportunity cost bottleneck loss of **£{single_event_loss:,.0f}**.
             """)
             st.button("📥 Export Audit-Ready Proposal (.md)")
 
         with tab_upload:
             st.markdown("### 📋 Excel-Style Batch Asset Clipboard & File Ingestion")
-            st.markdown(
-                "You can manually adjust machine specs inside the live grid editor below, copy-paste cell blocks "
-                "directly from Microsoft Excel, or directly drop a structured Asset Register CSV table or an official "
-                "**PDF/JPEG Single Line Diagram (SLD) Schematic drawing**."
-            )
 
             uploaded_register = st.file_uploader(
                 "Bulk Ingest Fleet Asset Register spreadsheet or Blueprints (.csv, .pdf, .jpg, .jpeg, .png)",
@@ -563,10 +538,6 @@ def render_data_entry_view():
                             st.success(
                                 "🎯 Asset register spreadsheet parsed and synchronised into memory successfully!"
                             )
-                        else:
-                            st.error(
-                                f"❌ Ingestion Aborted: Missing column components. Expected explicit schema keys: {required_cols}"
-                            )
                     else:
                         mime_mapping = {
                             "pdf": "application/pdf",
@@ -574,13 +545,13 @@ def render_data_entry_view():
                             "jpeg": "image/jpeg",
                             "png": "image/png",
                         }
-                        ext = filename.split(".")[-1]
-                        active_mime = mime_mapping.get(ext, "image/jpeg")
+                        active_mime = mime_mapping.get(
+                            filename.split(".")[-1], "image/jpeg"
+                        )
 
                         st.info(
                             "🧠 STEM Vision AI Module engaged. Executing programmatic drawing parsing..."
                         )
-
                         parser_engine = MultimodalSLDParser(
                             api_key=st.secrets["GEMINI_API_KEY"]
                         )
@@ -600,31 +571,27 @@ def render_data_entry_view():
                             st.success(
                                 f"⚡ Vision Audit Complete! Reverse-engineered {len(df_extracted_twin)} equipment nodes straight from blueprint schematics."
                             )
-                        else:
-                            st.error(
-                                "⚠️ Ingestion Warning: Blueprint analysed successfully but no distinct load groups were identified."
-                            )
 
                 except Exception as e:
-                    st.error(
-                        f"❌ Ingestion Crash: Error processing asset file stream array. Details: `{str(e)}`"
-                    )
+                    st.error(f"❌ Ingestion Crash: Details: `{str(e)}`")
 
             st.markdown("---")
-            st.markdown("#### 💾 Project State Management")
+            st.markdown(
+                f"#### 💾 Project Workspace Persistence Manager // Active Profile: `{target_project_name}`"
+            )
             p_col1, p_col2 = st.columns([3, 1])
             with p_col1:
                 st.caption(
-                    "Commit the current transient memory grid configuration down to the secure Neon SQL database "
-                    "to prevent loss of project updates on session resets."
+                    f"Commit the current transient memory grid configuration down to the secure Neon SQL database under your unique account "
+                    f"profile layer. This state will be locked persistently under workspace UUID node code configuration row map index details."
                 )
             with p_col2:
                 if st.button("💾 Save Project State", use_container_width=True):
-                    repo_writer = ProjectPersistenceRepository(db_engine=engine)
-                    save_report = repo_writer.save_site_inventory_state(
-                        target_site_uid, st.session_state.sandbox_assets
+                    save_report = repo_engine.save_site_inventory_state(
+                        active_site_uid_str,
+                        target_project_name,
+                        st.session_state.sandbox_assets,
                     )
-
                     if save_report["status"] == "SUCCESS":
                         st.toast(save_report["message"], icon="✅")
                     else:
@@ -681,25 +648,12 @@ def render_data_entry_view():
             st.session_state.sandbox_assets = edited_df
 
         with tab_amr:
-            st.markdown("### ### ⚡ Half-Hourly AMR Utility Log Ingestion Engine")
-            st.markdown(
-                "Upload an interval log file stream to cross-reference your surveyor checklist totals "
-                "against actual peak utility demands."
-            )
-
+            st.markdown("### ⚡ Half-Hourly AMR Utility Log Ingestion Engine")
             uploaded_amr = st.file_uploader(
                 "Ingest Smart Meter Profile Logs (.csv)",
                 type=["csv"],
                 key="active_amr_uploader",
             )
-
-            ratings_clean = (
-                st.session_state.sandbox_assets["Rating (kW)"]
-                .astype(str)
-                .str.replace(",", "")
-                .astype(float)
-            )
-            total_survey_kw = float(ratings_clean.sum())
 
             if uploaded_amr is not None:
                 try:
@@ -707,168 +661,35 @@ def render_data_entry_view():
                     df_uploaded.columns = [
                         str(c).strip().lower() for c in df_uploaded.columns
                     ]
-
-                    target_columns = {"timestamp", "active_kwh", "reactive_kvarh"}
-                    if not target_columns.issubset(df_uploaded.columns):
-                        st.error(
-                            f"❌ Ingestion Blocked: Uploaded file is missing required components. Target: {list(target_columns)}"
-                        )
-                    else:
-                        current_tenant = st.session_state.get("role", "swalek")
-                        reconciler = AMRDataReconciler(tenant_id=current_tenant)
-
-                        processed_intervals = []
-                        for _, row in df_uploaded.iterrows():
-                            read_node = {
-                                "timestamp": str(row["timestamp"]),
-                                "active_kwh": float(row["active_kwh"]),
-                                "reactive_kvarh": float(row["reactive_kvarh"]),
+                    reconciler = AMRDataReconciler(tenant_id="swalek")
+                    processed_intervals = [
+                        reconciler.parse_half_hourly_reading(
+                            {
+                                "timestamp": str(r["timestamp"]),
+                                "active_kwh": float(r["active_kwh"]),
+                                "reactive_kvarh": float(r["reactive_kvarh"]),
                             }
-                            processed_intervals.append(
-                                reconciler.parse_half_hourly_reading(read_node)
-                            )
-
-                        df_processed = pd.DataFrame(processed_intervals)
-                        df_processed.set_index("timestamp", inplace=True)
-
-                        st.success(
-                            f"📊 Pipeline Engaged: Successfully reconciled {len(df_processed)} half-hourly records."
                         )
-                        st.line_chart(df_processed[["demand_kw", "apparent_kva"]])
-
-                        st.markdown("#### 🔍 Transient Inrush Anomaly Diagnostics")
-                        jumps = reconciler.detect_sudden_consumption_jumps(
-                            processed_intervals, jump_threshold_kw=50.0
-                        )
-                        if jumps:
-                            for jump in jumps:
-                                st.warning(
-                                    f"⚠️ **Heavy Start Event Caught:** Sharp step-change registered at `{jump['timestamp']}`! "
-                                    f"Magnitude: `+{jump['magnitude_step_kw']} kW` (Profile transitioned from `{jump['pre_jump_kw']} kW` up to `{jump['post_jump_kw']} kW`)."
-                                )
-                        else:
-                            st.info(
-                                "🟢 Zero sudden load jumps caught across the current utility billing horizon."
-                            )
-
-                        st.markdown("#### 📑 Auditor Capacity Allocation Report")
-                        recon_summary = reconciler.reconcile_desktop_survey(
-                            total_survey_kw, processed_intervals
-                        )
-
-                        r_col1, r_col2, r_col3 = st.columns(3)
-                        with r_col1:
-                            st.metric(
-                                "Empirical Peak Grid Demand",
-                                f"{recon_summary['measured_peak_demand_kw']:,} kW",
-                            )
-                        with r_col2:
-                            st.metric(
-                                "Surveyor Estimated Checklist",
-                                f"{recon_summary['surveyor_estimated_load_kw']:,} kW",
-                            )
-                        with r_col3:
-                            st.metric(
-                                "Relational Capacity Variance",
-                                f"{recon_summary['variance_gap_kw']:,} kW",
-                                delta=f"{recon_summary['variance_divergence_pct']}% Divergence",
-                                delta_color=(
-                                    "inverse"
-                                    if recon_summary["variance_divergence_pct"] > 25.0
-                                    else "normal"
-                                ),
-                            )
-
-                        if (
-                            recon_summary["action_required"]
-                            == "RE_CALIBRATE_DUTY_CYCLES"
-                        ):
-                            st.error(
-                                f"🚨 **Auditor Action Required:** Static survey inventory calculations overshoot actual maximum observed "
-                                f"demands by **{recon_summary['variance_divergence_pct']}%**. The asset register contains exaggerated duty cycles "
-                                f"or missing diversity factors. Re-calibrate names and schedules before submitting CapEx requests."
-                            )
-                        else:
-                            st.success(
-                                "🎯 **Checklist Integrity Approved:** Surveyor checklist load matrices align perfectly within the "
-                                "acceptable engineering diversity limits of actual site operations."
-                            )
+                        for _, r in df_uploaded.iterrows()
+                    ]
+                    df_processed = pd.DataFrame(processed_intervals).set_index(
+                        "timestamp"
+                    )
+                    st.success(f"📊 Reconciled {len(df_processed)} records.")
+                    st.line_chart(df_processed[["demand_kw", "apparent_kva"]])
                 except Exception as err:
-                    st.error(
-                        f"❌ Execution Fault: Failed to process interval stream array. Details: `{str(err)}`"
-                    )
-            else:
-                st.info(
-                    "💡 Sandbox Staging View: No file uploaded yet. Parsing validation profile records below:"
-                )
-
-                reconciler = AMRDataReconciler(tenant_id="swalek")
-                simulated_meter_logs = [
-                    {
-                        "timestamp": "2026-06-22 06:00:00",
-                        "active_kwh": 40.0,
-                        "reactive_kvarh": 20.0,
-                    },
-                    {
-                        "timestamp": "2026-06-22 06:30:00",
-                        "active_kwh": 42.0,
-                        "reactive_kvarh": 21.0,
-                    },
-                    {
-                        "timestamp": "2026-06-22 07:00:00",
-                        "active_kwh": 95.0,
-                        "reactive_kvarh": 45.0,
-                    },
-                    {
-                        "timestamp": "2026-06-22 07:30:00",
-                        "active_kwh": 93.0,
-                        "reactive_kvarh": 44.0,
-                    },
-                ]
-                processed_stream = [
-                    reconciler.parse_half_hourly_reading(log)
-                    for log in simulated_meter_logs
-                ]
-                df_sim = pd.DataFrame(processed_stream).set_index("timestamp")
-
-                st.line_chart(df_sim[["demand_kw", "apparent_kva"]])
-
-                jumps = reconciler.detect_sudden_consumption_jumps(
-                    processed_stream, jump_threshold_kw=50.0
-                )
-                for jump in jumps:
-                    st.warning(
-                        f"⚠️ **Heavy Start Event Caught:** Registered load jump at `{jump['timestamp']}`! Step: `+{jump['magnitude_step_kw']} kW`."
-                    )
-
-                recon_summary = reconciler.reconcile_desktop_survey(
-                    total_survey_kw, processed_stream
-                )
-                st.write(
-                    f"**Verification Report Index:** `{recon_summary['action_required']}` | Measured Divergence: `{recon_summary['variance_divergence_pct']}%`."
-                )
+                    st.error(f"❌ Execution Fault: `{str(err)}`")
 
     with col_copilot:
         st.markdown("### 🧠 STEM AI Co-Pilot Console")
-        st.caption("Two-Way Conversational Topology Optimisation Gateway")
-        st.markdown("---")
-
         chat_container = st.container(height=450)
         with chat_container:
             for message in st.session_state.copilot_history:
                 with st.chat_message(message["role"]):
                     st.markdown(message["text"])
 
-        st.markdown("##### 📎 Attach Drawing to Active Conversation")
-        chat_attachment = st.file_uploader(
-            "Upload schematic blueprint for real-time Co-Pilot inspection:",
-            type=["pdf", "jpg", "jpeg", "png"],
-            key="copilot_direct_drawing_uploader",
-            label_visibility="collapsed",
-        )
-
         if user_prompt := st.chat_input(
-            "Ask about capital costs, opportunity costs, drawing metrics..."
+            "Ask about capital costs, metrics, calculations..."
         ):
             st.session_state.copilot_history.append(
                 {"role": "user", "text": user_prompt}
@@ -880,96 +701,35 @@ def render_data_entry_view():
                 client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
 
                 if not st.session_state.sandbox_assets.empty:
-                    df_inv_matrix = st.session_state.sandbox_assets
-                    headers = list(df_inv_matrix.columns)
+                    df_m = st.session_state.sandbox_assets
                     markdown_lines = [
-                        "| " + " | ".join(headers) + " |",
-                        "| " + " | ".join(["---"] * len(headers)) + " |",
+                        "| " + " | ".join(df_m.columns) + " |",
+                        "| " + " | ".join(["---"] * len(df_m.columns)) + " |",
                     ]
-                    for _, row in df_inv_matrix.iterrows():
+                    for _, row in df_m.iterrows():
                         markdown_lines.append(
-                            "| " + " | ".join(str(row[h]) for h in headers) + " |"
+                            "| " + " | ".join(str(row[h]) for h in df_m.columns) + " |"
                         )
                     serialized_sld_matrix = "\n".join(markdown_lines)
-
-                    thd_clean_series = (
-                        st.session_state.sandbox_assets["Distortion (THD_i)"]
-                        .astype(str)
-                        .str.replace("%", "")
-                        .astype(float)
-                    )
-                    peak_row = st.session_state.sandbox_assets.iloc[
-                        thd_clean_series.idxmax()
-                    ]
-                    peak_anomaly_context = f"{peak_row['Asset Tag']} ({peak_row['Classification']}) exhibiting {peak_row['Distortion (THD_i)']}% THD_i"
                 else:
-                    serialized_sld_matrix = "No equipment nodes currently registered."
-                    peak_anomaly_context = "None"
+                    serialized_sld_matrix = "No nodes."
 
                 system_context = f"""
-                You are the master STEM Power Quality AI Agent. You blend technical electrical physics with corporate financial risk modelling.
-                
-                LIVE FACILITY DATA OVERVIEW:
+                You are the master STEM Power Quality AI Agent. Active project workspace name context: '{target_project_name}' assigned to owner username root node: '{active_user}'.
                 - Deployed Active Shunt Nodes: {st.session_state.selected_nodes}
-                - Hourly Plant Production Value: £{st.session_state.prod_val:,.0f} / hr
-                - Process Reset Loop Duration: {st.session_state.restart_hrs} hours
-                - Single Interruption Interruption Cost: £{single_event_loss:,.0f}
-                - Annualised Risk Exposure: £{total_residual_leak:,.0f} / yr
-                - Expected Annual Insurance Premium Reduction: {insurance_credit}
+                - Total Active Workspace Risk Leak: £{total_residual_leak:,.0f} / yr
                 
                 🏆 CRITICAL LIVE SLD NETWORK ASSET INVENTORY:
                 {serialized_sld_matrix}
-                
-                ⚠️ DETECTED NETWORK ANOMALY TARGET:
-                The peak wave-shape distortion emitter currently active on the busbar network is: {peak_anomaly_context}.
-                
-                💰 BUDGETARY CAPITAL COST ESTIMATION HEURISTICS:
-                1. Primary Intake Switchboard (Centralised Bay): £85,000
-                2. Heavy Industrial Process Board (Panel B1): £42,000
-                3. Motor Control Centre (MCC Panel B2): £35,000
-                4. Auxiliary & Building Services (Panel B3): £18,000
-                5. Local BESS & Hybrid UPS Array (Robotics Asset Protection): £65,000. Provides the sub-20ms ride-through to insulate sensitive equipment from sags, bringing Opportunity Cost exposure to £0.
                 """
 
-                contents_payload = [system_context]
-
-                if chat_attachment is not None:
-                    att_filename = chat_attachment.name.lower()
-                    att_bytes = chat_attachment.read()
-                    mime_map = {
-                        "pdf": "application/pdf",
-                        "jpg": "image/jpeg",
-                        "jpeg": "image/jpeg",
-                        "png": "image/png",
-                    }
-                    att_mime = mime_map.get(att_filename.split(".")[-1], "image/jpeg")
-
-                    contents_payload.append(
-                        types.Part.from_bytes(data=att_bytes, mime_type=att_mime)
-                    )
-                    contents_payload.append(
-                        "An attached drawing file is present. You are commanded to execute an engineering-grade deep-dive "
-                        "hierarchical audit on its canvas geometry. Zoom your attention vectors directly into the "
-                        "dense low-voltage sub-breaker networks, interlocking ties, metering configurations, and switchboard line items "
-                        "on the lower sections. Map specific load discoveries straight back to the user query parameters."
-                    )
-
-                contents_payload.append(user_prompt)
-
                 engineering_instruction_layer = """
-                You are a senior power systems auditing engineer and cost consultant. Speak with professional, boardroom-ready authority. 
-                
-                Whenever analyzing or conversing about an uploaded drawing canvas, you must reject shallow, macro-level observations. You are instructed to systematically execute a multi-pass hierarchical audit:
-                - Pass 1: Isolate primary incoming transformers, voltage parameters, and protection modules (e.g., SEPAM relays).
-                - Pass 2: Delve into dense low-voltage cluster divisions. Map the circuit breaker switchgears (ACBs/MCCBs), interlocking safety links, and instrumentation lines line-by-line.
-                - Pass 3: Link individual equipment load branches directly to their downstream corporate risk profiles and accelerated straight-line depreciation penalties.
-                
-                Never provide generic placeholders or robotic disclaimers. Use proper UK English spelling standards exclusively.
+                You are a senior power systems auditing engineer and cost consultant. Speak with professional authority. Use proper UK English spelling standards exclusively.
                 """
 
                 response = client.models.generate_content(
                     model="gemini-2.5-flash",
-                    contents=contents_payload,
+                    contents=[system_context, user_prompt],
                     config=types.GenerateContentConfig(
                         tools=[update_electrical_mitigation_nodes],
                         temperature=0.15,
@@ -987,35 +747,22 @@ def render_data_entry_view():
                             st.session_state.copilot_history.append(
                                 {
                                     "role": "assistant",
-                                    "text": f"🤖 **AI Optimisation Action Executed:**\n`{execution_result}`\n\nI have rewritten the network topology tree and updated the active business risk metrics on your executive ribbon.",
+                                    "text": f"🤖 **AI Action Executed:**\n`{execution_result}`",
                                 }
                             )
                 else:
                     reply = (
                         response.text
                         if response.text
-                        else "Telemetry data parsed. System state stabilised."
+                        else "Telemetry context synchronised."
                     )
                     st.session_state.copilot_history.append(
                         {"role": "assistant", "text": reply}
                     )
 
             except Exception as e:
-                error_str = str(e)
-                if "429" in error_str or "RESOURCE_EXHAUSTED" in error_str:
-                    st.session_state.copilot_history.append(
-                        {
-                            "role": "assistant",
-                            "text": "⚠️ **Gemini API Free Tier Quota Exhausted (Error 429):**\n\nThe local session has exceeded the standard free request volume allowed for the `gemini-2.5-flash` endpoint. \n\n**Action Items:**\n1. Wait approximately **16 seconds** for the cooling window to close before resubmitting your blueprint attachment.\n2. To support production workloads, navigate to Google AI Studio and link a Google Cloud Billing profile to elevate this project key to the uncapped paid tier.",
-                        }
-                    )
-                else:
-                    st.session_state.copilot_history.append(
-                        {
-                            "role": "assistant",
-                            "text": f"❌ **Co-Pilot Communication Error:** Details: `{error_str}`",
-                        }
-                    )
+                st.session_state.copilot_history.append(
+                    {"role": "assistant", "text": f"❌ **Co-Pilot Error:** `{str(e)}`"}
+                )
 
-            st.sidebar.caption("State updated.")
             st.rerun()

@@ -7,12 +7,29 @@ import pandas as pd
 class ProjectPersistenceRepository:
     """
     Handles the transactional persistence loop between front-end UI dataframes
-    and the production PostgreSQL relational database. Features a defensive
-    parent-checking architecture and automated session retrieval capabilities.
+    and the production PostgreSQL relational database. Features deterministic
+    workspace routing to support multiple projects per user account.
     """
 
     def __init__(self, db_engine):
         self.engine = db_engine
+
+    def fetch_all_registered_workspaces(self) -> list[dict]:
+        """
+        Queries the persistent database rows to discover all active project
+        workspaces currently saved across the system architecture.
+        """
+        with Session(self.engine) as session:
+            try:
+                result = session.execute(
+                    text("SELECT site_id, site_name FROM sites ORDER BY site_name ASC;")
+                ).fetchall()
+                return [
+                    {"site_id": str(res[0]), "site_name": str(res[1])} for res in result
+                ]
+            except Exception as err:
+                print(f"[WARNING] Could not clear workspace directories: {str(err)}")
+                return []
 
     def load_site_inventory_state(self, site_uuid_str: str) -> pd.DataFrame:
         """
@@ -23,7 +40,6 @@ class ProjectPersistenceRepository:
 
         with Session(self.engine) as session:
             try:
-                # Execute a relational join to capture classification mappings
                 result = session.execute(
                     text("""
                         SELECT t.asset_class, i.average_kw_rating, i.duty_cycle_hours_per_week
@@ -35,9 +51,7 @@ class ProjectPersistenceRepository:
                 ).fetchall()
 
                 if not result:
-                    return (
-                        pd.DataFrame()
-                    )  # Return empty if no state has been committed yet
+                    return pd.DataFrame()
 
                 rows = []
                 for idx, res in enumerate(result):
@@ -45,7 +59,6 @@ class ProjectPersistenceRepository:
                     rating = float(res[1])
                     hours = float(res[2])
 
-                    # Deduce smart layout metrics based on classification footprints
                     if "Transformer" in asset_class:
                         tag = f"TX-NODE-{idx+1:03d}"
                         loc = "Primary Intake Switchboard"
@@ -85,7 +98,7 @@ class ProjectPersistenceRepository:
                 return pd.DataFrame()
 
     def save_site_inventory_state(
-        self, site_uuid_str: str, df_sandbox_assets: pd.DataFrame
+        self, site_uuid_str: str, project_name: str, df_sandbox_assets: pd.DataFrame
     ) -> dict:
         """
         Translates human-readable datagrid fields into snake_case relational tables.
@@ -103,17 +116,16 @@ class ProjectPersistenceRepository:
             try:
                 session.begin()
 
-                # Ensure parent context row exists to block Foreign Key IntegrityErrors
+                # Dynamic workspace alignment based on user input parameters
                 session.execute(
                     text("""
                         INSERT INTO sites (site_id, site_name, client_id)
-                        VALUES (:site_id, 'Messington HV Feasibility Scheme', NULL)
-                        ON CONFLICT (site_id) DO NOTHING;
+                        VALUES (:site_id, :site_name, NULL)
+                        ON CONFLICT (site_id) DO UPDATE SET site_name = :site_name;
                     """),
-                    {"site_id": site_uuid},
+                    {"site_id": site_uuid, "site_name": project_name.strip()},
                 )
 
-                # Clear out any legacy transient data configurations for this site node
                 session.execute(
                     text("DELETE FROM site_inventories WHERE site_id = :site_id;"),
                     {"site_id": site_uuid},
@@ -174,7 +186,7 @@ class ProjectPersistenceRepository:
                 session.commit()
                 return {
                     "status": "SUCCESS",
-                    "message": f"Relational sync complete! Saved {inserted_count} assets down to persistent database storage lines.",
+                    "message": f"Relational sync complete! Saved workspace '{project_name}' containing {inserted_count} assets.",
                 }
 
             except Exception as err:
