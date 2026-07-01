@@ -32,12 +32,12 @@ class ProjectPersistenceRepository:
         Retrieves a complete checklist profile directory of all custom named
         projects active for the authenticated corporate tenant.
         """
-        tenant_uid = uuid.UUID(tenant_id_str)
-        query = "SELECT client_name FROM client_sites WHERE tenant_id = :tid ORDER BY client_name;"
-
+        query = "SELECT client_name FROM client_sites WHERE tenant_id = CAST(:tid AS UUID) ORDER BY client_name;"
         with Session(self.engine) as session:
             try:
-                res = session.execute(text(query), {"tid": tenant_uid}).fetchall()
+                res = session.execute(
+                    text(query), {"tid": str(tenant_id_str)}
+                ).fetchall()
                 return [str(row[0]) for row in res]
             except Exception as err:
                 print(
@@ -52,16 +52,15 @@ class ProjectPersistenceRepository:
         Resolves a project string name to its underlying unique relational database site key.
         If no profile exists matching the text, a new site row is dynamically provisioned.
         """
-        tenant_uid = uuid.UUID(tenant_id_str)
         clean_name = client_name_str.strip()
-
         with Session(self.engine) as session:
             try:
+                # 🚀 Enforcing explicit CAST boundaries to eliminate driver ambiguity
                 res = session.execute(
                     text(
-                        "SELECT site_id FROM client_sites WHERE tenant_id = :tid AND client_name = :name LIMIT 1;"
+                        "SELECT site_id FROM client_sites WHERE tenant_id = CAST(:tid AS UUID) AND client_name = :name LIMIT 1;"
                     ),
-                    {"tid": tenant_uid, "name": clean_name},
+                    {"tid": str(tenant_id_str), "name": clean_name},
                 ).fetchone()
 
                 if res:
@@ -71,11 +70,11 @@ class ProjectPersistenceRepository:
                 session.execute(
                     text("""
                         INSERT INTO client_sites (site_id, tenant_id, client_name, site_location, estimated_annual_spend, main_transformer_kva)
-                        VALUES (:site_id, :tenant_id, :client_name, 'Staged Engineering Zone', 0.00, 1000);
+                        VALUES (CAST(:site_id AS UUID), CAST(:tenant_id AS UUID), :client_name, 'Staged Engineering Zone', 0.00, 1000);
                     """),
                     {
-                        "site_id": new_site_id,
-                        "tenant_id": tenant_uid,
+                        "site_id": str(new_site_id),
+                        "tenant_id": str(tenant_id_str),
                         "client_name": clean_name,
                     },
                 )
@@ -93,8 +92,6 @@ class ProjectPersistenceRepository:
         Queries the persistent SQL database tables for saved inventory records
         belonging to a specific site facility node.
         """
-        site_uuid = uuid.UUID(site_uuid_str)
-
         query = """
             SELECT 
                 si.quantity,
@@ -104,12 +101,13 @@ class ProjectPersistenceRepository:
                 t.default_thd_i as "Distortion (THD_i)"
             FROM site_inventories si
             JOIN asset_taxonomy t ON si.asset_type_id = t.asset_type_id
-            WHERE si.site_id = :site_id;
+            WHERE si.site_id = CAST(:site_id AS UUID);
         """
-
         with Session(self.engine) as session:
             try:
-                result = session.execute(text(query), {"site_id": site_uuid}).fetchall()
+                result = session.execute(
+                    text(query), {"site_id": str(site_uuid_str)}
+                ).fetchall()
                 if not result:
                     return pd.DataFrame()
 
@@ -152,15 +150,15 @@ class ProjectPersistenceRepository:
                 "message": "Asset register is empty. Save bypassed.",
             }
 
-        site_uuid = uuid.UUID(site_uuid_str)
-
         with Session(self.engine) as session:
             try:
                 session.begin()
 
                 session.execute(
-                    text("DELETE FROM site_inventories WHERE site_id = :site_id;"),
-                    {"site_id": site_uuid},
+                    text(
+                        "DELETE FROM site_inventories WHERE site_id = CAST(:site_id AS UUID);"
+                    ),
+                    {"site_id": str(site_uuid_str)},
                 )
 
                 inserted_count = 0
@@ -200,12 +198,12 @@ class ProjectPersistenceRepository:
                     session.execute(
                         text("""
                             INSERT INTO site_inventories (inventory_id, site_id, asset_type_id, quantity, average_kw_rating, duty_cycle_hours_per_week)
-                            VALUES (:inventory_id, :site_id, :asset_type_id, 1, :rating, :hours);
+                            VALUES (CAST(:inventory_id AS UUID), CAST(:site_id AS UUID), CAST(:asset_type_id AS UUID), 1, :rating, :hours);
                         """),
                         {
-                            "inventory_id": uuid.uuid4(),
-                            "site_id": site_uuid,
-                            "asset_type_id": type_id,
+                            "inventory_id": str(uuid.uuid4()),
+                            "site_id": str(site_uuid_str),
+                            "asset_type_id": str(type_id),
                             "rating": rating,
                             "hours": hours,
                         },
