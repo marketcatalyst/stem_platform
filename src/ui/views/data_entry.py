@@ -241,14 +241,20 @@ def render_data_entry_view():
         )
 
     # ==========================================================================
-    # 🧮 TRUE DYNAMIC ROW-BY-ROW DIGITAL TWIN ENGINE LOOP (WALRUS REMOVED)
+    # 🧮 DEEP-DIVE TRIPARTITE HARMONIC INEFFICIENCY CORE EVALUATION LOOP
     # ==========================================================================
     unmitigated_technical_bleed = 0.0
     mitigated_technical_bleed = 0.0
+
     total_copper_savings_captured = 0.0
     total_insulation_savings_captured = 0.0
+    total_transformer_savings_captured = 0.0
+    total_counter_torque_savings_captured = 0.0
+    total_hvac_savings_captured = 0.0
+    total_reactive_penalty_savings_captured = 0.0
 
-    utility_rate = 0.22  # Standard high-value baseline tariff
+    utility_rate = 0.22  # Active energy consumption cost tariff (£/kWh)
+    kva_penalty_factor = 14.50  # Actuarial kVAR demand surcharge index factor
 
     for _, row in st.session_state.sandbox_assets.iterrows():
         try:
@@ -256,43 +262,105 @@ def render_data_entry_view():
             hours = float(row["Weekly Hrs"])
             thd_base = float(str(row["Distortion (THD_i)"]).replace("%", ""))
             loc = str(row["Plant Location"])
+            classification = str(row["Classification"])
         except (ValueError, KeyError):
             continue
 
-        # A. Compile Unmitigated Baseline Loss Loading
+        # A. RUN RELATIONAL BASELINE EXPANDED UNMITIGATED INEFFICIENCY MATRIX
         if thd_base > 5.0:
+            # 1. Fundamental core I²R Joule copper heating waste
             base_copper_waste_kwh = kw * ((thd_base / 100.0) * 0.048) * hours * 52
+            # 2. Local insulation degradation penalty curves
             base_insulation_penalty = kw * (thd_base / 100.0) * 12.50
+            # 3. Upstream Transformer Eddy Current & Stray Load Core Losses (K-Factor drag)
+            base_trans_waste_kwh = kw * ((thd_base / 100.0) ** 2 * 0.015) * hours * 52
+            # 4. Negative Sequence Harmonic Counter-Torque Magnetic Resistance
+            if any(m in classification for m in ["Motor", "VSD", "Drive", "Pump"]):
+                base_torque_waste_kwh = kw * (thd_base / 100.0) * 0.035 * hours * 52
+            else:
+                base_torque_waste_kwh = 0.0
+            # 5. Parasitic HVAC Switchroom Cooling Load (35% thermal dissipation energy overhead)
+            base_thermal_load_kwh = (
+                base_copper_waste_kwh
+                + base_trans_waste_kwh
+                + (base_torque_waste_kwh * 0.4)
+            )
+            base_hvac_waste_kwh = base_thermal_load_kwh * 0.35
+            # 6. Apparent Power (kVAR) Power Factor inflation penalty surcharge
+            base_reactive_penalty = (
+                kw * (thd_base / 100.0) * 0.12
+            ) * kva_penalty_factor
         else:
             base_copper_waste_kwh = 0.0
             base_insulation_penalty = 0.0
+            base_trans_waste_kwh = 0.0
+            base_torque_waste_kwh = 0.0
+            base_hvac_waste_kwh = 0.0
+            base_reactive_penalty = 0.0
 
-        row_base_bleed = (
-            base_copper_waste_kwh * utility_rate
-        ) + base_insulation_penalty
-        unmitigated_technical_bleed += row_base_bleed
+        row_base_total_bleed = (
+            (
+                base_copper_waste_kwh
+                + base_trans_waste_kwh
+                + base_torque_waste_kwh
+                + base_hvac_waste_kwh
+            )
+            * utility_rate
+            + base_insulation_penalty
+            + base_reactive_penalty
+        )
+        unmitigated_technical_bleed += row_base_total_bleed
 
-        # B. Check if this specific physical branch location has active cancellation engaged
+        # B. RUN DYNAMIC REMEDIAL ACTIVE FILTER CANCELLATION SUPPRESSION LOOP
         if loc in st.session_state.selected_nodes:
-            thd_mitigated = 3.0
+            thd_mitigated = 3.0  # Waveform actively suppressed back within nominal EREC G5/5 guidelines
+
             mit_copper_waste_kwh = (
                 kw * ((thd_mitigated / 100.0) * 0.048) * hours * 52
                 if thd_mitigated > 5.0
                 else 0.0
             )
             mit_insulation_penalty = 0.0
+            mit_trans_waste_kwh = (
+                kw * ((thd_mitigated / 100.0) ** 2 * 0.015) * hours * 52
+                if thd_mitigated > 5.0
+                else 0.0
+            )
+            mit_torque_waste_kwh = 0.0
+            mit_hvac_waste_kwh = (mit_copper_waste_kwh + mit_trans_waste_kwh) * 0.35
+            mit_reactive_penalty = 0.0
 
-            row_mit_bleed = (
-                mit_copper_waste_kwh * utility_rate
-            ) + mit_insulation_penalty
+            row_mit_total_bleed = (
+                (
+                    mit_copper_waste_kwh
+                    + mit_trans_waste_kwh
+                    + mit_torque_waste_kwh
+                    + mit_hvac_waste_kwh
+                )
+                * utility_rate
+                + mit_insulation_penalty
+                + mit_reactive_penalty
+            )
 
+            # Extract distinct financial delta values captured by the active injection block
             total_copper_savings_captured += (
                 base_copper_waste_kwh - mit_copper_waste_kwh
             ) * utility_rate
             total_insulation_savings_captured += base_insulation_penalty
-            mitigated_technical_bleed += row_mit_bleed
+            total_transformer_savings_captured += (
+                base_trans_waste_kwh - mit_trans_waste_kwh
+            ) * utility_rate
+            total_counter_torque_savings_captured += (
+                base_torque_waste_kwh * utility_rate
+            )
+            total_hvac_savings_captured += (
+                base_hvac_waste_kwh - mit_hvac_waste_kwh
+            ) * utility_rate
+            total_reactive_penalty_savings_captured += base_reactive_penalty
+
+            mitigated_technical_bleed += row_mit_total_bleed
         else:
-            mitigated_technical_bleed += row_base_bleed
+            mitigated_technical_bleed += row_base_total_bleed
 
     # C. Calculate Downtime Opportunity Bottlenecks
     single_event_loss = st.session_state.prod_val * st.session_state.restart_hrs
@@ -312,7 +380,12 @@ def render_data_entry_view():
     )
 
     operational_annual_savings = (
-        total_copper_savings_captured + total_insulation_savings_captured
+        total_copper_savings_captured
+        + total_insulation_savings_captured
+        + total_transformer_savings_captured
+        + total_counter_torque_savings_captured
+        + total_hvac_savings_captured
+        + total_reactive_penalty_savings_captured
     )
     total_residual_leak = current_opportunity_exposure + mitigated_technical_bleed
 
@@ -323,13 +396,13 @@ def render_data_entry_view():
     )
 
     # --------------------------------------------------------------------------
-    # TICKER DISPLAY RENDERING
+    # TICKER RENDER BLOCKS
     # --------------------------------------------------------------------------
     if total_residual_leak > 0:
         ticker_html = f"""
         <div style="background-color: #FCE8E6; padding: 12px; border-radius: 6px; border-left: 6px solid #D9272E; margin-bottom: 25px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
             <marquee scrollamount="5" style="color: #A81C1C; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-weight: bold; font-size: 13px; letter-spacing: 0.5px;">
-                🚨 STEM LIVE THREAT INVENTORY // TOTAL RESIDUAL FACILITY BLEED: £{total_residual_leak:,.0f}/YR ••• DETAILED UNMITIGATED LEAKS ➔ [DOWNTIME OPPORTUNITY RISK: £{current_opportunity_exposure:,.0f}/YR] ••• [EXCESS INSULATION WEAR PENALTY: £{(unmitigated_technical_bleed - total_copper_savings_captured - operational_annual_savings if unmitigated_technical_bleed > 0 else 0.0):,.0f}/YR] ••• [WASTED COPPER LOSS ENERGY: £{total_copper_savings_captured:,.0f}/YR]
+                🚨 STEM LIVE THREAT INVENTORY // TOTAL RESIDUAL FACILITY BLEED: £{total_residual_leak:,.0f}/YR ••• DETAILED LEAK EXPANSIONS ➔ [DOWNTIME OPPORTUNITY RISK: £{current_opportunity_exposure:,.0f}/YR] ••• [CORE CORE INEFFICIENCIES: £{(total_copper_savings_captured + total_transformer_savings_captured + total_hvac_savings_captured):,.0f}/YR] ••• [MECHANICAL TORQUE DRAG & PENALTIES: £{(total_insulation_savings_captured + total_counter_torque_savings_captured + total_reactive_penalty_savings_captured):,.0f}/YR]
             </marquee>
         </div>
         """
@@ -337,7 +410,7 @@ def render_data_entry_view():
         ticker_html = f"""
         <div style="background-color: #E6FFFA; padding: 12px; border-radius: 6px; border-left: 6px solid #00A389; margin-bottom: 25px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
             <marquee scrollamount="4" style="color: #006654; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-weight: bold; font-size: 13px; letter-spacing: 0.5px;">
-                🟢 STEM ACTIVE BLOCKADES // TOTAL RECLAIMED CASH SAVINGS: £{(operational_annual_savings + opportunity_savings_captured):,.0f}/YR ••• [ENERGY BILL REDUCTIONS: £{total_copper_savings_captured:,.0f}/YR] ••• [DEPRECIATION RECOVERY: £{total_insulation_savings_captured:,.0f}/YR] ••• RISK INSULATED TO £0
+                🟢 STEM ACTIVE BLOCKADES // TOTAL RECLAIMED DEEP CASH SAVINGS: £{(operational_annual_savings + opportunity_savings_captured):,.0f}/YR ••• [COPPER/TRANSFORMER OPTIMISATION: £{(total_copper_savings_captured + total_transformer_savings_captured):,.0f}/YR] ••• [HVAC & ACTUARIAL PENALTY RECOVERY: £{(total_hvac_savings_captured + total_reactive_penalty_savings_captured):,.0f}/YR] ••• RISK INSULATED TO £0
             </marquee>
         </div>
         """
