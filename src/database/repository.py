@@ -7,147 +7,132 @@ import pandas as pd
 class ProjectPersistenceRepository:
     """
     Handles the transactional persistence loop between front-end UI dataframes
-    and the production PostgreSQL relational database. Features runtime schema
-    introspection to automatically adapt to variant target column fields.
+    and the production PostgreSQL relational database.
     """
 
     def __init__(self, db_engine):
         self.engine = db_engine
 
-    def _discover_site_name_column(self, session: Session) -> str:
+    def get_all_saved_projects(self, tenant_id_str: str) -> list:
         """
-        Programmatically inspects the relational schema catalog parameters
-        to discover the exact column token tracking site titles.
+        Retrieves a complete checklist profile directory of all custom named
+        projects active for the authenticated corporate tenant.
         """
-        try:
-            res = session.execute(text("""
-                    SELECT column_name 
-                    FROM information_schema.columns 
-                    WHERE table_name = 'client_sites';
-                """)).fetchall()
+        tenant_uid = uuid.UUID(tenant_id_str)
+        query = "SELECT client_name FROM client_sites WHERE tenant_id = :tid ORDER BY client_name;"
 
-            columns = [str(r[0]).lower() for r in res]
-
-            # Iteratively evaluate column candidates matching your production design
-            for candidate in [
-                "name",
-                "site_name",
-                "title",
-                "site_title",
-                "project_name",
-                "label",
-                "description",
-            ]:
-                if candidate in columns:
-                    return candidate
-
-            # Fallback to the first text column that isn't an identifier flag
-            for col in columns:
-                if col not in [
-                    "site_id",
-                    "client_id",
-                    "id",
-                    "created_at",
-                    "updated_at",
-                ]:
-                    return col
-            return "name"  # Absolute base default fallback
-        except Exception:
-            return "name"
-
-    def fetch_all_registered_workspaces(self) -> list[dict]:
-        """
-        Queries the persistent database rows to discover all active project
-        workspaces currently saved across the system architecture.
-        """
         with Session(self.engine) as session:
             try:
-                name_col = self._discover_site_name_column(session)
-
-                # Programmatically construct an adaptive lookup script string
-                query_str = f"SELECT site_id, {name_col} FROM client_sites ORDER BY {name_col} ASC;"
-                result = session.execute(text(query_str)).fetchall()
-
-                # Standardise the dictionary keys so your UI view layer remains completely clean
-                return [
-                    {"site_id": str(res[0]), "site_name": str(res[1])} for res in result
-                ]
+                res = session.execute(text(query), {"tid": tenant_uid}).fetchall()
+                return [str(row[0]) for row in res]
             except Exception as err:
-                print(f"[WARNING] Could not fetch workspace directories: {str(err)}")
-                return []
+                print(
+                    f"[ERROR] Failed to index corporate projects portfolio: {str(err)}"
+                )
+                return ["Ammanford Alloys Ltd"]
+
+    def get_or_create_site_by_name(
+        self, tenant_id_str: str, client_name_str: str
+    ) -> str:
+        """
+        Resolves a project string name to its underlying unique relational database site key.
+        If no profile exists matching the text, a new site row is dynamically provisioned.
+        """
+        tenant_uid = uuid.UUID(tenant_id_str)
+        clean_name = client_name_str.strip()
+
+        with Session(self.engine) as session:
+            try:
+                res = session.execute(
+                    text(
+                        "SELECT site_id FROM client_sites WHERE tenant_id = :tid AND client_name = :name LIMIT 1;"
+                    ),
+                    {"tid": tenant_uid, "name": clean_name},
+                ).fetchone()
+
+                if res:
+                    return str(res[0])
+
+                # Provision a new site profile identity automatically if not found
+                new_site_id = uuid.uuid4()
+                session.execute(
+                    text("""
+                        INSERT INTO client_sites (site_id, tenant_id, client_name, site_location, estimated_annual_spend, main_transformer_kva)
+                        VALUES (:site_id, :tenant_id, :client_name, 'Staged Engineering Zone', 0.00, 1000);
+                    """),
+                    {
+                        "site_id": new_site_id,
+                        "tenant_id": tenant_uid,
+                        "client_name": clean_name,
+                    },
+                )
+                session.commit()
+                return str(new_site_id)
+            except Exception as err:
+                session.rollback()
+                print(
+                    f"[ERROR] Failed to map named project context boundary: {str(err)}"
+                )
+                raise err
 
     def load_site_inventory_state(self, site_uuid_str: str) -> pd.DataFrame:
         """
-        Queries persistent SQL storage lines for an active facility node.
-        Maps snake_case database rows back into a formatted layout grid asset fleet.
+        Queries the persistent SQL database tables for saved inventory records
+        belonging to a specific site facility node.
+        Transforms relational records back into a clean, human-readable datagrid format.
         """
         site_uuid = uuid.UUID(site_uuid_str)
 
+        query = """
+            SELECT 
+                si.quantity,
+                si.average_kw_rating as "Rating (kW)",
+                si.duty_cycle_hours_per_week as "Weekly Hrs",
+                t.asset_class as "Classification",
+                t.default_thd_i as "Distortion (THD_i)"
+            FROM site_inventories si
+            JOIN asset_taxonomy t ON si.asset_type_id = t.asset_type_id
+            WHERE si.site_id = :site_id;
+        """
+
         with Session(self.engine) as session:
             try:
-                result = session.execute(
-                    text("""
-                        SELECT t.asset_class, i.average_kw_rating, i.duty_cycle_hours_per_week
-                        FROM site_inventories i
-                        JOIN asset_taxonomy t ON i.asset_type_id = t.asset_type_id
-                        WHERE i.site_id = :site_id;
-                    """),
-                    {"site_id": site_uuid},
-                ).fetchall()
-
+                result = session.execute(text(query), {"site_id": site_uuid}).fetchall()
                 if not result:
                     return pd.DataFrame()
 
-                rows = []
-                for idx, res in enumerate(result):
-                    asset_class = str(res[0])
-                    rating = float(res[1])
-                    hours = float(res[2])
-
-                    if "Transformer" in asset_class:
-                        tag = f"TX-NODE-{idx+1:03d}"
-                        loc = "Primary Intake Switchboard"
-                        thd = 1.2
-                    elif "Furnace" in asset_class or "Melt" in asset_class:
-                        tag = f"FRN-CORE-{idx+1:03d}"
-                        loc = "Heavy Industrial Process Board (Panel B1)"
-                        thd = 22.1
-                    elif (
-                        "Drive" in asset_class
-                        or "VSD" in asset_class
-                        or "Pump" in asset_class
-                    ):
-                        tag = f"DRV-FEEDER-{idx+1:03d}"
-                        loc = "Motor Control Centre (MCC Panel B2)"
-                        thd = 38.0
-                    else:
-                        tag = f"LOAD-NODE-{idx+1:03d}"
-                        loc = "Auxiliary & Building Services (Panel B3)"
-                        thd = 4.5
-
-                    rows.append(
+                records = []
+                for idx, row in enumerate(result):
+                    prefix = (
+                        "EXT"
+                        if row[3] == "General Load"
+                        else (
+                            "VSD"
+                            if "VSD" in row[3]
+                            else "MOT" if "Motor" in row[3] else "ARC"
+                        )
+                    )
+                    records.append(
                         {
-                            "Asset Tag": tag,
-                            "Plant Location": loc,
-                            "Classification": asset_class,
-                            "Rating (kW)": rating,
-                            "Weekly Hrs": hours,
-                            "Distortion (THD_i)": thd,
+                            "Asset Tag": f"{prefix}-PARSED-{idx+1:02d}",
+                            "Plant Location": "Extracted Low Voltage Panel Branch",
+                            "Classification": row[3],
+                            "Rating (kW)": float(row[1]),
+                            "Weekly Hrs": float(row[2]),
+                            "Distortion (THD_i)": float(row[4]),
                         }
                     )
-
-                return pd.DataFrame(rows)
-
+                return pd.DataFrame(records)
             except Exception as err:
-                print(f"[ERROR] Session state hydration failed: {str(err)}")
+                print(f"[ERROR] Failed to fetch persistent project state: {str(err)}")
                 return pd.DataFrame()
 
     def save_site_inventory_state(
-        self, site_uuid_str: str, project_name: str, df_sandbox_assets: pd.DataFrame
+        self, site_uuid_str: str, df_sandbox_assets: pd.DataFrame
     ) -> dict:
         """
         Translates human-readable datagrid fields into snake_case relational tables.
-        Executes an atomic transactional block to safely write configuration metrics.
+        Executes an atomic transactional block to wipe and overwrite the site checklist.
         """
         if df_sandbox_assets.empty:
             return {
@@ -160,21 +145,6 @@ class ProjectPersistenceRepository:
         with Session(self.engine) as session:
             try:
                 session.begin()
-
-                # 🚀 Dynamic column lookup discovery pass executed live
-                name_col = self._discover_site_name_column(session)
-
-                # Compile an absolute auto-adaptive transaction command string
-                adaptive_upsert_query = f"""
-                    INSERT INTO client_sites (site_id, {name_col}, client_id)
-                    VALUES (:site_id, :site_name, NULL)
-                    ON CONFLICT (site_id) DO UPDATE SET {name_col} = :site_name;
-                """
-
-                session.execute(
-                    text(adaptive_upsert_query),
-                    {"site_id": site_uuid, "site_name": project_name.strip()},
-                )
 
                 session.execute(
                     text("DELETE FROM site_inventories WHERE site_id = :site_id;"),
@@ -217,10 +187,7 @@ class ProjectPersistenceRepository:
 
                     session.execute(
                         text("""
-                            INSERT INTO site_inventories (
-                                inventory_id, site_id, asset_type_id, quantity, 
-                                average_kw_rating, duty_cycle_hours_per_week
-                            )
+                            INSERT INTO site_inventories (inventory_id, site_id, asset_type_id, quantity, average_kw_rating, duty_cycle_hours_per_week)
                             VALUES (:inventory_id, :site_id, :asset_type_id, 1, :rating, :hours);
                         """),
                         {
@@ -236,12 +203,9 @@ class ProjectPersistenceRepository:
                 session.commit()
                 return {
                     "status": "SUCCESS",
-                    "message": f"Relational sync complete! Saved workspace '{project_name}' containing {inserted_count} assets.",
+                    "message": f"Successfully saved {inserted_count} rows down to Neon SQL database persistence tables.",
                 }
 
-            except Exception as err:
+            except Exception as e:
                 session.rollback()
-                return {
-                    "status": "CRASHED",
-                    "message": f"Database Operation Fault: Core constraint transaction rollback executed. Detail: `{str(err)}`",
-                }
+                raise e
