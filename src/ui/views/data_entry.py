@@ -216,16 +216,74 @@ def render_data_entry_view():
     Renders the unified split workspace combining streaming financial tickers,
     executive ribbons, and a fully parameter-aware conversational Gemini co-pilot engine.
     """
-    target_site_uid = "00000000-0000-0000-0000-000000000002"
+    current_tenant = "00000000-0000-0000-0000-000000000001"
     repo_writer = ProjectPersistenceRepository(db_engine=engine)
 
-    # 🚀 TWO-WAY SYNCHRONISATION LOOP: Query the database first before falling back to sandbox logs
-    if "sandbox_assets" not in st.session_state:
-        saved_db_state = repo_writer.load_site_inventory_state(target_site_uid)
+    # 🚀 TWO-WAY SYNCHRONISATION LOOP: Pull list of saved files from database catalog
+    available_projects = repo_writer.get_all_saved_projects(current_tenant)
+    if "selected_project_name" not in st.session_state:
+        st.session_state.selected_project_name = "Ammanford Alloys Ltd"
+
+    st.sidebar.divider()
+    st.sidebar.markdown("### 💾 Project Workspace Profile")
+
+    chosen_project = st.sidebar.selectbox(
+        "Active Project Record Configuration:",
+        options=available_projects + ["➕ Create New Named Project Profile..."],
+    )
+
+    if chosen_project == "➕ Create New Named Project Profile...":
+        custom_name = st.sidebar.text_input("Enter Unique Project Identifier Name:")
+        if custom_name.strip() != "":
+            resolved_site_uid = repo_writer.get_or_create_site_by_name(
+                current_tenant, custom_name.strip()
+            )
+            st.session_state.selected_project_name = custom_name.strip()
+            st.session_state.sandbox_assets = pd.DataFrame(
+                columns=[
+                    "Asset Tag",
+                    "Plant Location",
+                    "Classification",
+                    "Rating (kW)",
+                    "Weekly Hrs",
+                    "Distortion (THD_i)",
+                ]
+            )
+            st.rerun()
+        else:
+            resolved_site_uid = repo_writer.get_or_create_site_by_name(
+                current_tenant, "Ammanford Alloys Ltd"
+            )
+    else:
+        st.session_state.selected_project_name = chosen_project
+        resolved_site_uid = repo_writer.get_or_create_site_by_name(
+            current_tenant, chosen_project
+        )
+
+    # Automatically load the correct grid shape if project changes
+    if (
+        "last_loaded_project" not in st.session_state
+        or st.session_state.last_loaded_project
+        != st.session_state.selected_project_name
+    ):
+        saved_db_state = repo_writer.load_site_inventory_state(resolved_site_uid)
         if not saved_db_state.empty:
             st.session_state.sandbox_assets = saved_db_state
         else:
-            st.session_state.sandbox_assets = load_ammanford_alloys_dataset()
+            if st.session_state.selected_project_name == "Ammanford Alloys Ltd":
+                st.session_state.sandbox_assets = load_ammanford_alloys_dataset()
+            else:
+                st.session_state.sandbox_assets = pd.DataFrame(
+                    columns=[
+                        "Asset Tag",
+                        "Plant Location",
+                        "Classification",
+                        "Rating (kW)",
+                        "Weekly Hrs",
+                        "Distortion (THD_i)",
+                    ]
+                )
+        st.session_state.last_loaded_project = st.session_state.selected_project_name
 
     if "selected_nodes" not in st.session_state:
         st.session_state.selected_nodes = ["Motor Control Centre (MCC Panel B2)"]
@@ -396,13 +454,13 @@ def render_data_entry_view():
         with tab_brief:
             st.markdown("### 📋 STEM Unified Investment & Risk Mitigation Brief")
             st.caption(
-                "This brief updates natively as you adjust valuation variables on your sidebar or check switchgear nodes."
+                f"This brief updates natively for layout config: **{st.session_state.selected_project_name}**"
             )
             st.markdown("---")
 
             st.markdown(f"""
             #### 1. Financial Exposure & Opportunity Cost Assessment
-            Ammanford Alloys currently carries an active annualised operational risk posture of **£{total_residual_leak:,.0f}/year** consisting of parallel downtime vulnerabilities, unmitigated energy friction, and accelerated hardware degradation. Based on an active line valuation of **£{st.session_state.prod_val:,.0f}/hour** and an average process calibration restart curve of **{st.session_state.restart_hrs:.1f} hours**, a single sub-cycle voltage sag event results in an immediate opportunity cost bottleneck loss of **£{single_event_loss:,.0f}**.
+            The portfolio configuration **{st.session_state.selected_project_name}** currently carries an active annualised operational risk posture of **£{total_residual_leak:,.0f}/year** consisting of parallel downtime vulnerabilities, unmitigated energy friction, and accelerated hardware degradation. Based on an active line valuation of **£{st.session_state.prod_val:,.0f}/hour** and an average process calibration restart curve of **{st.session_state.restart_hrs:.1f} hours**, a single sub-cycle voltage sag event results in an immediate opportunity cost bottleneck loss of **£{single_event_loss:,.0f}**.
             
             #### 2. Technical Single Line Architecture Interventions
             To insulate the factory floor from macro grid volatility, the steering committee outlines the following physical network infrastructure modification:
@@ -514,21 +572,23 @@ def render_data_entry_view():
                     )
 
             st.markdown("---")
-            st.markdown("#### 💾 Project State Management")
+            st.markdown(
+                f"#### 💾 Project Save Action Panel: `{st.session_state.selected_project_name}`"
+            )
             p_col1, p_col2 = st.columns([3, 1])
             with p_col1:
                 st.caption(
-                    "Commit the current transient memory grid configuration down to the secure Neon SQL database "
-                    "to prevent loss of project updates on session resets."
+                    f"Commit the grid configuration for **{st.session_state.selected_project_name}** down "
+                    "to the secure Neon SQL database tables to lock in reverse-engineered nodes permanently."
                 )
             with p_col2:
                 if st.button("💾 Save Project State", use_container_width=True):
                     save_report = repo_writer.save_site_inventory_state(
-                        target_site_uid, st.session_state.sandbox_assets
+                        resolved_site_uid, st.session_state.sandbox_assets
                     )
                     if save_report["status"] == "SUCCESS":
                         st.toast(save_report["message"], icon="✅")
-                        st.rerun()  # Force a dynamic interface update
+                        st.rerun()
                     else:
                         st.error(save_report["message"])
 
@@ -832,6 +892,7 @@ def render_data_entry_view():
                 You are the master STEM Power Quality AI Agent. You blend technical electrical physics with corporate financial risk modelling.
                 
                 LIVE FACILITY DATA OVERVIEW:
+                - Active Project Context File Name: {st.session_state.selected_project_name}
                 - Deployed Active Shunt Nodes: {st.session_state.selected_nodes}
                 - Hourly Plant Production Value: £{st.session_state.prod_val:,.0f} / hr
                 - Process Reset Loop Downtime: {st.session_state.restart_hrs} hours
@@ -844,13 +905,6 @@ def render_data_entry_view():
                 
                 ⚠️ DETECTED NETWORK ANOMALY TARGET:
                 The peak wave-shape distortion emitter currently active on the busbar network is: {peak_anomaly_context}.
-                
-                💰 BUDGETARY CAPITAL COST ESTIMATION HEURISTICS:
-                1. Primary Intake Switchboard (Centralised Bay): £85,000
-                2. Heavy Industrial Process Board (Panel B1): £42,000
-                3. Motor Control Centre (MCC Panel B2): £35,000
-                4. Auxiliary & Building Services (Panel B3): £18,000
-                5. Local BESS & Hybrid UPS Array (Robotics Asset Protection): £65,000. Provides the sub-20ms ride-through to insulate sensitive equipment from sags, bringing Opportunity Cost exposure to £0.
                 """
 
                 contents_payload = [system_context]
@@ -915,7 +969,7 @@ def render_data_entry_view():
                     st.session_state.copilot_history.append(
                         {
                             "role": "assistant",
-                            "text": "⚠️ **Gemini API Free Tier Quota Exhausted (Error 429):**\n\nThe local session has exceeded the standard free request volume allowed for the `gemini-2.5-flash` endpoint. \n\n**Action Items:**\n1. Wait approximately **16 seconds** for the cooling window to close before resubmitting your blueprint attachment.\n2. To support production workloads, navigate to Google AI Studio and link a Google Cloud Billing profile to elevate this project key to the uncapped paid tier.",
+                            "text": "⚠️ **Gemini API Free Tier Quota Exhausted (Error 429):**\n\nThe local session has exceeded the standard free request volume allowed for the `gemini-2.5-flash` endpoint.",
                         }
                     )
                 else:

@@ -13,6 +13,68 @@ class ProjectPersistenceRepository:
     def __init__(self, db_engine):
         self.engine = db_engine
 
+    def get_all_saved_projects(self, tenant_id_str: str) -> list:
+        """
+        Retrieves a complete checklist profile directory of all custom named
+        projects active for the authenticated corporate tenant.
+        """
+        tenant_uid = uuid.UUID(tenant_id_str)
+        query = "SELECT client_name FROM client_sites WHERE tenant_id = :tid ORDER BY client_name;"
+
+        with Session(self.engine) as session:
+            try:
+                res = session.execute(text(query), {"tid": tenant_uid}).fetchall()
+                return [str(row[0]) for row in res]
+            except Exception as err:
+                print(
+                    f"[ERROR] Failed to index corporate projects portfolio: {str(err)}"
+                )
+                return ["Ammanford Alloys Ltd"]
+
+    def get_or_create_site_by_name(
+        self, tenant_id_str: str, client_name_str: str
+    ) -> str:
+        """
+        Resolves a project string name to its underlying unique relational database site key.
+        If no profile exists matching the text, a new site row is dynamically provisioned.
+        """
+        tenant_uid = uuid.UUID(tenant_id_str)
+        clean_name = client_name_str.strip()
+
+        with Session(self.engine) as session:
+            try:
+                res = session.execute(
+                    text(
+                        "SELECT site_id FROM client_sites WHERE tenant_id = :tid AND client_name = :name LIMIT 1;"
+                    ),
+                    {"tid": tenant_uid, "name": clean_name},
+                ).fetchone()
+
+                if res:
+                    return str(res[0])
+
+                # Provision a new site profile identity automatically if not found
+                new_site_id = uuid.uuid4()
+                session.execute(
+                    text("""
+                        INSERT INTO client_sites (site_id, tenant_id, client_name, site_location, estimated_annual_spend, main_transformer_kva)
+                        VALUES (:site_id, :tenant_id, :client_name, 'Staged Engineering Zone', 0.00, 1000);
+                    """),
+                    {
+                        "site_id": new_site_id,
+                        "tenant_id": tenant_uid,
+                        "client_name": clean_name,
+                    },
+                )
+                session.commit()
+                return str(new_site_id)
+            except Exception as err:
+                session.rollback()
+                print(
+                    f"[ERROR] Failed to map named project context boundary: {str(err)}"
+                )
+                raise err
+
     def load_site_inventory_state(self, site_uuid_str: str) -> pd.DataFrame:
         """
         Queries the persistent SQL database tables for saved inventory records
@@ -37,13 +99,10 @@ class ProjectPersistenceRepository:
             try:
                 result = session.execute(text(query), {"site_id": site_uuid}).fetchall()
                 if not result:
-                    return (
-                        pd.DataFrame()
-                    )  # Return empty to signal no saved state exists
+                    return pd.DataFrame()
 
                 records = []
                 for idx, row in enumerate(result):
-                    # Reconstruct standardized asset tags and panel locations dynamically
                     prefix = (
                         "EXT"
                         if row[3] == "General Load"
@@ -87,7 +146,6 @@ class ProjectPersistenceRepository:
             try:
                 session.begin()
 
-                # Clear out the legacy staging rows for this specific facility node
                 session.execute(
                     text("DELETE FROM site_inventories WHERE site_id = :site_id;"),
                     {"site_id": site_uuid},
@@ -148,6 +206,6 @@ class ProjectPersistenceRepository:
                     "message": f"Successfully saved {inserted_count} rows down to Neon SQL database persistence tables.",
                 }
 
-            except Exception as err:
+            except Exception as e:
                 session.rollback()
-                raise err
+                raise e
