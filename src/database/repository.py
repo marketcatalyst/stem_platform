@@ -21,7 +21,7 @@ class ProjectPersistenceRepository:
         """
         with Session(self.engine) as session:
             try:
-                # 🛠️ FIXED: Swapped 'site_name' for 'name' to align with client_sites schema
+                # Aligned target to match your exact production column naming ('name')
                 result = session.execute(
                     text("SELECT site_id, name FROM client_sites ORDER BY name ASC;")
                 ).fetchall()
@@ -118,7 +118,7 @@ class ProjectPersistenceRepository:
             try:
                 session.begin()
 
-                # 🛠️ FIXED: Corrected column assignment from 'site_name' to 'name'
+                # Verified: Explicit column list tracking references 'name'
                 session.execute(
                     text("""
                         INSERT INTO client_sites (site_id, name, client_id)
