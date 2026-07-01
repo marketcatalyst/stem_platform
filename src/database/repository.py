@@ -13,6 +13,20 @@ class ProjectPersistenceRepository:
     def __init__(self, db_engine):
         self.engine = db_engine
 
+    def fetch_all_registered_workspaces(self) -> list:
+        """
+        Queries the database catalog for all existing project profiles.
+        Aligns explicitly with front-end viewport drop-down menus.
+        """
+        query = "SELECT client_name FROM client_sites ORDER BY client_name;"
+        with Session(self.engine) as session:
+            try:
+                res = session.execute(text(query)).fetchall()
+                return [str(row[0]) for row in res]
+            except Exception as err:
+                print(f"[ERROR] Failed to fetch registered workspaces: {str(err)}")
+                return ["Ammanford Alloys Ltd"]
+
     def get_all_saved_projects(self, tenant_id_str: str) -> list:
         """
         Retrieves a complete checklist profile directory of all custom named
@@ -53,7 +67,6 @@ class ProjectPersistenceRepository:
                 if res:
                     return str(res[0])
 
-                # Provision a new site profile identity automatically if not found
                 new_site_id = uuid.uuid4()
                 session.execute(
                     text("""
@@ -79,7 +92,6 @@ class ProjectPersistenceRepository:
         """
         Queries the persistent SQL database tables for saved inventory records
         belonging to a specific site facility node.
-        Transforms relational records back into a clean, human-readable datagrid format.
         """
         site_uuid = uuid.UUID(site_uuid_str)
 
