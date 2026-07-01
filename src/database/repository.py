@@ -9,6 +9,7 @@ class ProjectPersistenceRepository:
         self.engine = db_engine
 
     def fetch_all_registered_workspaces(self) -> list:
+        # Simplified query
         query = "SELECT client_name FROM client_sites ORDER BY client_name;"
         with Session(self.engine) as session:
             try:
@@ -20,20 +21,16 @@ class ProjectPersistenceRepository:
     def get_or_create_site_by_name(
         self, tenant_id_str: str, client_name_str: str
     ) -> str:
-        """
-        Uses explicit type-safe parameter binding to resolve project IDs.
-        """
-        # Ensure we are dealing with pure strings for the database driver
+        # Force string comparison: column::text = input_string
         tid_str = str(tenant_id_str)
         clean_name = client_name_str.strip()
 
         with Session(self.engine) as session:
             try:
-                # 🛡️ FIXED: Added explicit CAST(:tid AS UUID) to satisfy PostgreSQL operator matching
-                stmt = text("""
-                    SELECT site_id FROM client_sites 
-                    WHERE tenant_id = CAST(:tid AS UUID) AND client_name = :name LIMIT 1;
-                """)
+                # Use ::text to perform string-based equality
+                stmt = text(
+                    "SELECT site_id FROM client_sites WHERE tenant_id::text = :tid AND client_name = :name LIMIT 1;"
+                )
                 res = session.execute(
                     stmt, {"tid": tid_str, "name": clean_name}
                 ).fetchone()
@@ -42,13 +39,11 @@ class ProjectPersistenceRepository:
                     return str(res[0])
 
                 new_site_id = str(uuid.uuid4())
-                insert_stmt = text("""
-                    INSERT INTO client_sites (site_id, tenant_id, client_name) 
-                    VALUES (CAST(:id AS UUID), CAST(:tid AS UUID), :name);
-                """)
+                insert_stmt = text(
+                    "INSERT INTO client_sites (site_id, tenant_id, client_name) VALUES (:id::uuid, :tid::uuid, :name);"
+                )
                 session.execute(
-                    insert_stmt,
-                    {"id": new_site_id, "tid": tid_str, "name": clean_name},
+                    insert_stmt, {"id": new_site_id, "tid": tid_str, "name": clean_name}
                 )
                 session.commit()
                 return new_site_id
@@ -58,20 +53,15 @@ class ProjectPersistenceRepository:
 
     def load_site_inventory_state(self, site_uuid_str: str) -> pd.DataFrame:
         sid_str = str(site_uuid_str)
-        # 🛡️ FIXED: Cast the parameter inside the SQL query
-        query = text("""
-            SELECT si.quantity, si.average_kw_rating, si.duty_cycle_hours_per_week, t.asset_class, t.default_thd_i 
-            FROM site_inventories si
-            JOIN asset_taxonomy t ON si.asset_type_id = t.asset_type_id
-            WHERE si.site_id = CAST(:id AS UUID);
-        """)
-
+        # Consistent string comparison
+        query = text(
+            "SELECT si.quantity, si.average_kw_rating, si.duty_cycle_hours_per_week, t.asset_class, t.default_thd_i FROM site_inventories si JOIN asset_taxonomy t ON si.asset_type_id = t.asset_type_id WHERE si.site_id::text = :id;"
+        )
         with Session(self.engine) as session:
             try:
                 result = session.execute(query, {"id": sid_str}).fetchall()
                 if not result:
                     return pd.DataFrame()
-
                 records = []
                 for row in result:
                     records.append(
@@ -93,24 +83,16 @@ class ProjectPersistenceRepository:
         with Session(self.engine) as session:
             try:
                 session.begin()
-                # 🛡️ FIXED: Use CAST on delete/insert parameters
                 session.execute(
-                    text(
-                        "DELETE FROM site_inventories WHERE site_id = CAST(:id AS UUID);"
-                    ),
+                    text("DELETE FROM site_inventories WHERE site_id::text = :id;"),
                     {"id": sid_str},
                 )
-
                 for _, row in df.iterrows():
                     session.execute(
                         text(
-                            "INSERT INTO site_inventories (inventory_id, site_id, asset_tag) VALUES (CAST(:inv AS UUID), CAST(:site AS UUID), :tag);"
+                            "INSERT INTO site_inventories (inventory_id, site_id, asset_tag) VALUES (:inv::uuid, :site::uuid, :tag);"
                         ),
-                        {
-                            "inv": str(uuid.uuid4()),
-                            "site": sid_str,
-                            "tag": row["Asset Tag"],
-                        },
+                        {"inv": uuid.uuid4(), "site": sid_str, "tag": row["Asset Tag"]},
                     )
                 session.commit()
                 return {"status": "SUCCESS"}
