@@ -45,7 +45,6 @@ def generate_dynamic_sld_graph(df: pd.DataFrame, selected_mitigations: list) -> 
         "",
     ]
 
-    # Render centralized active filter block if chosen by committee
     if any("Primary Intake" in str(node) for node in selected_mitigations):
         dot_nodes.append(
             '  SUB_STEM_CENTRAL [label="🛡️ STEM OPTIMISATION BAY\\nCentralised Filtering Matrix", fillcolor="#D4EDDA", color="#28A745", style="filled,bold", penwidth=2.5];'
@@ -87,7 +86,6 @@ def generate_dynamic_sld_graph(df: pd.DataFrame, selected_mitigations: list) -> 
         if not clean_id or clean_id == "____":
             continue
 
-        # Apply a visual signifier to node labels if their local host panel branch is mitigated
         is_mitigated = loc in selected_mitigations
         mit_label = " [MITIGATED]" if is_mitigated else ""
 
@@ -111,7 +109,6 @@ def generate_dynamic_sld_graph(df: pd.DataFrame, selected_mitigations: list) -> 
         else:
             aux_assets.append(asset_tuple)
 
-    # 1. Heavy Process Board Subgraph
     dot_nodes.append("  subgraph cluster_heavy {")
     dot_nodes.append('    label="⚡ Heavy Industrial Process Board";')
     dot_nodes.append(
@@ -130,7 +127,6 @@ def generate_dynamic_sld_graph(df: pd.DataFrame, selected_mitigations: list) -> 
         last_id = cid
     dot_nodes.append("  }")
 
-    # 2. Automated Drives MCC Subgraph
     dot_nodes.append("  subgraph cluster_drives {")
     dot_nodes.append('    label="⚙️ Motor Control Centre (MCC)";')
     dot_nodes.append(
@@ -157,7 +153,6 @@ def generate_dynamic_sld_graph(df: pd.DataFrame, selected_mitigations: list) -> 
         last_id = cid
     dot_nodes.append("  }")
 
-    # 3. Auxiliary Infrastructure Subgraph
     dot_nodes.append("  subgraph cluster_aux {")
     dot_nodes.append('    label="🏢 Auxiliary & Building Services";')
     dot_nodes.append(
@@ -240,9 +235,6 @@ def render_data_entry_view():
             key="annual_events",
         )
 
-    # ==========================================================================
-    # 🧮 DEEP-DIVE TRIPARTITE HARMONIC INEFFICIENCY CORE EVALUATION LOOP
-    # ==========================================================================
     unmitigated_technical_bleed = 0.0
     mitigated_technical_bleed = 0.0
 
@@ -253,8 +245,8 @@ def render_data_entry_view():
     total_hvac_savings_captured = 0.0
     total_reactive_penalty_savings_captured = 0.0
 
-    utility_rate = 0.22  # Active energy consumption cost tariff (£/kWh)
-    kva_penalty_factor = 14.50  # Actuarial kVAR demand surcharge index factor
+    utility_rate = 0.22
+    kva_penalty_factor = 14.50
 
     for _, row in st.session_state.sandbox_assets.iterrows():
         try:
@@ -266,27 +258,22 @@ def render_data_entry_view():
         except (ValueError, KeyError):
             continue
 
-        # A. RUN RELATIONAL BASELINE EXPANDED UNMITIGATED INEFFICIENCY MATRIX
         if thd_base > 5.0:
-            # 1. Fundamental core I²R Joule copper heating waste
             base_copper_waste_kwh = kw * ((thd_base / 100.0) * 0.048) * hours * 52
-            # 2. Local insulation degradation penalty curves
             base_insulation_penalty = kw * (thd_base / 100.0) * 12.50
-            # 3. Upstream Transformer Eddy Current & Stray Load Core Losses (K-Factor drag)
             base_trans_waste_kwh = kw * ((thd_base / 100.0) ** 2 * 0.015) * hours * 52
-            # 4. Negative Sequence Harmonic Counter-Torque Magnetic Resistance
+
             if any(m in classification for m in ["Motor", "VSD", "Drive", "Pump"]):
                 base_torque_waste_kwh = kw * (thd_base / 100.0) * 0.035 * hours * 52
             else:
                 base_torque_waste_kwh = 0.0
-            # 5. Parasitic HVAC Switchroom Cooling Load (35% thermal dissipation energy overhead)
+
             base_thermal_load_kwh = (
                 base_copper_waste_kwh
                 + base_trans_waste_kwh
                 + (base_torque_waste_kwh * 0.4)
             )
             base_hvac_waste_kwh = base_thermal_load_kwh * 0.35
-            # 6. Apparent Power (kVAR) Power Factor inflation penalty surcharge
             base_reactive_penalty = (
                 kw * (thd_base / 100.0) * 0.12
             ) * kva_penalty_factor
@@ -311,9 +298,8 @@ def render_data_entry_view():
         )
         unmitigated_technical_bleed += row_base_total_bleed
 
-        # B. RUN DYNAMIC REMEDIAL ACTIVE FILTER CANCELLATION SUPPRESSION LOOP
         if loc in st.session_state.selected_nodes:
-            thd_mitigated = 3.0  # Waveform actively suppressed back within nominal EREC G5/5 guidelines
+            thd_mitigated = 3.0
 
             mit_copper_waste_kwh = (
                 kw * ((thd_mitigated / 100.0) * 0.048) * hours * 52
@@ -342,7 +328,6 @@ def render_data_entry_view():
                 + mit_reactive_penalty
             )
 
-            # Extract distinct financial delta values captured by the active injection block
             total_copper_savings_captured += (
                 base_copper_waste_kwh - mit_copper_waste_kwh
             ) * utility_rate
@@ -362,7 +347,6 @@ def render_data_entry_view():
         else:
             mitigated_technical_bleed += row_base_total_bleed
 
-    # C. Calculate Downtime Opportunity Bottlenecks
     single_event_loss = st.session_state.prod_val * st.session_state.restart_hrs
     total_unmitigated_opportunity_cost = (
         single_event_loss * st.session_state.annual_events
@@ -395,14 +379,11 @@ def render_data_entry_view():
         else "£0 (High Risk Profile)"
     )
 
-    # --------------------------------------------------------------------------
-    # TICKER RENDER BLOCKS
-    # --------------------------------------------------------------------------
     if total_residual_leak > 0:
         ticker_html = f"""
         <div style="background-color: #FCE8E6; padding: 12px; border-radius: 6px; border-left: 6px solid #D9272E; margin-bottom: 25px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
             <marquee scrollamount="5" style="color: #A81C1C; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-weight: bold; font-size: 13px; letter-spacing: 0.5px;">
-                🚨 STEM LIVE THREAT INVENTORY // TOTAL RESIDUAL FACILITY BLEED: £{total_residual_leak:,.0f}/YR ••• DETAILED LEAK EXPANSIONS ➔ [DOWNTIME OPPORTUNITY RISK: £{current_opportunity_exposure:,.0f}/YR] ••• [CORE CORE INEFFICIENCIES: £{(total_copper_savings_captured + total_transformer_savings_captured + total_hvac_savings_captured):,.0f}/YR] ••• [MECHANICAL TORQUE DRAG & PENALTIES: £{(total_insulation_savings_captured + total_counter_torque_savings_captured + total_reactive_penalty_savings_captured):,.0f}/YR]
+                🚨 STEM LIVE THREAT INVENTORY // TOTAL RESIDUAL FACILITY BLEED: £{total_residual_leak:,.0f}/YR ••• DETAILED LEAK EXPANSIONS ➔ [DOWNTIME OPPORTUNITY RISK: £{current_opportunity_exposure:,.0f}/YR] ••• [CORE INEFFICIENCIES: £{(total_copper_savings_captured + total_transformer_savings_captured + total_hvac_savings_captured):,.0f}/YR] ••• [MECHANICAL TORQUE DRAG & PENALTIES: £{(total_insulation_savings_captured + total_counter_torque_savings_captured + total_reactive_penalty_savings_captured):,.0f}/YR]
             </marquee>
         </div>
         """
@@ -410,7 +391,7 @@ def render_data_entry_view():
         ticker_html = f"""
         <div style="background-color: #E6FFFA; padding: 12px; border-radius: 6px; border-left: 6px solid #00A389; margin-bottom: 25px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
             <marquee scrollamount="4" style="color: #006654; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-weight: bold; font-size: 13px; letter-spacing: 0.5px;">
-                🟢 STEM ACTIVE BLOCKADES // TOTAL RECLAIMED DEEP CASH SAVINGS: £{(operational_annual_savings + opportunity_savings_captured):,.0f}/YR ••• [COPPER/TRANSFORMER OPTIMISATION: £{(total_copper_savings_captured + total_transformer_savings_captured):,.0f}/YR] ••• [HVAC & ACTUARIAL PENALTY RECOVERY: £{(total_hvac_savings_captured + total_reactive_penalty_savings_captured):,.0f}/YR] ••• RISK INSULATED TO £0
+                🟢 STEM ACTIVE BLOCKADES // TOTAL RECLAIMED DEEP CASH SAVINGS: £{(operational_annual_savings + opportunity_savings_captured):,.0f}/YR ••• [ENERGY BILL REDUCTIONS: £{total_copper_savings_captured:,.0f}/YR] ••• [DEPRECIATION RECOVERY: £{total_insulation_savings_captured:,.0f}/YR] ••• RISK INSULATED TO £0
             </marquee>
         </div>
         """
@@ -475,7 +456,6 @@ def render_data_entry_view():
                 label="🏛️ Select Steering Committee Target Deployment Nodes:",
                 options=available_remedial_targets,
                 key="selected_nodes",
-                help="Observe how this selection menu dynamically rewrites its options based on the panels and busbars discovered in your uploaded schematics.",
             )
 
             st.markdown("---")
