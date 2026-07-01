@@ -67,7 +67,12 @@ def generate_dynamic_sld_graph(df: pd.DataFrame, selected_mitigations: list) -> 
         loc = str(row.get("Plant Location", "Main Busbar")).strip()
 
         try:
-            rating_val = str(row.get("Rating (kW)", "0")).replace("kW", "").replace(",", "").strip()
+            rating_val = (
+                str(row.get("Rating (kW)", "0"))
+                .replace("kW", "")
+                .replace(",", "")
+                .strip()
+            )
             rating = float(rating_val) if rating_val else 0.0
         except ValueError:
             rating = 0.0
@@ -96,7 +101,12 @@ def generate_dynamic_sld_graph(df: pd.DataFrame, selected_mitigations: list) -> 
         asset_tuple = (clean_id, node_style)
         if "Furnace" in classification or "Melt" in classification or rating >= 1000:
             heavy_assets.append(asset_tuple)
-        elif "Drive" in classification or "VSD" in classification or "Pump" in classification or "Motor" in classification:
+        elif (
+            "Drive" in classification
+            or "VSD" in classification
+            or "Pump" in classification
+            or "Motor" in classification
+        ):
             drive_assets.append(asset_tuple)
         else:
             aux_assets.append(asset_tuple)
@@ -167,8 +177,12 @@ def generate_dynamic_sld_graph(df: pd.DataFrame, selected_mitigations: list) -> 
     dot_nodes.append("  }")
 
     dot_nodes.append("")
-    dot_nodes.append('  BUS_MAIN -> BUS_HEAVY [color="#D1A113", penwidth=2.0, weight=5];')
-    dot_nodes.append('  BUS_MAIN -> BUS_DRIVES [color="#2B72C4", penwidth=2.0, weight=5];')
+    dot_nodes.append(
+        '  BUS_MAIN -> BUS_HEAVY [color="#D1A113", penwidth=2.0, weight=5];'
+    )
+    dot_nodes.append(
+        '  BUS_MAIN -> BUS_DRIVES [color="#2B72C4", penwidth=2.0, weight=5];'
+    )
     dot_nodes.append('  BUS_MAIN -> BUS_AUX [color="#6C757D", penwidth=2.0, weight=5];')
 
     dot_nodes.append("}")
@@ -227,16 +241,16 @@ def render_data_entry_view():
         )
 
     # ==========================================================================
-    # 🧮 TRUE DYNAMIC ROW-BY-ROW DIGITAL TWIN ENGINE LOOP
+    # 🧮 TRUE DYNAMIC ROW-BY-ROW DIGITAL TWIN ENGINE LOOP (WALRUS REMOVED)
     # ==========================================================================
     unmitigated_technical_bleed = 0.0
     mitigated_technical_bleed = 0.0
     total_copper_savings_captured = 0.0
     total_insulation_savings_captured = 0.0
-    
+
     utility_rate = 0.22  # Standard high-value baseline tariff
 
-    for _, row in df_inv := st.session_state.sandbox_assets.iterrows():
+    for _, row in st.session_state.sandbox_assets.iterrows():
         try:
             kw = float(str(row["Rating (kW)"]).replace(",", ""))
             hours = float(row["Weekly Hrs"])
@@ -245,26 +259,36 @@ def render_data_entry_view():
         except (ValueError, KeyError):
             continue
 
-        # A. Compile Unmitigated Baseline Loss Loading (Textbook Engineering Rules)
+        # A. Compile Unmitigated Baseline Loss Loading
         if thd_base > 5.0:
             base_copper_waste_kwh = kw * ((thd_base / 100.0) * 0.048) * hours * 52
             base_insulation_penalty = kw * (thd_base / 100.0) * 12.50
         else:
             base_copper_waste_kwh = 0.0
             base_insulation_penalty = 0.0
-            
-        row_base_bleed = (base_copper_waste_kwh * utility_rate) + base_insulation_penalty
+
+        row_base_bleed = (
+            base_copper_waste_kwh * utility_rate
+        ) + base_insulation_penalty
         unmitigated_technical_bleed += row_base_bleed
 
         # B. Check if this specific physical branch location has active cancellation engaged
         if loc in st.session_state.selected_nodes:
-            thd_mitigated = 3.0  # Winding stress actively suppressed back within nominal limits
-            mit_copper_waste_kwh = kw * ((thd_mitigated / 100.0) * 0.048) * hours * 52 if thd_mitigated > 5.0 else 0.0
+            thd_mitigated = 3.0
+            mit_copper_waste_kwh = (
+                kw * ((thd_mitigated / 100.0) * 0.048) * hours * 52
+                if thd_mitigated > 5.0
+                else 0.0
+            )
             mit_insulation_penalty = 0.0
-            
-            row_mit_bleed = (mit_copper_waste_kwh * utility_rate) + mit_insulation_penalty
-            
-            total_copper_savings_captured += (base_copper_waste_kwh - mit_copper_waste_kwh) * utility_rate
+
+            row_mit_bleed = (
+                mit_copper_waste_kwh * utility_rate
+            ) + mit_insulation_penalty
+
+            total_copper_savings_captured += (
+                base_copper_waste_kwh - mit_copper_waste_kwh
+            ) * utility_rate
             total_insulation_savings_captured += base_insulation_penalty
             mitigated_technical_bleed += row_mit_bleed
         else:
@@ -272,13 +296,24 @@ def render_data_entry_view():
 
     # C. Calculate Downtime Opportunity Bottlenecks
     single_event_loss = st.session_state.prod_val * st.session_state.restart_hrs
-    total_unmitigated_opportunity_cost = single_event_loss * st.session_state.annual_events
+    total_unmitigated_opportunity_cost = (
+        single_event_loss * st.session_state.annual_events
+    )
 
-    has_bess_shield = "★ Centralised BESS & Hybrid UPS Array (Process Ride-Through Shield)" in st.session_state.selected_nodes
-    current_opportunity_exposure = 0.0 if has_bess_shield else total_unmitigated_opportunity_cost
-    opportunity_savings_captured = total_unmitigated_opportunity_cost if has_bess_shield else 0.0
+    has_bess_shield = (
+        "★ Centralised BESS & Hybrid UPS Array (Process Ride-Through Shield)"
+        in st.session_state.selected_nodes
+    )
+    current_opportunity_exposure = (
+        0.0 if has_bess_shield else total_unmitigated_opportunity_cost
+    )
+    opportunity_savings_captured = (
+        total_unmitigated_opportunity_cost if has_bess_shield else 0.0
+    )
 
-    operational_annual_savings = total_copper_savings_captured + total_insulation_savings_captured
+    operational_annual_savings = (
+        total_copper_savings_captured + total_insulation_savings_captured
+    )
     total_residual_leak = current_opportunity_exposure + mitigated_technical_bleed
 
     insurance_credit = (
@@ -288,7 +323,7 @@ def render_data_entry_view():
     )
 
     # --------------------------------------------------------------------------
-    # 🚨 DYNAMIC SCROLLING RISK MARQUEE
+    # TICKER DISPLAY RENDERING
     # --------------------------------------------------------------------------
     if total_residual_leak > 0:
         ticker_html = f"""
@@ -313,7 +348,11 @@ def render_data_entry_view():
         st.metric(
             label="📉 Residual Cash Bleed (Remaining Exposure)",
             value=f"£{total_residual_leak:,.0f} / yr",
-            delta=f"£{operational_annual_savings:,.0f}/yr Captured" if operational_annual_savings > 0 else "Full Bleed Active",
+            delta=(
+                f"£{operational_annual_savings:,.0f}/yr Captured"
+                if operational_annual_savings > 0
+                else "Full Bleed Active"
+            ),
             delta_color="normal" if operational_annual_savings > 0 else "inverse",
         )
     with metric_col2:
@@ -348,13 +387,16 @@ def render_data_entry_view():
         )
 
         with tab_sld_sandbox:
-            # 🚀 TO THE MOON: Dynamic extraction of selection boundaries from active layout data
             if not st.session_state.sandbox_assets.empty:
-                discovered_branches = sorted(st.session_state.sandbox_assets["Plant Location"].unique().tolist())
+                discovered_branches = sorted(
+                    st.session_state.sandbox_assets["Plant Location"].unique().tolist()
+                )
             else:
                 discovered_branches = []
-                
-            available_remedial_targets = discovered_branches + ["★ Centralised BESS & Hybrid UPS Array (Process Ride-Through Shield)"]
+
+            available_remedial_targets = discovered_branches + [
+                "★ Centralised BESS & Hybrid UPS Array (Process Ride-Through Shield)"
+            ]
 
             st.multiselect(
                 label="🏛️ Select Steering Committee Target Deployment Nodes:",
@@ -413,52 +455,88 @@ def render_data_entry_view():
                 "directly from Microsoft Excel, or directly drop a structured Asset Register CSV table or an official "
                 "**PDF/JPEG Single Line Diagram (SLD) Schematic drawing**."
             )
-            
+
             uploaded_register = st.file_uploader(
                 "Bulk Ingest Fleet Asset Register spreadsheet or Blueprints (.csv, .pdf, .jpg, .jpeg, .png)",
                 type=["csv", "pdf", "jpg", "jpeg", "png"],
-                key="asset_register_sheet_uploader"
+                key="asset_register_sheet_uploader",
             )
-            
+
             if uploaded_register is not None:
                 try:
                     filename = uploaded_register.name.lower()
                     file_bytes = uploaded_register.read()
-                    
+
                     if filename.endswith(".csv"):
                         import io
+
                         df_uploaded_reg = pd.read_csv(io.BytesIO(file_bytes))
-                        df_uploaded_reg.columns = [str(c).strip() for c in df_uploaded_reg.columns]
-                        required_cols = ["Asset Tag", "Plant Location", "Classification", "Rating (kW)", "Weekly Hrs", "Distortion (THD_i)"]
-                        
+                        df_uploaded_reg.columns = [
+                            str(c).strip() for c in df_uploaded_reg.columns
+                        ]
+                        required_cols = [
+                            "Asset Tag",
+                            "Plant Location",
+                            "Classification",
+                            "Rating (kW)",
+                            "Weekly Hrs",
+                            "Distortion (THD_i)",
+                        ]
+
                         if all(c in df_uploaded_reg.columns for c in required_cols):
-                            st.session_state.sandbox_assets = df_uploaded_reg[required_cols]
-                            st.success("🎯 Asset register spreadsheet parsed and synchronised into memory successfully!")
+                            st.session_state.sandbox_assets = df_uploaded_reg[
+                                required_cols
+                            ]
+                            st.success(
+                                "🎯 Asset register spreadsheet parsed and synchronised into memory successfully!"
+                            )
                         else:
-                            st.error(f"❌ Ingestion Aborted: Missing column components. Expected explicit schema keys: {required_cols}")
+                            st.error(
+                                f"❌ Ingestion Aborted: Missing column components. Expected explicit schema keys: {required_cols}"
+                            )
                     else:
                         mime_mapping = {
-                            "pdf": "application/pdf", "jpg": "image/jpeg", 
-                            "jpeg": "image/jpeg", "png": "image/png"
+                            "pdf": "application/pdf",
+                            "jpg": "image/jpeg",
+                            "jpeg": "image/jpeg",
+                            "png": "image/png",
                         }
                         ext = filename.split(".")[-1]
                         active_mime = mime_mapping.get(ext, "image/jpeg")
-                        
-                        st.info("🧠 STEM Vision AI Module engaged. Executing programmatic drawing parsing...")
-                        
-                        parser_engine = MultimodalSLDParser(api_key=st.secrets["GEMINI_API_KEY"])
-                        raw_extracted_json = parser_engine.extract_structured_json_from_drawing(file_bytes, active_mime)
-                        df_extracted_twin = parser_engine.convert_extracted_payload_to_registry(raw_extracted_json)
-                        
+
+                        st.info(
+                            "🧠 STEM Vision AI Module engaged. Executing programmatic drawing parsing..."
+                        )
+
+                        parser_engine = MultimodalSLDParser(
+                            api_key=st.secrets["GEMINI_API_KEY"]
+                        )
+                        raw_extracted_json = (
+                            parser_engine.extract_structured_json_from_drawing(
+                                file_bytes, active_mime
+                            )
+                        )
+                        df_extracted_twin = (
+                            parser_engine.convert_extracted_payload_to_registry(
+                                raw_extracted_json
+                            )
+                        )
+
                         if not df_extracted_twin.empty:
                             st.session_state.sandbox_assets = df_extracted_twin
-                            st.success(f"⚡ Vision Audit Complete! Reverse-engineered {len(df_extracted_twin)} equipment nodes straight from blueprint schematics.")
+                            st.success(
+                                f"⚡ Vision Audit Complete! Reverse-engineered {len(df_extracted_twin)} equipment nodes straight from blueprint schematics."
+                            )
                         else:
-                            st.error("⚠️ Ingestion Warning: Blueprint analysed successfully but no distinct load groups were identified.")
-                            
+                            st.error(
+                                "⚠️ Ingestion Warning: Blueprint analysed successfully but no distinct load groups were identified."
+                            )
+
                 except Exception as e:
-                    st.error(f"❌ Ingestion Crash: Error processing asset file stream array. Details: `{str(e)}`")
-            
+                    st.error(
+                        f"❌ Ingestion Crash: Error processing asset file stream array. Details: `{str(e)}`"
+                    )
+
             st.markdown("---")
             st.markdown("#### 💾 Project State Management")
             p_col1, p_col2 = st.columns([3, 1])
@@ -471,13 +549,15 @@ def render_data_entry_view():
                 if st.button("💾 Save Project State", use_container_width=True):
                     target_site_uid = "00000000-0000-0000-0000-000000000002"
                     repo_writer = ProjectPersistenceRepository(db_engine=engine)
-                    save_report = repo_writer.save_site_inventory_state(target_site_uid, st.session_state.sandbox_assets)
-                    
+                    save_report = repo_writer.save_site_inventory_state(
+                        target_site_uid, st.session_state.sandbox_assets
+                    )
+
                     if save_report["status"] == "SUCCESS":
                         st.toast(save_report["message"], icon="✅")
                     else:
                         st.error(save_report["message"])
-            
+
             st.markdown("---")
             edited_df = st.data_editor(
                 data=st.session_state.sandbox_assets,
@@ -485,8 +565,12 @@ def render_data_entry_view():
                 num_rows="dynamic",
                 hide_index=True,
                 column_config={
-                    "Asset Tag": st.column_config.TextColumn("Asset Tag", required=True),
-                    "Plant Location": st.column_config.TextColumn("Plant Location", required=True),
+                    "Asset Tag": st.column_config.TextColumn(
+                        "Asset Tag", required=True
+                    ),
+                    "Plant Location": st.column_config.TextColumn(
+                        "Plant Location", required=True
+                    ),
                     "Classification": st.column_config.SelectboxColumn(
                         "Classification",
                         options=[
@@ -502,9 +586,24 @@ def render_data_entry_view():
                         ],
                         required=True,
                     ),
-                    "Rating (kW)": st.column_config.NumberColumn("Rating (kW)", min_value=1, max_value=10000, step=5, required=True),
-                    "Weekly Hrs": st.column_config.NumberColumn("Weekly Hrs", min_value=1, max_value=168, step=1, required=True),
-                    "Distortion (THD_i)": st.column_config.NumberColumn("Distortion (THD_i)", min_value=0.0, max_value=100.0, step=0.1, format="%.1f%%", required=True),
+                    "Rating (kW)": st.column_config.NumberColumn(
+                        "Rating (kW)",
+                        min_value=1,
+                        max_value=10000,
+                        step=5,
+                        required=True,
+                    ),
+                    "Weekly Hrs": st.column_config.NumberColumn(
+                        "Weekly Hrs", min_value=1, max_value=168, step=1, required=True
+                    ),
+                    "Distortion (THD_i)": st.column_config.NumberColumn(
+                        "Distortion (THD_i)",
+                        min_value=0.0,
+                        max_value=100.0,
+                        step=0.1,
+                        format="%.1f%%",
+                        required=True,
+                    ),
                 },
             )
             st.session_state.sandbox_assets = edited_df
@@ -515,59 +614,60 @@ def render_data_entry_view():
                 "Upload an interval log file stream to cross-reference your surveyor checklist totals "
                 "against actual peak utility demands."
             )
-            
-            with st.expander("📝 View Required CSV Header Schema Spec", expanded=False):
-                st.markdown("""
-                The ingestion data pipeline expects a CSV file containing three continuous headers:
-                * **`timestamp`**: Scheduled date-time strings (`YYYY-MM-DD HH:MM:SS`)
-                * **`active_kwh`**: Total active energy registered in the 30-min settlement block
-                * **`reactive_kvarh`**: Total reactive energy registered in the 30-min settlement block
-                """)
-                dummy_df = pd.DataFrame({
-                    "timestamp": ["2026-06-22 06:00:00", "2026-06-22 06:30:00", "2026-06-22 07:00:00"],
-                    "active_kwh": [40.0, 42.0, 95.0],
-                    "reactive_kvarh": [20.0, 21.0, 45.0]
-                })
-                st.dataframe(dummy_df, hide_index=True)
 
             uploaded_amr = st.file_uploader(
                 "Ingest Smart Meter Profile Logs (.csv)",
                 type=["csv"],
-                key="active_amr_uploader"
+                key="active_amr_uploader",
             )
 
-            ratings_clean = st.session_state.sandbox_assets["Rating (kW)"].astype(str).str.replace(",", "").astype(float)
+            ratings_clean = (
+                st.session_state.sandbox_assets["Rating (kW)"]
+                .astype(str)
+                .str.replace(",", "")
+                .astype(float)
+            )
             total_survey_kw = float(ratings_clean.sum())
 
             if uploaded_amr is not None:
                 try:
                     df_uploaded = pd.read_csv(uploaded_amr)
-                    df_uploaded.columns = [str(c).strip().lower() for c in df_uploaded.columns]
-                    
+                    df_uploaded.columns = [
+                        str(c).strip().lower() for c in df_uploaded.columns
+                    ]
+
                     target_columns = {"timestamp", "active_kwh", "reactive_kvarh"}
                     if not target_columns.issubset(df_uploaded.columns):
-                        st.error(f"❌ Ingestion Blocked: Uploaded file is missing required components. Target: {list(target_columns)}")
+                        st.error(
+                            f"❌ Ingestion Blocked: Uploaded file is missing required components. Target: {list(target_columns)}"
+                        )
                     else:
                         current_tenant = st.session_state.get("role", "swalek")
                         reconciler = AMRDataReconciler(tenant_id=current_tenant)
-                        
+
                         processed_intervals = []
                         for _, row in df_uploaded.iterrows():
                             read_node = {
                                 "timestamp": str(row["timestamp"]),
                                 "active_kwh": float(row["active_kwh"]),
-                                "reactive_kvarh": float(row["reactive_kvarh"])
+                                "reactive_kvarh": float(row["reactive_kvarh"]),
                             }
-                            processed_intervals.append(reconciler.parse_half_hourly_reading(read_node))
-                            
+                            processed_intervals.append(
+                                reconciler.parse_half_hourly_reading(read_node)
+                            )
+
                         df_processed = pd.DataFrame(processed_intervals)
                         df_processed.set_index("timestamp", inplace=True)
-                        
-                        st.success(f"📊 Pipeline Engaged: Successfully reconciled {len(df_processed)} half-hourly records.")
+
+                        st.success(
+                            f"📊 Pipeline Engaged: Successfully reconciled {len(df_processed)} half-hourly records."
+                        )
                         st.line_chart(df_processed[["demand_kw", "apparent_kva"]])
-                        
+
                         st.markdown("#### 🔍 Transient Inrush Anomaly Diagnostics")
-                        jumps = reconciler.detect_sudden_consumption_jumps(processed_intervals, jump_threshold_kw=50.0)
+                        jumps = reconciler.detect_sudden_consumption_jumps(
+                            processed_intervals, jump_threshold_kw=50.0
+                        )
                         if jumps:
                             for jump in jumps:
                                 st.warning(
@@ -575,25 +675,42 @@ def render_data_entry_view():
                                     f"Magnitude: `+{jump['magnitude_step_kw']} kW` (Profile transitioned from `{jump['pre_jump_kw']} kW` up to `{jump['post_jump_kw']} kW`)."
                                 )
                         else:
-                            st.info("🟢 Zero sudden load jumps caught across the current utility billing horizon.")
-                            
+                            st.info(
+                                "🟢 Zero sudden load jumps caught across the current utility billing horizon."
+                            )
+
                         st.markdown("#### 📑 Auditor Capacity Allocation Report")
-                        recon_summary = reconciler.reconcile_desktop_survey(total_survey_kw, processed_intervals)
-                        
+                        recon_summary = reconciler.reconcile_desktop_survey(
+                            total_survey_kw, processed_intervals
+                        )
+
                         r_col1, r_col2, r_col3 = st.columns(3)
                         with r_col1:
-                            st.metric("Empirical Peak Grid Demand", f"{recon_summary['measured_peak_demand_kw']:,} kW")
+                            st.metric(
+                                "Empirical Peak Grid Demand",
+                                f"{recon_summary['measured_peak_demand_kw']:,} kW",
+                            )
                         with r_col2:
-                            st.metric("Surveyor Estimated Checklist", f"{recon_summary['surveyor_estimated_load_kw']:,} kW")
+                            st.metric(
+                                "Surveyor Estimated Checklist",
+                                f"{recon_summary['surveyor_estimated_load_kw']:,} kW",
+                            )
                         with r_col3:
                             st.metric(
                                 "Relational Capacity Variance",
                                 f"{recon_summary['variance_gap_kw']:,} kW",
                                 delta=f"{recon_summary['variance_divergence_pct']}% Divergence",
-                                delta_color="inverse" if recon_summary['variance_divergence_pct'] > 25.0 else "normal"
+                                delta_color=(
+                                    "inverse"
+                                    if recon_summary["variance_divergence_pct"] > 25.0
+                                    else "normal"
+                                ),
                             )
-                            
-                        if recon_summary["action_required"] == "RE_CALIBRATE_DUTY_CYCLES":
+
+                        if (
+                            recon_summary["action_required"]
+                            == "RE_CALIBRATE_DUTY_CYCLES"
+                        ):
                             st.error(
                                 f"🚨 **Auditor Action Required:** Static survey inventory calculations overshoot actual maximum observed "
                                 f"demands by **{recon_summary['variance_divergence_pct']}%**. The asset register contains exaggerated duty cycles "
@@ -605,28 +722,59 @@ def render_data_entry_view():
                                 "acceptable engineering diversity limits of actual site operations."
                             )
                 except Exception as err:
-                    st.error(f"❌ Execution Fault: Failed to process interval stream array. Details: `{str(err)}`")
+                    st.error(
+                        f"❌ Execution Fault: Failed to process interval stream array. Details: `{str(err)}`"
+                    )
             else:
-                st.info("💡 Sandbox Staging View: No file uploaded yet. Parsing validation profile records below:")
-                
+                st.info(
+                    "💡 Sandbox Staging View: No file uploaded yet. Parsing validation profile records below:"
+                )
+
                 reconciler = AMRDataReconciler(tenant_id="swalek")
                 simulated_meter_logs = [
-                    {"timestamp": "2026-06-22 06:00:00", "active_kwh": 40.0, "reactive_kvarh": 20.0},
-                    {"timestamp": "2026-06-22 06:30:00", "active_kwh": 42.0, "reactive_kvarh": 21.0},
-                    {"timestamp": "2026-06-22 07:00:00", "active_kwh": 95.0, "reactive_kvarh": 45.0},
-                    {"timestamp": "2026-06-22 07:30:00", "active_kwh": 93.0, "reactive_kvarh": 44.0},
+                    {
+                        "timestamp": "2026-06-22 06:00:00",
+                        "active_kwh": 40.0,
+                        "reactive_kvarh": 20.0,
+                    },
+                    {
+                        "timestamp": "2026-06-22 06:30:00",
+                        "active_kwh": 42.0,
+                        "reactive_kvarh": 21.0,
+                    },
+                    {
+                        "timestamp": "2026-06-22 07:00:00",
+                        "active_kwh": 95.0,
+                        "reactive_kvarh": 45.0,
+                    },
+                    {
+                        "timestamp": "2026-06-22 07:30:00",
+                        "active_kwh": 93.0,
+                        "reactive_kvarh": 44.0,
+                    },
                 ]
-                processed_stream = [reconciler.parse_half_hourly_reading(log) for log in simulated_meter_logs]
+                processed_stream = [
+                    reconciler.parse_half_hourly_reading(log)
+                    for log in simulated_meter_logs
+                ]
                 df_sim = pd.DataFrame(processed_stream).set_index("timestamp")
-                
+
                 st.line_chart(df_sim[["demand_kw", "apparent_kva"]])
-                
-                jumps = reconciler.detect_sudden_consumption_jumps(processed_stream, jump_threshold_kw=50.0)
+
+                jumps = reconciler.detect_sudden_consumption_jumps(
+                    processed_stream, jump_threshold_kw=50.0
+                )
                 for jump in jumps:
-                    st.warning(f"⚠️ **Heavy Start Event Caught:** Registered load jump at `{jump['timestamp']}`! Step: `+{jump['magnitude_step_kw']} kW`.")
-                
-                recon_summary = reconciler.reconcile_desktop_survey(total_survey_kw, processed_stream)
-                st.write(f"**Verification Report Index:** `{recon_summary['action_required']}` | Measured Divergence: `{recon_summary['variance_divergence_pct']}%`.")
+                    st.warning(
+                        f"⚠️ **Heavy Start Event Caught:** Registered load jump at `{jump['timestamp']}`! Step: `+{jump['magnitude_step_kw']} kW`."
+                    )
+
+                recon_summary = reconciler.reconcile_desktop_survey(
+                    total_survey_kw, processed_stream
+                )
+                st.write(
+                    f"**Verification Report Index:** `{recon_summary['action_required']}` | Measured Divergence: `{recon_summary['variance_divergence_pct']}%`."
+                )
 
     with col_copilot:
         st.markdown("### 🧠 STEM AI Co-Pilot Console")
@@ -644,11 +792,15 @@ def render_data_entry_view():
             "Upload schematic blueprint for real-time Co-Pilot inspection:",
             type=["pdf", "jpg", "jpeg", "png"],
             key="copilot_direct_drawing_uploader",
-            label_visibility="collapsed"
+            label_visibility="collapsed",
         )
 
-        if user_prompt := st.chat_input("Ask about capital costs, opportunity costs, drawing metrics..."):
-            st.session_state.copilot_history.append({"role": "user", "text": user_prompt})
+        if user_prompt := st.chat_input(
+            "Ask about capital costs, opportunity costs, drawing metrics..."
+        ):
+            st.session_state.copilot_history.append(
+                {"role": "user", "text": user_prompt}
+            )
             with chat_container:
                 st.chat_message("user").markdown(user_prompt)
 
@@ -656,15 +808,27 @@ def render_data_entry_view():
                 client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
 
                 if not st.session_state.sandbox_assets.empty:
-                    df_inv = st.session_state.sandbox_assets
-                    headers = list(df_inv.columns)
-                    markdown_lines = ["| " + " | ".join(headers) + " |", "| " + " | ".join(["---"] * len(headers)) + " |"]
-                    for _, row in df_inv.iterrows():
-                        markdown_lines.append("| " + " | ".join(str(row[h]) for h in headers) + " |")
+                    df_inv_matrix = st.session_state.sandbox_assets
+                    headers = list(df_inv_matrix.columns)
+                    markdown_lines = [
+                        "| " + " | ".join(headers) + " |",
+                        "| " + " | ".join(["---"] * len(headers)) + " |",
+                    ]
+                    for _, row in df_inv_matrix.iterrows():
+                        markdown_lines.append(
+                            "| " + " | ".join(str(row[h]) for h in headers) + " |"
+                        )
                     serialized_sld_matrix = "\n".join(markdown_lines)
-                    
-                    thd_clean_series = st.session_state.sandbox_assets["Distortion (THD_i)"].astype(str).str.replace("%", "").astype(float)
-                    peak_row = st.session_state.sandbox_assets.iloc[thd_clean_series.idxmax()]
+
+                    thd_clean_series = (
+                        st.session_state.sandbox_assets["Distortion (THD_i)"]
+                        .astype(str)
+                        .str.replace("%", "")
+                        .astype(float)
+                    )
+                    peak_row = st.session_state.sandbox_assets.iloc[
+                        thd_clean_series.idxmax()
+                    ]
                     peak_anomaly_context = f"{peak_row['Asset Tag']} ({peak_row['Classification']}) exhibiting {peak_row['Distortion (THD_i)']}% THD_i"
                 else:
                     serialized_sld_matrix = "No equipment nodes currently registered."
@@ -696,21 +860,28 @@ def render_data_entry_view():
                 """
 
                 contents_payload = [system_context]
-                
+
                 if chat_attachment is not None:
                     att_filename = chat_attachment.name.lower()
                     att_bytes = chat_attachment.read()
-                    mime_map = {"pdf": "application/pdf", "jpg": "image/jpeg", "jpeg": "image/jpeg", "png": "image/png"}
+                    mime_map = {
+                        "pdf": "application/pdf",
+                        "jpg": "image/jpeg",
+                        "jpeg": "image/jpeg",
+                        "png": "image/png",
+                    }
                     att_mime = mime_map.get(att_filename.split(".")[-1], "image/jpeg")
-                    
-                    contents_payload.append(types.Part.from_bytes(data=att_bytes, mime_type=att_mime))
+
+                    contents_payload.append(
+                        types.Part.from_bytes(data=att_bytes, mime_type=att_mime)
+                    )
                     contents_payload.append(
                         "An attached drawing file is present. You are commanded to execute an engineering-grade deep-dive "
                         "hierarchical audit on its canvas geometry. Zoom your attention vectors directly into the "
                         "dense low-voltage sub-breaker networks, interlocking ties, metering configurations, and switchboard line items "
                         "on the lower sections. Map specific load discoveries straight back to the user query parameters."
                     )
-                
+
                 contents_payload.append(user_prompt)
 
                 engineering_instruction_layer = """
@@ -738,7 +909,9 @@ def render_data_entry_view():
                     for call in response.function_calls:
                         if call.name == "update_electrical_mitigation_nodes":
                             tool_args = call.args
-                            execution_result = update_electrical_mitigation_nodes(**tool_args)
+                            execution_result = update_electrical_mitigation_nodes(
+                                **tool_args
+                            )
                             st.session_state.copilot_history.append(
                                 {
                                     "role": "assistant",
@@ -746,8 +919,14 @@ def render_data_entry_view():
                                 }
                             )
                 else:
-                    reply = response.text if response.text else "Telemetry data parsed. System state stabilised."
-                    st.session_state.copilot_history.append({"role": "assistant", "text": reply})
+                    reply = (
+                        response.text
+                        if response.text
+                        else "Telemetry data parsed. System state stabilised."
+                    )
+                    st.session_state.copilot_history.append(
+                        {"role": "assistant", "text": reply}
+                    )
 
             except Exception as e:
                 error_str = str(e)
