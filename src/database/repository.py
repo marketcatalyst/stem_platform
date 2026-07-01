@@ -31,6 +31,7 @@ class ProjectPersistenceRepository:
         Retrieves a complete checklist profile directory of all custom named
         projects active for the authenticated corporate tenant.
         """
+        # Hardened: Strict ANSI CAST ensures parameter compatibility
         query = "SELECT client_name FROM client_sites WHERE tenant_id = CAST(:tid AS UUID) ORDER BY client_name;"
         with Session(self.engine) as session:
             try:
@@ -49,11 +50,12 @@ class ProjectPersistenceRepository:
     ) -> str:
         """
         Resolves a project string name to its underlying unique relational database site key.
+        If no profile exists matching the text, a new site row is dynamically provisioned.
         """
         clean_name = client_name_str.strip()
         with Session(self.engine) as session:
             try:
-                # 🛡️ Hardened: Strict ANSI CAST avoids colon operator collisions
+                # 🛡️ Hardened: Strict ANSI CAST avoids colon operator collisions and type binding errors
                 res = session.execute(
                     text(
                         "SELECT site_id FROM client_sites WHERE tenant_id = CAST(:tid AS UUID) AND client_name = :name LIMIT 1;"
@@ -141,6 +143,7 @@ class ProjectPersistenceRepository:
     ) -> dict:
         """
         Translates human-readable datagrid fields into snake_case relational tables.
+        Executes an atomic transactional block to wipe and overwrite the site checklist.
         """
         if df_sandbox_assets.empty:
             return {
