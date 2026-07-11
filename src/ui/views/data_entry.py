@@ -1,3 +1,4 @@
+# ui/views/data_entry.py
 import os
 import sys
 import streamlit as st
@@ -227,6 +228,7 @@ def render_data_entry_view():
     st.sidebar.divider()
     st.sidebar.markdown("### 💾 Project Workspace Profile")
 
+    # Dynamic tracking index that lists out existing records
     chosen_project = st.sidebar.selectbox(
         "Active Project Record Configuration:",
         options=existing_records + ["➕ Create New Named Project Profile..."],
@@ -259,6 +261,26 @@ def render_data_entry_view():
         resolved_site_uid = repo_engine.get_or_create_site_by_name(
             current_tenant, chosen_project
         )
+
+    # Clear Slate / Wipe Blackboard Feature
+    if st.sidebar.button(
+        "🧹 Clear Workspace (Blank Staging Slates)", use_container_width=True
+    ):
+        st.session_state.sandbox_assets = pd.DataFrame(
+            columns=[
+                "Asset Tag",
+                "Plant Location",
+                "Classification",
+                "Rating (kW)",
+                "Weekly Hrs",
+                "Distortion (THD_i)",
+            ]
+        )
+        st.toast(
+            "Staging grid wiped cleanly. Ready for manual entry or file ingest.",
+            icon="🧹",
+        )
+        st.rerun()
 
     if (
         "last_loaded_project" not in st.session_state
@@ -442,7 +464,7 @@ def render_data_entry_view():
 
             if st.session_state.sandbox_assets.shape[0] == 0:
                 st.info(
-                    "No active assets registered. Please append rows inside the staging clipboard."
+                    "No active assets registered. Please append rows inside the staging clipboard or load a profile."
                 )
             else:
                 dot_string = generate_dynamic_sld_graph(
@@ -732,7 +754,7 @@ def render_data_entry_view():
                                 "🟢 Zero sudden load jumps caught across the current utility billing horizon."
                             )
 
-                        st.markdown("#### 📑 Auditor Capacity Allocation Report")
+                        st.markdown("#### #### 📑 Auditor Capacity Allocation Report")
                         recon_summary = reconciler.reconcile_desktop_survey(
                             total_survey_kw, processed_intervals
                         )

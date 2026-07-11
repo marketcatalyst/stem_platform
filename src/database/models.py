@@ -72,8 +72,17 @@ class ClientSite(Base):
         nullable=False,
     )
     client_name = Column(String(255), nullable=False)
-    site_location = Column(String(255), nullable=False)
-    estimated_annual_spend = Column(Numeric(12, 2), nullable=False)
+
+    # 🎯 SaaS Robust Fix: Enforce the default value directly on the PostgreSQL server instance
+    site_location = Column(
+        String(255), nullable=False, server_default=text("'UK Operational Base'")
+    )
+
+    # 🎯 SaaS Robust Fix: Enforce a server-side baseline financial limit for onboarding loops
+    estimated_annual_spend = Column(
+        Numeric(12, 2), nullable=False, server_default=text("0.00")
+    )
+
     main_transformer_kva = Column(Integer, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=text("NOW()"))
 
